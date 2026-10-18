@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOJAxMOJA WARS ステージエディタ</title>
+<style>
+  :root { --accent:#1b4f9c; --crimson:#a82020; --cream:#eef4ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0d1117; color:var(--cream); font-family:'Hiragino Kaku Gothic ProN', ui-sans-serif, sans-serif; }
+  header { background:linear-gradient(90deg, #122a5c, #6e1423); padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; border-bottom:2px solid #3a6ea5; }
+  header h1 { font-size:18px; margin:0; letter-spacing:1px; }
+  header .sub { font-size:12px; opacity:.85; }
+  #toolbar, #stagebar { display:flex; gap:8px; padding:10px 16px 0; flex-wrap:wrap; align-items:center; }
+  #toolbar { padding-bottom:10px; }
+  .tool, .stage { border:2px solid #445; background:#1c2433; color:var(--cream); padding:8px 12px;
+          border-radius:6px; cursor:pointer; font-size:13px; }
+  .tool.sel, .stage.sel { border-color:#ffd700; background:#2f3b52; }
+  .btn { background:var(--crimson); border:none; color:var(--cream); padding:8px 14px; border-radius:6px;
+         cursor:pointer; font-size:13px; font-weight:bold; box-shadow:0 2px 0 #5d0f0f; }
+  .btn:active { transform:translateY(2px); box-shadow:none; }
+  #wrap { overflow-x:auto; margin:0 16px 8px; border:3px solid #3a4a66; border-radius:4px; background:#000; }
+  canvas { display:block; image-rendering:pixelated; cursor:crosshair; }
+  #status { padding:4px 16px 12px; font-size:12px; color:#9ab; font-family:ui-monospace, monospace; word-break:break-all; }
+  a { color:#7fc4ff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🚀 MOJAxMOJA WARS ステージエディタ</h1>
+  <span class="sub">自機 KBX-026 SAMURAI / 全4面 (月・火星・木星・地球付近) を編集 — URLがそのままセーブデータ</span>
+</header>
+<div id="stagebar">
+  <button class="stage sel" data-s="0">STAGE 1: 月 (MOON)</button>
+  <button class="stage" data-s="1">STAGE 2: 火星 (MARS)</button>
+  <button class="stage" data-s="2">STAGE 3: 木星 (JUPITER)</button>
+  <button class="stage" data-s="3">STAGE 4: 地球付近 (EARTH)</button>
+  <span style="flex:1"></span>
+  <button class="btn" id="copy">🔗 URLをコピー</button>
+  <button class="btn" id="rom">💾 .nes を書き出す</button>
+  <button class="btn" id="clear">🗑 このステージを宇宙空間に初期化</button>
+</div>
+<div id="toolbar">
+  <button class="tool" data-f="0">🌌 0: 星空 (偵察モジャ)</button>
+  <button class="tool sel" data-f="1">🌑 1: クレーター (スウープ編隊)</button>
+  <button class="tool" data-f="2">⛰ 2: 岩礁帯 (突撃チャージャー)</button>
+  <button class="tool" data-f="3">☁️ 3: ガス星雲帯 (2連スウープ)</button>
+  <button class="tool" data-f="4">🏰 4: モジャ要塞壁 (重装砲台)</button>
+  <button class="tool" data-f="5">🛰 5: 軌道リング (アイテムキャリア確実出現)</button>
+</div>
+<div id="wrap"><canvas id="cv" width="1024" height="256" style="width:1536px;height:384px"></canvas></div>
+<div id="status"></div>
+<div class="note" style="padding:4px 16px 16px; font-size:12px; color:#9ab">
+  左端 (メタ行0 = ステージ開始) から 右端 (メタ行63 = MOJAxMOJA BOSS出現) へと縦スクロール進行します。<br>
+  遊び方: 書き出した <code>.nes</code> を <a href="https://goroman.github.io/cluade-famicom-emu/" target="_blank">cluade-famicom-emu</a> の「ROMを開く」で読み込んでプレイできます。
+  ベースROM: <a href="base.nes">base.nes</a>
+</div>
+<script>
+'use strict';
+const COLS = 64, CELL = 16, STAGES = 4;
+const cv = document.getElementById('cv'), cx = cv.getContext('2d');
+const statusEl = document.querySelector('#status');
+let maps = new Uint8Array(COLS * STAGES);
+let defaults = null;
+let romBuf = null, romOff = -1;
+let st = 0, brush = 1;
+
+const STAGE_NAMES = ['STAGE 1: MOON (月)', 'STAGE 2: MARS (火星)', 'STAGE 3: JUPITER (木星)', 'STAGE 4: EARTH ORBIT (地球付近)'];
+const STAGE_PAL = [
+  { dark:'#555b6e', mid:'#a8b2c8', hi:'#ffffff', boss:'#e066ff' }, // Moon
+  { dark:'#6e1818', mid:'#d64527', hi:'#ffaa44', boss:'#ff3355' }, // Mars
+  { dark:'#5c4212', mid:'#c89628', hi:'#55e088', boss:'#66ff44' }, // Jupiter
+  { dark:'#102868', mid:'#2868d8', hi:'#55ffff', boss:'#ff55ff' }, // Earth Orbit
+];
+
+async function loadBase() {
+  try {
+    romBuf = new Uint8Array(await (await fetch('base.nes')).arrayBuffer());
+    const magic = [...'LVLMAP01'].map(c => c.charCodeAt(0));
+    outer: for (let i = 0; i < romBuf.length - 8; i++) {
+      for (let j = 0; j < 8; j++) if (romBuf[i+j] !== magic[j]) continue outer;
+      romOff = i + 8; break;
+    }
+    if (romOff < 0) throw new Error('LVLMAP01 マーカーが見つかりません');
+    defaults = romBuf.slice(romOff, romOff + COLS * STAGES);
+  } catch (e) {
+    defaults = new Uint8Array(COLS * STAGES);
+    statusEl.textContent = 'base.nes を読めませんでした: ' + e;
+  }
+}
+
+function loadHash() {
+  maps.set(defaults);
+  const h = location.hash.replace('#', '');
+  if (/^[0-5]{1,256}$/.test(h)) for (let i = 0; i < h.length; i++) maps[i] = +h[i];
+}
+function saveHash() {
+  const s = Array.from(maps).join('');
+  const d = Array.from(defaults).join('');
+  history.replaceState(null, '', s === d ? location.pathname : '#' + s);
+  statusEl.textContent = `${STAGE_NAMES[st]} を編集中 | セーブデータ: ` + (location.hash ? location.hash.slice(0,80) + '…' : '(標準ステージ)');
+}
+
+const map = () => maps.subarray(st*COLS, st*COLS+COLS);
+
+function draw() {
+  const m = map();
+  const pal = STAGE_PAL[st];
+  cx.fillStyle = '#05070d';
+  cx.fillRect(0, 0, 1024, 256);
+
+  // 背景の星々
+  for (let i = 0; i < 180; i++) {
+    const sx = (i * 73) % 1024, sy = (i * 41) % 256;
+    cx.fillStyle = (i & 1) ? '#ffffff' : pal.mid;
+    cx.fillRect(sx, sy, 2, 2);
+  }
+
+  for (let c = 0; c < COLS; c++) {
+    const x = c * CELL;
+    const f = m[c];
+    // グリッド線
+    cx.fillStyle = 'rgba(255,255,255,0.06)';
+    cx.fillRect(x, 0, 1, 256);
+
+    if (f === 1) {
+      // クレーター (上下端付近)
+      cx.fillStyle = pal.dark; cx.fillRect(x+2, 16, 12, 24); cx.fillRect(x+2, 216, 12, 24);
+      cx.fillStyle = pal.mid;  cx.fillRect(x+4, 18, 8, 20);  cx.fillRect(x+4, 218, 8, 20);
+      cx.fillStyle = '#05070d';cx.fillRect(x+6, 22, 4, 12);  cx.fillRect(x+6, 222, 4, 12);
+    } else if (f === 2) {
+      // 岩礁帯
+      cx.fillStyle = pal.dark; cx.fillRect(x, 0, 16, 36); cx.fillRect(x, 220, 16, 36);
+      cx.fillStyle = pal.mid;  cx.fillRect(x+2, 4, 12, 26); cx.fillRect(x+2, 226, 12, 26);
+      cx.fillStyle = pal.hi;   cx.fillRect(x+4, 8, 6, 6);   cx.fillRect(x+4, 230, 6, 6);
+    } else if (f === 3) {
+      // ガス星雲帯
+      cx.fillStyle = pal.dark; cx.fillRect(x, 40, 16, 48); cx.fillRect(x, 168, 16, 48);
+      cx.fillStyle = pal.mid;  cx.fillRect(x, 52, 16, 24); cx.fillRect(x, 180, 16, 24);
+      cx.fillStyle = pal.hi;   cx.fillRect(x+4, 60, 8, 8); cx.fillRect(x+4, 188, 8, 8);
+    } else if (f === 4) {
+      // モジャ要塞壁
+      cx.fillStyle = pal.dark; cx.fillRect(x, 0, 16, 56); cx.fillRect(x, 200, 16, 56);
+      cx.fillStyle = pal.mid;  cx.fillRect(x+1, 2, 14, 50); cx.fillRect(x+1, 204, 14, 50);
+      cx.fillStyle = pal.hi;   cx.fillRect(x+4, 12, 8, 8); cx.fillRect(x+4, 236, 8, 8);
+    } else if (f === 5) {
+      // 軌道リング + アイテムキャリア
+      cx.fillStyle = pal.mid;  cx.fillRect(x+2, 8, 12, 240);
+      cx.fillStyle = pal.hi;   cx.fillRect(x+6, 8, 4, 240);
+      // アイテムカプセル [P] マーカー
+      cx.fillStyle = '#00e5ff'; cx.fillRect(x+3, 120, 10, 14);
+      cx.fillStyle = '#000';    cx.fillRect(x+5, 122, 6, 10);
+    }
+
+    // MOJAxMOJA 敵マーカー描画
+    if (f === 5 || (c & 1)) {
+      const ey = 64 + ((c * 37) % 120);
+      cx.fillStyle = f === 5 ? '#ffdd00' : '#ff5533';
+      cx.fillRect(x+4, ey, 8, 10);
+      cx.fillStyle = '#ffffff';
+      cx.fillRect(x+5, ey+2, 2, 2);
+      cx.fillRect(x+9, ey+2, 2, 2);
+    }
+  }
+
+  // 左端: KBX-026 SAMURAI スタート位置
+  cx.fillStyle = '#ffffff'; cx.fillRect(10, 120, 14, 16);
+  cx.fillStyle = '#2266ff'; cx.fillRect(12, 124, 10, 8);
+  cx.fillStyle = '#ff2222'; cx.fillRect(6, 122, 4, 12);
+
+  // 右端 (c=61..63): MOJAxMOJA BOSS
+  cx.fillStyle = pal.boss;
+  cx.fillRect(61*CELL, 96, 36, 64);
+  cx.fillStyle = '#ffffff';
+  cx.fillRect(61*CELL+8, 110, 8, 10);
+  cx.fillRect(61*CELL+8, 136, 8, 10);
+}
+
+let dragging = false;
+function paint(e) {
+  const r = cv.getBoundingClientRect();
+  const c = Math.floor((e.clientX - r.left) / r.width * COLS);
+  if (c >= 0 && c < COLS) {
+    map()[c] = brush;
+    saveHash();
+    draw();
+  }
+}
+cv.addEventListener('pointerdown', e => { dragging = true; paint(e); });
+window.addEventListener('pointermove', e => { if (dragging) paint(e); });
+window.addEventListener('pointerup', () => { dragging = false; });
+
+document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tool').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel');
+  brush = +b.dataset.f;
+});
+document.querySelectorAll('.stage').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.stage').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel');
+  st = +b.dataset.s;
+  saveHash();
+  draw();
+});
+document.getElementById('clear').onclick = () => {
+  map().fill(0);
+  saveHash();
+  draw();
+};
+document.getElementById('copy').onclick = async () => {
+  await navigator.clipboard.writeText(location.href);
+  statusEl.textContent = '✅ URLをクリップボードにコピーしました！';
+};
+document.getElementById('rom').onclick = () => {
+  if (!romBuf || romOff < 0) { alert('base.nes が読み込まれていません'); return; }
+  const out = new Uint8Array(romBuf);
+  out.set(maps, romOff);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([out], { type: 'application/octet-stream' }));
+  a.download = 'mojaxmoja-wars.nes';
+  a.click();
+};
+
+loadBase().then(() => { loadHash(); saveHash(); draw(); });
+window.addEventListener('hashchange', () => { loadHash(); draw(); });
+</script>
+</body>
+</html>
