@@ -43,6 +43,8 @@ set_bgm_track:
     lda #0
     sta bgm_tick
     sta bgm_step
+    sta bgm_order_idx
+    sta bgm_bar_step
     lda #$30
     sta $4000
     lda #$00
@@ -349,7 +351,7 @@ update_sfx_noi:
     sta $400F
     rts
 
-; ---- BGM シーケンサ更新 (SQ1 メロディ + TRI ベース + NOI ハイハット) ----
+; ---- BGM シーケンサ更新 (SQ1 メロディ + TRI ベース + DPCMドラム + NOI ハイハット) ----
 update_bgm:
     lda bgm_track
     bne :+
@@ -362,13 +364,18 @@ update_bgm:
     sta $4008
     rts
 :
-    ; テンポ制御: ボス戦は6フレーム/step、通常は7フレーム/step
+    ; テンポ制御: 通常ステージ・ボス戦は 6フレーム/step (150 BPM)
+    ; タイトル・クリア等は 7フレーム/step
     inc bgm_tick
-    lda #7
+    lda #6
     ldx bgm_track
+    cpx #TRACK_STAGE1
+    beq :+
+    cpx #TRACK_STAGE2
+    beq :+
     cpx #TRACK_BOSS
-    bne :+
-    lda #5
+    beq :+
+    lda #7
 :   cmp bgm_tick
     bcc @step_next
     beq @step_next
@@ -378,6 +385,14 @@ update_bgm:
     lda #0
     sta bgm_tick
 
+    ; 通常ステージ (TRACK_STAGE1, TRACK_STAGE2) か判定
+    lda bgm_track
+    cmp #TRACK_STAGE1
+    beq @do_stage_bgm
+    cmp #TRACK_STAGE2
+    beq @do_stage_bgm
+
+    ; ---- 従来 32ステップ曲 (TITLE / BOSS / CLEAR) ----
     ldx bgm_step
     inx
     txa
@@ -385,52 +400,36 @@ update_bgm:
     sta bgm_step
     tax
 
-    ; トラックに応じたメロディノートとベースノートを取得
     lda bgm_track
     cmp #TRACK_TITLE
     beq @trk_title
-    cmp #TRACK_STAGE2
-    beq @trk_st2
     cmp #TRACK_BOSS
     beq @trk_boss
     cmp #TRACK_CLEAR
     beq @trk_clear
-
-    ; TRACK_STAGE1 (1面 月 / 3面 木星: 疾走感のある宇宙STGテーマ)
-    lda mel_stage1,x
-    tay
-    lda bass_stage1,x
-    jmp @play_notes
+    rts
 
 @trk_title:
     lda mel_title,x
     tay
     lda bass_title,x
-    jmp @play_notes
-
-@trk_st2:
-    lda mel_stage2,x
-    tay
-    lda bass_stage2,x
-    jmp @play_notes
+    jmp @play_legacy_notes
 
 @trk_boss:
     lda mel_boss,x
     tay
     lda bass_boss,x
-    jmp @play_notes
+    jmp @play_legacy_notes
 
 @trk_clear:
     lda mel_clear,x
     tay
     lda bass_clear,x
 
-@play_notes:
-    ; A = ベースノート番号, Y = メロディノート番号
+@play_legacy_notes:
     pha
-    ; SQ1 メロディ再生
     cpy #0
-    beq @rest_mel
+    beq @legacy_rest_mel
     lda #%10111011          ; Duty 50%, Vol 11
     sta $4000
     lda #$08
@@ -439,15 +438,15 @@ update_bgm:
     sta $4002
     lda note_table_hi,y
     sta $4003
-    jmp @do_bass
-@rest_mel:
+    jmp @legacy_bass
+@legacy_rest_mel:
     lda #$30
     sta $4000
 
-@do_bass:
+@legacy_bass:
     pla
     tay
-    beq @rest_bass
+    beq @legacy_rest_bass
     lda #$81                ; TRI ON
     sta $4008
     lda note_table_lo,y
@@ -455,15 +454,127 @@ update_bgm:
     lda note_table_hi,y
     sta $400B
     jmp @do_drums
-@rest_bass:
+@legacy_rest_bass:
     lda #$00
     sta $4008
+    jmp @do_drums
+
+    ; =========================================================================
+    ; ---- 新・通常ステージBGM「LUNAR CATACOMB DRIVE」再生ルーチン ----
+    ; =========================================================================
+@do_stage_bgm:
+    ; 小節ポインタ text_ptr を計算: stg_order[bgm_order_idx] のパターンアドレス
+    ldx bgm_order_idx
+    lda stg_order,x
+    cmp #$FF
+    bne :+
+    ; ループ位置 (STG_LOOP) へジャンプ
+    lda #STG_LOOP
+    sta bgm_order_idx
+    tax
+    lda stg_order,x
+:   tax
+    lda stg_pat_lo,x
+    sta text_ptr
+    lda stg_pat_hi,x
+    sta text_ptr+1
+
+    ; 1. メロディ (SQ1)
+    ldy bgm_bar_step
+    lda (text_ptr),y
+    cmp #$FF                ; $FF = 伸ばし (キープ)
+    beq @stg_bass
+    cmp #0                  ; 0 = 休符
+    beq @stg_rest_mel
+    ; ノート発音
+    tax
+    lda #%10111011          ; Duty 50%, Vol 11
+    sta $4000
+    lda #$08
+    sta $4001
+    lda stg_period_lo,x
+    sta $4002
+    lda stg_period_hi,x
+    sta $4003
+    jmp @stg_bass
+@stg_rest_mel:
+    lda #$30
+    sta $4000
+
+@stg_bass:
+    ; 2. ベース (TRI: offset +16)
+    lda bgm_bar_step
+    clc
+    adc #16
+    tay
+    lda (text_ptr),y
+    cmp #$FF                ; 伸ばし
+    beq @stg_drums
+    cmp #0                  ; 休符
+    beq @stg_rest_bass
+    tax
+    lda #$81                ; TRI ON (線形カウンタ最大)
+    sta $4008
+    lda stg_period_lo,x
+    sta $400A
+    lda stg_period_hi,x
+    sta $400B
+    jmp @stg_drums
+@stg_rest_bass:
+    lda #$00
+    sta $4008
+
+@stg_drums:
+    ; 3. DPCM ドラム (offset +32: 0=なし, 1=キック, 2=スネア)
+    lda bgm_bar_step
+    clc
+    adc #32
+    tay
+    lda (text_ptr),y
+    beq @stg_step_inc
+    cmp #1
+    beq @trigger_kick
+    ; スネア ($C000 + $03C0 = $C3C0 -> $4012 = $0F, len = $27)
+    lda #$0E                ; rate 14
+    sta $4010
+    lda #$0F                ; ($C000 + $0F*64 = $C3C0)
+    sta $4012
+    lda #$27                ; len $27*16+1
+    sta $4013
+    lda #$0F
+    sta $4015
+    lda #$1F                ; DMC再生トリガー
+    sta $4015
+    jmp @stg_step_inc
+@trigger_kick:
+    ; キック ($C000 -> $4012 = $00, len = $3A)
+    lda #$0D                ; rate 13
+    sta $4010
+    lda #$00                ; $C000
+    sta $4012
+    lda #$3A                ; len $3A*16+1
+    sta $4013
+    lda #$0F
+    sta $4015
+    lda #$1F                ; DMC再生トリガー
+    sta $4015
+
+@stg_step_inc:
+    ; ステップ進行 (0..15)
+    inc bgm_bar_step
+    lda bgm_bar_step
+    cmp #16
+    bcc @do_drums
+    lda #0
+    sta bgm_bar_step
+    inc bgm_order_idx
+    ; fall-through to @do_drums
 
 @do_drums:
     ; ノイズSFXが鳴っていないときだけリズムハイハットを刻む
     lda sfx_noi_timer
     bne @env_only
-    lda bgm_step
+    lda bgm_bar_step
     and #1
     bne @hat_light
     lda #$36
@@ -484,6 +595,8 @@ update_bgm:
     rts
 
 .segment "RODATA"
+.include "../assets/music_stage.s"
+
 pw_arp_lo:
     .byte $AA, $87, $71, $55
 

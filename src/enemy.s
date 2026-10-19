@@ -55,6 +55,13 @@ spawn_wave_for_meta:
     rts
 
 @chk_two_thirds:
+    ; ★ ステージの 1/2 地点 (meta_idx == 32 / 64): 横表示・量産型ロボット中ボス (MOJA-01..04) が登場！
+    cpy #32
+    bne @chk_chest_part
+    jsr spawn_midboss
+    rts
+
+@chk_chest_part:
     ; ★ ステージの 2/3 地点 (meta_idx == 42 / 64): 味方支援機が「胸部パーツ (1)」を運んで登場！
     cpy #42
     bne @normal_wave
@@ -163,15 +170,19 @@ spawn_one_enemy:
     lda #0
     sta enemy_timer,x
 
-    ; 敵種類別の初期HP (1面・2面はサクサク倒せる低HP)
-    ldy tmp_type
-    lda enemy_base_hp,y
-    ldy current_stage
-    cpy #3
-    bcc :+
+    ; 仕様書 4.1: 小型雑魚(type 0..2) = HP 1 (通常ミサイル1発で撃破)、中型遮蔽機(type 3) = HP 3〜6
+    lda tmp_type
+    cmp #ENEMY_TURRET
+    beq @med_hp
+    lda #1
+    sta enemy_hp,x
+    rts
+@med_hp:
+    lda current_stage
+    and #3
     clc
-    adc #1                  ; 4面のみ装甲+1
-:   sta enemy_hp,x
+    adc #3                  ; Stage 1..4 で HP 3, 4, 5, 6
+    sta enemy_hp,x
     rts
 
 ; ---- 毎フレームの敵・敵弾・アイテム更新 ----
@@ -735,15 +746,20 @@ update_ebullets:
     bpl @loop
     rts
 
-; ---- 自機被弾処理 (第2・第3形態ならパーツをパージしてコアファイター形態に戻る！) ----
+; ---- 自機被弾処理 (仕様書 3.1: 2段階アーマーパージ耐久システム) ----
+; - 第3形態 (MSフル合体: アーマー2層＋コア): 1被弾で胸部パーツパージ -> 第2形態 (FORM_LEGS) へ！
+; - 第2 / 第2.5形態 (半合体: アーマー1層＋コア): 被弾でアーマー破損パージ -> 初期形態 (FORM_CORE) へ！
+; - 初期形態 (コアファイター: HP 1): 被弾で1機撃墜 (STATE_DEAD)
 hit_player:
     lda inv_timer
     bne @ignore             ; 無敵時間中
     lda warp_mode
     bne @ignore             ; ワープ演出中
 
-    ; 第2形態(コア+脚部) または 第3形態(ガンダム) なら、撃墜されずにコアファイター(初期形態)へ戻る！
     lda weapon_type
+    cmp #FORM_GUNDAM
+    beq @purge_to_form2
+    cmp #FORM_CORE
     bne @purge_to_core
     lda barrier_hp
     bne @purge_to_core
@@ -760,15 +776,26 @@ hit_player:
 @ignore:
     rts
 
+@purge_to_form2:
+    ; 第3形態(ガンダム) -> 1層目アーマーパージ！第2形態(コア＋脚部)へ移行！
+    lda #FORM_LEGS
+    sta weapon_type
+    lda #2
+    sta weapon_level
+    jmp @apply_purge_common
+
 @purge_to_core:
-    ; アーマー・合体パーツをパージして初期形態(コアファイター)へ緊急脱出！
+    ; 第2/第2.5形態 -> アーマーパージして初期形態(コアファイター)へ緊急脱出！
     lda #FORM_CORE
     sta weapon_type
     lda #1
     sta weapon_level
+
+@apply_purge_common:
     lda #0
     sta barrier_hp
     sta laser_timer
+    sta saber_timer
     sta shot_timer
     lda #60                 ; 1秒間の緊急脱出無敵時間
     sta inv_timer

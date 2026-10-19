@@ -1,52 +1,159 @@
-; 各面 BOSS 機 (48x32 巨大 MOJAxMOJA フラッグシップ 4種) の制御
-; 1面(月): LUNAR BIG-CORE ($30-$3B)
-; 2面(火星): CRIMSON VALKYRIE ($3C-$47)
-; 3面(木星): JUPITER UFO CARRIER ($C0-$CB)
-; 4面(地球付近): EMPEROR DREADNOUGHT ($CC-$D7)
+; 横表示ロボット戦: 量産型ロボット中ボス 4機 (MOJA-01..04) & 宿敵・赤いモビルスーツ (RIVAL RED MS) 制御
+; [中ボス (boss_type = 0, meta_idx == 32)]:
+;   STAGE 1 (月):   ザク型 (MOJA-01, HP 30, PT1 $30-$3B)
+;   STAGE 2 (火星): ドム型 (MOJA-02, HP 35, PT1 $3C-$47)
+;   STAGE 3 (木星): ズゴック型 (MOJA-03, HP 40, PT1 $C0-$CB)
+;   STAGE 4 (地球): グフ型 (MOJA-04, HP 50, PT1 $CC-$D7)
+; [宿敵・赤いMS (boss_type = 1, meta_idx == 63)]:
+;   全ステージラストに登場 (HP 80 / 90 / 100 / 120, PT1 $58-$63, 専用赤パレット)
 
 .segment "CODE"
 
 boss_init:
     lda #0
     sta boss_state
+    sta boss_type
+    sta side_mode
+    sta cam_x
+    sta warning_timer
     sta boss_hp
     sta boss_timer
     sta boss_flash
     rts
 
-; ---- ステージ終端到達時の BOSS 出現 ----
+; ---- ステージ中盤 (meta_idx == 32) 到達時の「量産型ロボット中ボス (MOJA-01..04)」WARNING警告開始 ----
+spawn_midboss:
+    lda #0
+    sta boss_type           ; 0 = 量産型中ボス (MOJA-01..04)
+    jmp start_boss_warning
+
+; ---- ステージ終端 (meta_idx == 63) 到達時の「宿敵・赤いモビルスーツ (RIVAL RED MS)」WARNING警告開始 ----
 spawn_boss:
     lda #1
+    sta boss_type           ; 1 = 宿敵・赤いモビルスーツ (RIVAL RED MS)
+
+start_boss_warning:
+    lda #3                  ; 3 = WARNING警告フェーズ (縦スクロール道中のまま約2秒間大警告！)
     sta boss_state
-    lda #104                ; 48px幅の中央 (256-48)/2 = 104
-    sta boss_x
-    lda #16
-    sta boss_y
     lda #0
-    sta boss_dir
+    sta side_mode           ; 警告中は縦画面道中を維持
+    lda #120                ; 120フレーム (約2秒間) しっかり警告表示！
+    sta warning_timer
+    lda #0
     sta boss_timer
     sta boss_flash
 
-    ldx current_stage
-    lda stage_boss_hp,x
-    sta boss_hp
+    ; 画面上のザコ敵・敵弾を全消去して警告演出に集中させる
+    ldx #MAX_ENEMIES-1
+:   sta enemy_flag,x
+    dex
+    bpl :-
+    ldx #MAX_EBULLETS-1
+:   sta ebul_flag,x
+    dex
+    bpl :-
 
-    ; ボス戦BGMへ切替 & 警告音
-    lda #TRACK_BOSS
-    jsr set_bgm_track
+    ; 警告アラート音
     lda #SFX_BOMB
     jsr play_sfx
+    lda #4
+    sta kill_flash          ; 警告フラッシュ
     rts
 
-; ---- 毎フレームの BOSS 更新 ----
+; ---- 毎フレームの 中ボス / 宿敵・赤いMS 更新 ----
 update_boss:
     lda boss_state
     bne :+
     rts
-:   cmp #2
+:   cmp #3
+    bne @chk_intro
+
+    ; =========================================================================
+    ; ---- boss_state = 3: WARNING 警告フェーズ (縦画面のまま2秒間点滅＆サイレン) ----
+    ; =========================================================================
+    lda warning_timer
+    and #$0F
+    bne :+
+    lda #SFX_BOMB           ; 周期的に警告サイレン音を鳴らす
+    jsr play_sfx
+:   lda warning_timer
+    and #$1F
+    bne :+
+    lda #2
+    sta kill_flash          ; 周期的に画面をパルス発光
+:   dec warning_timer
+    bne @warn_ret
+
+    ; WARNING 警告完了！ホワイトアウト発光とともに横画面 (PT1) へ切り替え！
+    lda #6
+    sta kill_flash          ; 強烈なホワイトアウト発光！
+    lda #1
+    sta side_mode           ; 横スクロール・PT1サイドビューバンクへ突入！
+    sta cam_x
+    lda #4                  ; 4 = ボス飛来・登場シーンフェーズ
+    sta boss_state
+    lda #248                ; 画面右端の外側 (X=248, Y=92) から突入！
+    sta boss_x
+    lda #92
+    sta boss_y
+    lda #0
+    sta boss_dir
+    sta boss_timer
+
+    ; 自機を左側決戦位置 (X=44, Y=100) へ配置
+    lda #44
+    sta player_x
+    lda #100
+    sta player_y
+
+    ; HPセット
+    ldx current_stage
+    lda boss_type
+    bne @set_rival_hp
+    lda MidBoss_HP_Table,x  ; HP = 30, 35, 40, 50
+    sta boss_hp
+    jmp @intro_bgm
+@set_rival_hp:
+    lda Rival_HP_Table,x    ; HP = 80, 90, 100, 120
+    sta boss_hp
+
+@intro_bgm:
+    lda #TRACK_BOSS
+    jsr set_bgm_track
+    lda #SFX_WARP           ; ブースト高速突入音
+    jsr play_sfx
+@warn_ret:
+    rts
+
+@chk_intro:
+    cmp #4
+    bne @chk_dying
+
+    ; =========================================================================
+    ; ---- boss_state = 4: ボス飛来・滑り込み登場シーン (右外から高速進入して定位置で停止！) ----
+    ; =========================================================================
+    lda boss_x
+    sec
+    sbc #3                  ; 3px/frame で右外から滑り込み突入！
+    cmp #176
+    bcs :+
+    lda #176                ; 決戦定位置 (X=176) にピタッと停止！
+    sta boss_x
+    lda #1                  ; 1 = 通常戦闘開始！
+    sta boss_state
+    lda #SFX_HIT            ; 逆噴射ブレーキ停止音
+    jsr play_sfx
+    rts
+:   sta boss_x
+    rts
+
+@chk_dying:
+    cmp #2
     bne @boss_alive
 
-    ; ---- boss_state = 2: 撃破大爆発演出 ----
+    ; =========================================================================
+    ; ---- boss_state = 2: 撃破爆発 / 撤退前ヒットストップ演出 ----
+    ; =========================================================================
     lda boss_timer
     and #7
     bne :+
@@ -57,15 +164,35 @@ update_boss:
 :   dec boss_timer
     bne @boss_ret
 
-    ; ボス完全撃破！ステージクリア＆ワープ演出へ遷移！
+    ; 爆発シーケンス終了！中ボス (boss_type == 0) か 宿敵・赤いMS (boss_type == 1) かで分岐
     lda #0
     sta boss_state
+    lda boss_type
+    bne @rival_defeated
+
+    ; ---- 中ボス (MOJA-01..04) 撃破！ホワイトアウトして縦スクロール道中後半へシームレス復帰！ ----
+    lda #0
+    sta side_mode           ; 縦スクロール道中モード (PT0) へ復帰
+    sta cam_x
+    lda #4
+    sta kill_flash          ; ホワイトアウトフラッシュ ($30)
+    lda current_stage
+    and #1
+    clc
+    adc #TRACK_STAGE1
+    jsr set_bgm_track
+    rts
+
+@rival_defeated:
+    ; ---- 宿敵・赤いMS (RIVAL RED MS) 決着！ワープ撤退演出 (Exec_Warp_Escape_Sequence) へ遷移！ ----
     lda #STATE_WARP
     sta game_state
-    lda #150                ; 2.5秒のワープ演出
+    lda #150                ; 2.5秒のワープ撤退＆次ステージ遷移演出
     sta state_timer
     lda #1
     sta warp_mode
+    lda #4
+    sta kill_flash          ; ホワイトアウトフラッシュ
     lda #TRACK_CLEAR
     jsr set_bgm_track
     lda #SFX_WARP
@@ -74,80 +201,93 @@ update_boss:
     rts
 
 @boss_alive:
+    ; =========================================================================
+    ; ---- boss_state = 1: 通常戦闘中 (移動速度を適度に落としサーベル戦を重視！) ----
+    ; =========================================================================
     lda boss_flash
     beq :+
     dec boss_flash
 :   inc boss_timer
 
-    ; 登場降下 (boss_y < 44 の間は下へ降りてくる)
-    lda boss_y
-    cmp #44
-    bcs @patrol
-    inc boss_y
-    jmp @check_boss_cols
-
-@patrol:
-    ; 横移動スピード: 1面・3面は1px (HP減少時2px)、2面・4面は2px
+    ; サイドビュー上下機動スピード調整:
+    ; 中ボス: 2フレームに1px (0.5px/f) どっしり構えて近接サーベルで斬り込みやすい！
+    ; 赤いMS: 2フレームに3px (1.5px/f) 以前の3px/fから半減し、俊敏ながらサーベルで十分捉えられる！
+    lda #0
+    sta tmp                 ; 移動量
+    lda boss_type
+    bne @rival_spd
+    ; 中ボス (boss_type == 0)
+    lda frame_count
+    and #1
+    beq @do_vertical
+    inc tmp                 ; 2フレームに1px
+    jmp @do_vertical
+@rival_spd:
+    ; 赤いMS (boss_type == 1)
     lda #1
-    ldx current_stage
-    cpx #1
-    beq @fast_move
-    cpx #3
-    beq @fast_move
-    lda boss_hp
-    cmp #20
-    bcs @got_bspd
-@fast_move:
-    lda #2
-@got_bspd:
-    sta tmp                 ; tmp = 横移動速度
+    sta tmp
+    lda frame_count
+    and #1
+    beq @do_vertical
+    inc tmp                 ; 奇数フレーム2px, 偶数フレーム1px (平均1.5px/f)
+
+@do_vertical:
+    lda tmp
+    beq @stage_special      ; 移動量0なら縦移動スキップ
 
     lda boss_dir
-    bne @move_left
-    ; 右移動 (48px幅のため上限 X=188)
-    lda boss_x
+    bne @move_up
+    ; 下移動 (上限 Y=156)
+    lda boss_y
     clc
     adc tmp
-    cmp #188
+    cmp #156
     bcc :+
     lda #1
     sta boss_dir
-    lda #188
-:   sta boss_x
+    lda #156
+:   sta boss_y
     jmp @stage_special
 
-@move_left:
-    lda boss_x
+@move_up:
+    lda boss_y
     sec
     sbc tmp
-    cmp #20
+    cmp #36
     bcs :+
     lda #0
     sta boss_dir
-    lda #20
-:   sta boss_x
+    lda #36
+:   sta boss_y
 
 @stage_special:
-    ; 2面(火星)と4面(地球)のボスは周期的に前進プレッシャー移動 (Y=44〜76)
+    ; 前後ステップ機動 (X=148〜188) は4フレームに1回のみゆっくり更新
+    lda frame_count
+    and #3
+    bne @boss_attacks
+
+    lda boss_type
+    bne @do_x_weave
     lda current_stage
-    and #1
     beq @boss_attacks
+@do_x_weave:
     lda boss_timer
     and #$40
-    beq @retreat_y
-    lda boss_y
-    cmp #76
-    bcs @boss_attacks
-    inc boss_y
-    jmp @boss_attacks
-@retreat_y:
-    lda boss_y
-    cmp #44
+    beq @retreat_x
+    lda boss_x
+    cmp #156
     bcc @boss_attacks
     beq @boss_attacks
-    dec boss_y
+    dec boss_x
+    jmp @boss_attacks
+@retreat_x:
+    lda boss_x
+    cmp #184
+    bcs @boss_attacks
+    inc boss_x
 
 @boss_attacks:
+
     ; 攻撃タイマー判定 (128フレーム周期でゆったり攻撃)
     lda boss_timer
     and #$7F
@@ -156,6 +296,7 @@ update_boss:
     cmp #$70
     beq @fire_special
     jmp @check_boss_cols
+
 
 @fire_spread:
     ; 3WAY ボス弾発射 (4面は5WAY!)
@@ -307,85 +448,80 @@ damage_boss_by_a:
     jsr play_sfx
     rts
 
-; ---- ボス 3WAY 拡散弾発射 ----
+; ---- ボス 3WAY 拡散弾発射 (サイドビュー: 左方向へ発射！) ----
 boss_fire_3way:
     lda boss_x
-    clc
-    adc #20                 ; 48px幅の中央 (24-4=20)
     sta tmp_bx
     lda boss_y
     clc
-    adc #26
+    adc #12
     sta tmp_by
     lda #$0F                ; ボス大型火球タイル
     sta tmp_tile
-    lda #1                  ; 弾速を 1px/フレーム に緩和
-    sta tmp_vy
+    lda #<(-2)              ; 左方向へ 2px/フレーム
+    sta tmp_vx
 
-    ; 中央弾
+    ; 中央水平弾
     lda #0
-    sta tmp_vx
+    sta tmp_vy
     jsr spawn_ebullet
-    ; 左斜め弾
+    ; 上斜め弾
     lda #<(-1)
-    sta tmp_vx
+    sta tmp_vy
     jsr spawn_ebullet
-    ; 右斜め弾
+    ; 下斜め弾
     lda #1
-    sta tmp_vx
+    sta tmp_vy
     jsr spawn_ebullet
     rts
 
 ; ---- ボス 5WAY 外翼弾発射 ----
 boss_fire_outer_pair:
     lda boss_x
-    clc
-    adc #20
     sta tmp_bx
     lda boss_y
     clc
-    adc #24
+    adc #12
     sta tmp_by
     lda #$0F
     sta tmp_tile
-    lda #1
-    sta tmp_vy
-
     lda #<(-2)
     sta tmp_vx
+
+    lda #<(-2)
+    sta tmp_vy
     jsr spawn_ebullet
     lda #2
-    sta tmp_vx
+    sta tmp_vy
     jsr spawn_ebullet
     rts
 
-; ---- ボス 自機狙い弾 ----
+; ---- ボス 自機狙い弾 (サイドビュー: 左方向＋自機Y狙い) ----
 boss_fire_aimed:
     lda boss_x
-    clc
-    adc #20
     sta tmp_bx
     lda boss_y
     clc
-    adc #26
+    adc #12
     sta tmp_by
     lda #$0F
     sta tmp_tile
-    lda #1                  ; 弾速を 1px/フレーム に緩和
-    sta tmp_vy
+    lda #<(-2)              ; 左方向へ 2px/フレーム
+    sta tmp_vx
     lda #0
-    sta tmp_vx
-    lda player_x
-    cmp tmp_bx
-    bcc @aim_l
+    sta tmp_vy
+    lda player_y
+    cmp tmp_by
+    bcc @aim_u
     lda #1
-    sta tmp_vx
+    sta tmp_vy
     jmp spawn_ebullet
-@aim_l:
+@aim_u:
     lda #<(-1)
-    sta tmp_vx
+    sta tmp_vy
     jmp spawn_ebullet
 
 .segment "RODATA"
 stage_boss_hp:
     .byte 20, 28, 36, 44
+

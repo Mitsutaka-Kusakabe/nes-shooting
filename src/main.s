@@ -58,7 +58,9 @@ weapon_level:   .res 1  ; 1..5 (違う武器種を取ると Lv1 に戻る)
 rapid_level:    .res 1  ; 1..5 (連射強化)
 barrier_hp:     .res 1  ; 0..5 (バリア耐久値)
 shot_timer:     .res 1  ; Aボタン連射間隔 / レーザー照射後0.5秒(30f)クールタイム
-laser_timer:    .res 1  ; 第3形態レーザー照射残りフレーム (120=2秒照射, 0=停止)
+laser_timer:    .res 1  ; 第3形態レーザー照射残りフレーム (48=約2秒照射, 0=停止)
+saber_timer:    .res 1  ; 近接ビームサーベル3コマアニメタイマー (9..7=抜刀, 6..4=一閃+弾消し, 3..1=残心)
+difficulty_level: .res 1 ; 難易度設定 (0=Easy, 1=Normal, 2=Hard)
 b_cooldown:     .res 1  ; Bボタン範囲攻撃クールタイム (0=READY, 120=2秒充填)
 b_blast_timer:  .res 1  ; Bボタン範囲攻撃エフェクト残りフレーム
 b_blast_x:      .res 1  ; Bボタン範囲攻撃の中心X
@@ -69,8 +71,13 @@ ally_x:         .res 1  ; 味方支援機 X座標
 ally_y:         .res 1  ; 味方支援機 Y座標
 ally_part:      .res 1  ; 運搬中パーツ (0=ステージ1/3 脚部パーツ, 1=ステージ2/3 胸部パーツ)
 
-; ボス状態
+; ボス & 横表示ロボット戦状態
 boss_state:     .res 1  ; 0=不在, 1=戦闘中, 2=撃破爆発中
+boss_type:      .res 1  ; 0=量産型中ボス(MOJA-01..04), 1=宿敵・赤いMS(RIVAL RED MS)
+side_mode:      .res 1  ; 0=縦スクロール道中(PT0), 1=横表示1-on-1ロボット戦(PT1+$2005横スクロール)
+cam_x:          .res 1  ; 横表示モード時の水平スクロール座標 ($2005 Xスクロール)
+warning_timer:  .res 1  ; WARNING!! ENEMY MS APPROACHING 警告演出タイマー
+warn_pal_dirty: .res 1  ; WARNING パレット赤点滅管理フラグ
 boss_hp:        .res 1
 boss_x:         .res 1
 boss_y:         .res 1
@@ -109,6 +116,8 @@ text_ptr:       .res 2
 bgm_track:      .res 1
 bgm_tick:       .res 1
 bgm_step:       .res 1
+bgm_order_idx:  .res 1  ; 通常ステージ曲 小節オーダーインデックス
+bgm_bar_step:   .res 1  ; 通常ステージ曲 小節内ステップ (0..15)
 sfx_sq2_type:   .res 1
 sfx_sq2_timer:  .res 1
 sfx_noi_type:   .res 1
@@ -283,7 +292,9 @@ nmi:
     pha
 
     lda nmi_ready
-    beq @skip
+    bne :+
+    jmp @skip
+:
 
     ; 1. OAM DMA ($0200 -> PPU OAM)
     lda #$00
@@ -315,11 +326,83 @@ nmi:
 :   stx PPUDATA
 @no_flash:
 
-    ; 4. 垂直スクロール座標 (cam_y) と 上下ネームテーブル選択 (cam_nt -> bit1) の適用
+    ; WARNING 警告中のパレット赤点滅演出 (SPRパレット0の色3 $3F13 を赤$16と黄$28で点滅)
+    lda boss_state
+    cmp #3
+    bne @no_warn_pal
+    lda #1
+    sta warn_pal_dirty
+    bit PPUSTATUS
+    lda #$3F
+    sta PPUADDR
+    lda #$13
+    sta PPUADDR
+    lda warning_timer
+    and #8
+    bne :+
+    lda #$16                ; 鮮烈な警告クリムゾンレッド！
+    sta PPUDATA
+    jmp @done_pal_upd
+:   lda #$28                ; フラッシュイエロー！
+    sta PPUDATA
+    jmp @done_pal_upd
+@no_warn_pal:
+    lda warn_pal_dirty
+    beq @done_pal_upd
+    lda #0
+    sta warn_pal_dirty
+    bit PPUSTATUS
+    lda #$3F
+    sta PPUADDR
+    lda #$13
+    sta PPUADDR
+    lda #$30                ; 通常の白へ復帰
+    sta PPUDATA
+@done_pal_upd:
+
+    ; 4. 縦スクロール道中 (side_mode=0) ⇄ 横表示ロボット戦 (side_mode=1) の PPU バンク & スクロール切替
+    ; GAME OVER / TITLE / ENDING / BRIEFING 画面 (game_state >= 3) では常にスクロール (0,0)・PT0 に固定！
+    lda game_state
+    cmp #3
+    bcs @vert_ppu
+    lda side_mode
+    beq @vert_ppu
+
+    ; ---- 横表示・ロボット戦モード (Switch_To_SideView: SPR=PT1 $1000, 横スクロール cam_x) ----
+    ; 宿敵・赤いMS (boss_type == 1) のときは専用赤パレット ($06, $16, $30) を SPR パレット2 へ適用
+    lda boss_type
+    beq @side_ctrl
+    bit PPUSTATUS
+    lda #$3F
+    sta PPUADDR
+    lda #$19
+    sta PPUADDR
+    lda #$06                ; 暗赤紫
+    sta PPUDATA
+    lda #$16                ; 鮮やかなクリムゾンレッド (赤いMS専用色)
+    sta PPUDATA
+    lda #$30                ; 純白 (ツノ・ハイライト・モノアイ)
+    sta PPUDATA
+
+@side_ctrl:
+    lda cam_nt
+    and #1
+    asl
+    ora #%10001000          ; NMI ON, BG=PT0, SPR=PT1 ($1000 横表示MSバンク!)
+    sta PPUCTRL
+    bit PPUSTATUS
+    lda cam_x               ; $2005 第1書込: Xスクロール = cam_x (水平スクロール/ワープ星線)
+    sta PPUSCROLL
+    lda cam_y               ; $2005 第2書込: Yスクロール
+    sta PPUSCROLL
+    jmp @done_nmi_scroll
+
+@vert_ppu:
+    ; ---- 縦スクロール道中モード (SPR=PT0 $0000, 縦スクロール cam_y) ----
     lda cam_nt
     and #1
     asl                     ; bit1 ($00=$2000, $02=$2800)
-    ora #%10000000          ; NMI ON, BG=PT0, SPR=PT0
+    ora #%10000000          ; NMI ON, BG=PT0, SPR=PT0 ($0000)
     sta PPUCTRL
 
     bit PPUSTATUS
@@ -328,6 +411,7 @@ nmi:
     lda cam_y               ; Yスクロール = 0..239
     sta PPUSCROLL
 
+@done_nmi_scroll:
     lda #0
     sta nmi_ready
 

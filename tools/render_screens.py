@@ -93,6 +93,7 @@ class NESWithPPU(CPU6502):
         fb = [[bg_c0 for _ in range(w)] for _ in range(h)]
 
         base_nt = 1 if (self.ppu_ctrl & 0x02) else 0
+        sx = self.scroll_x % 256
         sy = self.scroll_y % 240
 
         # Render BG
@@ -103,7 +104,10 @@ class NESWithPPU(CPU6502):
             ty = ly >> 3
             py = ly & 7
             nt_base = 0x400 if nt_y else 0x000
-            for tx in range(32):
+            for x in range(w):
+                wx = (x + sx) & 0xFF
+                tx = wx >> 3
+                px = wx & 7
                 t_idx = self.vram[nt_base + ty * 32 + tx]
                 attr_byte = self.vram[nt_base + 0x3C0 + (ty >> 2) * 8 + (tx >> 2)]
                 shift = ((ty & 2) << 1) | (tx & 2)
@@ -111,14 +115,14 @@ class NESWithPPU(CPU6502):
 
                 lo = self.chr[t_idx * 16 + py]
                 hi = self.chr[t_idx * 16 + 8 + py]
-                for px in range(8):
-                    bit = 7 - px
-                    c = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1)
-                    if c != 0:
-                        col_id = self.pal[pal_idx * 4 + c] & 0x3F
-                        fb[y][tx * 8 + px] = NES_PALETTE[col_id]
+                bit = 7 - px
+                c = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1)
+                if c != 0:
+                    col_id = self.pal[pal_idx * 4 + c] & 0x3F
+                    fb[y][x] = NES_PALETTE[col_id]
 
         # Render Sprites (reverse order so lower index has priority)
+        sp_pt_base = 0x1000 if (self.ppu_ctrl & 0x08) else 0x0000
         for s in range(63, -1, -1):
             base = 0x200 + s * 4
             spy = self.ram[base] + 1
@@ -132,8 +136,8 @@ class NESWithPPU(CPU6502):
             vflip = bool(attr & 0x80)
             for py in range(8):
                 ry = (7 - py) if vflip else py
-                lo = self.chr[t_idx * 16 + ry]
-                hi = self.chr[t_idx * 16 + 8 + ry]
+                lo = self.chr[sp_pt_base + t_idx * 16 + ry]
+                hi = self.chr[sp_pt_base + t_idx * 16 + 8 + ry]
                 yy = spy + py
                 if not (0 <= yy < 240):
                     continue
@@ -209,7 +213,7 @@ run_frame(0x10)
 run_frame(0)
 nes.render_png("build/briefing.png")
 
-# 3. Gameplay screen (Form 2.5: Core Fighter + Chest firing 2-WAY Missiles while Ally Support Craft delivers 16x16 Parts!)
+# 3. Gameplay screen (Vertical Scroll: Form 2.5 firing 2-WAY Missiles while Ally Support Craft delivers 16x16 Parts!)
 for _ in range(115):
     run_frame(0)
 nes.ram[syms["inv_timer"]] = 0
@@ -227,13 +231,55 @@ run_frame(0x80)
 nes.render_png("build/gameplay.png")
 nes.ram[syms["item_flag"] + 1] = 0
 
-# 4. Boss fight screen (Form 3: Gundam MS irradiating full-screen 2-second piercing laser vs Giant Boss)
+# 3.5. Warning screen (Vertical Scroll: WARNING!! ENEMY MS APPROACHING displayed in center before boss fight!)
+nes.ram[syms["boss_state"]] = 3
+nes.ram[syms["boss_type"]] = 0
+nes.ram[syms["side_mode"]] = 0
+nes.ram[syms["warning_timer"]] = 101
+run_frame(0x00)
+nes.render_png("build/warning.png")
+
+# 4. Boss fight screen (Side-View Robot Battle: Right-Facing Gundam slashing with 2x Size HUGE Beam Saber vs Rival Red MS!)
 nes.ram[syms["ally_state"]] = 0
 nes.ram[syms["weapon_type"]] = 3   # Form 3: Gundam MS (F3)
 nes.ram[syms["weapon_level"]] = 3
-nes.ram[syms["meta_idx"]] = 63
-nes.ram[syms["meta_sub_row"]] = 1
-for _ in range(50):
-    run_frame(0x80)
+nes.ram[syms["side_mode"]] = 1
+nes.ram[syms["boss_state"]] = 1
+nes.ram[syms["boss_type"]] = 1
+nes.ram[syms["boss_x"]] = 176
+nes.ram[syms["boss_y"]] = 92
+nes.ram[syms["player_x"]] = 116    # 決戦間合い (60px前方)
+nes.ram[syms["player_y"]] = 96
+nes.ram[syms["saber_timer"]] = 5   # コマ2: 振り下ろし大一閃！ (32x24 巨大ビームサーベル)
+nes.ram[syms["laser_timer"]] = 0
+run_frame(0x80)
 nes.render_png("build/boss.png")
-print("Rendered build/title.png, build/briefing.png, build/gameplay.png, build/boss.png")
+
+# 4.5. Boss fight laser irradiation screen (Gundam firing full-screen mega particle beam penetrating through Boss to screen edge!)
+nes.ram[syms["saber_timer"]] = 0
+nes.ram[syms["player_x"]] = 44
+nes.ram[syms["player_y"]] = 92
+nes.ram[syms["laser_timer"]] = 40
+run_frame(0x80)
+nes.render_png("build/laser_boss.png")
+
+# 5. Game Over screen after dying during Side-View Boss battle (verify cam_x=0 and side_mode=0!)
+nes.ram[syms["saber_timer"]] = 0
+nes.ram[syms["lives"]] = 1
+nes.ram[syms["weapon_type"]] = 0
+nes.ram[syms["inv_timer"]] = 0
+nes.ram[syms["ebul_flag"]] = 1
+nes.ram[syms["ebul_x"]] = nes.ram[syms["player_x"]] + 4
+nes.ram[syms["ebul_y"]] = nes.ram[syms["player_y"]] + 3
+nes.ram[syms["ebul_vx"]] = 0
+nes.ram[syms["ebul_vy"]] = 0
+for _ in range(75):
+    run_frame(0x00)
+assert nes.ram[syms["game_state"]] == 3 and nes.ram[syms["side_mode"]] == 0 and nes.ram[syms["cam_x"]] == 0
+
+nes.render_png("build/gameover.png")
+print("Rendered build/title.png, build/briefing.png, build/gameplay.png, build/warning.png, build/boss.png, build/gameover.png")
+
+
+
+

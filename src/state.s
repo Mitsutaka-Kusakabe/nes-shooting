@@ -83,11 +83,14 @@ show_title:
     sta PPUMASK
     sta PPUCTRL
     sta cam_nt
+    sta cam_x
     sta cam_y
+    sta side_mode
     sta warp_mode
     sta paused
     lda #STATE_TITLE
     sta game_state
+
 
     jsr ppu_init
     jsr clear_oam
@@ -472,8 +475,9 @@ update_state:
     cmp #STATE_WARP
     beq @do_warp
     cmp #STATE_DEAD
-    beq @do_dead
-    cmp #STATE_GAMEOVER
+    bne :+
+    jmp @do_dead
+:   cmp #STATE_GAMEOVER
     bne :+
     jmp @do_gameover
 :   cmp #STATE_ENDING
@@ -518,6 +522,18 @@ update_state:
     jmp @warp_tick
 
 @warp_fly_up:
+    ; Stage 1〜3 では宿敵・赤いMSが水平ワープ星線の中で画面右端へブースト撤退 (boss_x += 3)！
+    lda current_stage
+    cmp #3
+    bcs @player_warp_move
+    lda boss_x
+    cmp #240
+    bcs @player_warp_move
+    clc
+    adc #3
+    sta boss_x
+
+@player_warp_move:
     ; 画面上端へ猛スピードで飛び去る！
     lda player_y
     cmp #12
@@ -537,9 +553,13 @@ update_state:
     beq :+
     rts
 :
-    ; ワープ完了！4面クリアならエンディング、1〜3面なら次ステージへ！
+    ; ワープ完了！ホワイトアウトフラッシュとともに side_mode=0 (縦スクロール) へ復帰し、次ステージまたはエンディングへ！
     lda #0
     sta warp_mode
+    sta side_mode
+    sta cam_x
+    lda #4
+    sta kill_flash
     lda current_stage
     cmp #3
     bcs @all_clear
@@ -604,7 +624,9 @@ show_gameover:
     sta PPUMASK
     sta PPUCTRL
     sta cam_nt
+    sta cam_x
     sta cam_y
+    sta side_mode
     sta row_pending
     lda #STATE_GAMEOVER
     sta game_state
@@ -617,8 +639,9 @@ show_gameover:
     lda #>str_gameover
     sta text_ptr+1
     lda #$21
-    ldx #$8B
+    ldx #$87                ; 17文字 ("G A M E   O V E R") を中央 (列7 = $87) に配置
     jsr write_text_at
+
 
     lda #<str_press_start
     sta text_ptr
@@ -646,10 +669,13 @@ show_ending:
     sta PPUMASK
     sta PPUCTRL
     sta cam_nt
+    sta cam_x
     sta cam_y
+    sta side_mode
     sta row_pending
     lda #STATE_ENDING
     sta game_state
+
 
     jsr ppu_init
     jsr clear_oam
@@ -881,11 +907,70 @@ draw_player_and_barrier:
     ; 無敵時間中は2フレームごとに点滅
     lda inv_timer
     and #2
-    bne @chk_b_ring
+    bne @chk_saber_draw
 
     jsr draw_samurai_at_py
 
+@chk_saber_draw:
+    ; 近接ビームサーベル 3コマアニメーション描画 (横画面専用: 32x16 / 32x24 / 32x16 の巨大光刃！)
+    lda saber_timer
+    beq @chk_b_ring
+    lda side_mode
+    beq @chk_b_ring         ; 縦画面ではサーベル描画なし
+
+    lda #$00                ; パレット0 (白コア + 紅蓮ビーム刃)
+    sta tmp_attr
+
+    lda saber_timer
+    cmp #7
+    bcc @chk_sb_f2
+    ; ---- コマ1: 抜刀・斜め右上チャージ光刃 (PT1 $90-$97, 32x16) ----
+    lda #$90
+    sta tmp_tile
+    lda player_x
+    clc
+    adc #18
+    sta tmp_bx
+    lda player_y
+    sec
+    sbc #2
+    sta tmp_by
+    jsr push_32x16_metatile
+    jmp @chk_b_ring
+
+@chk_sb_f2:
+    cmp #4
+    bcc @chk_sb_f3
+    ; ---- コマ2: 振り下ろし大一閃！ (PT1 $A0-$AB, 32x24 巨大三日月スラッシュ) ----
+    lda #$A0
+    sta tmp_tile
+    lda player_x
+    clc
+    adc #16
+    sta tmp_bx
+    lda player_y
+    sec
+    sbc #6
+    sta tmp_by
+    jsr push_32x24_metatile
+    jmp @chk_b_ring
+
+@chk_sb_f3:
+    ; ---- コマ3: 斬り抜け・残心 (PT1 $B0-$B7, 32x16) ----
+    lda #$B0
+    sta tmp_tile
+    lda player_x
+    clc
+    adc #18
+    sta tmp_bx
+    lda player_y
+    clc
+    adc #4
+    sta tmp_by
+    jsr push_32x16_metatile
+
 @chk_b_ring:
+
     ; Bボタン範囲攻撃 (b_blast_timer > 0) の拡大プラズマリング描画
     lda b_blast_timer
     beq @done_p
@@ -1128,25 +1213,84 @@ push_24x24_metatile:
     bne @r24x24
     rts
 
-; ---- 自機弾 & 第3形態の貫通レーザー照射 (自機〜画面上端) の OAM 描画 ----
+; ---- 32x16 メタタイル (tmp_tile..tmp_tile+7, 4列x2行=8スプライト) を OAM に追加 ----
+push_32x16_metatile:
+    lda #2
+    sta tmp2                ; 2行ループ
+@r32x16:
+    ldx #4
+@c32x16:
+    jsr push_one_sprite
+    inc tmp_tile
+    lda tmp_bx
+    clc
+    adc #8
+    sta tmp_bx
+    dex
+    bne @c32x16
+    lda tmp_bx
+    sec
+    sbc #32
+    sta tmp_bx
+    lda tmp_by
+    clc
+    adc #8
+    sta tmp_by
+    dec tmp2
+    bne @r32x16
+    rts
+
+; ---- 32x24 メタタイル (tmp_tile..tmp_tile+11, 4列x3行=12スプライト) を OAM に追加 ----
+push_32x24_metatile:
+    lda #3
+    sta tmp2                ; 3行ループ
+@r32x24:
+    ldx #4
+@c32x24:
+    jsr push_one_sprite
+    inc tmp_tile
+    lda tmp_bx
+    clc
+    adc #8
+    sta tmp_bx
+    dex
+    bne @c32x24
+    lda tmp_bx
+    sec
+    sbc #32
+    sta tmp_bx
+    lda tmp_by
+    clc
+    adc #8
+    sta tmp_by
+    dec tmp2
+    bne @r32x24
+    rts
+
+; ---- 自機弾 & 第3形態の貫通レーザー照射 (自機〜画面端) の OAM 描画 ----
+
 draw_pbullets_oam:
-    ; 1. 第3形態の貫通ロングレーザー照射中 (laser_timer > 0) なら自機銃口から画面上端まで一本のレーザーを描画！
+    ; 1. 第3形態の貫通ロングレーザー照射中 (laser_timer > 0) なら自機銃口から画面端まで一本のレーザーを描画！
     lda laser_timer
     beq @draw_normal_pbul
     lda weapon_type
     cmp #FORM_GUNDAM
     bne @draw_normal_pbul
 
-    lda player_x
-    clc
-    adc #11                 ; 右腕ビームライフルの銃口X座標
-    sta tmp_bx
     lda #$09                ; ビームレーザータイル ($09)
     sta tmp_tile
     lda frame_count
     and #1                  ; パレット0と1を毎フレーム交互に煌めかせる
     sta tmp_attr
 
+    lda side_mode
+    bne @draw_laser_side
+
+    ; ---- 縦スクロール道中: 上方向へ貫通レーザー照射 ----
+    lda player_x
+    clc
+    adc #11                 ; 右腕ビームライフルの銃口X座標
+    sta tmp_bx
     lda player_y
     sec
     sbc #10
@@ -1162,7 +1306,40 @@ draw_pbullets_oam:
     sta tmp_by
     jmp @beam_loop
 
+@draw_laser_side:
+    ; ---- 横表示ロボット戦: ガンダムの右向きライフル銃口から画面右端まで水平貫通レーザー照射！ ----
+    lda player_y
+    clc
+    adc #4                  ; 右向きライフルの銃口Y座標
+    sta tmp_by
+    lda player_x
+    clc
+    adc #20
+    sta tmp_bx
+
+    ; 8スプライト制限によるボス付近・画面右端での消失を防ぐため、フレーム偶奇で16px交互配置
+    lda frame_count
+    and #1
+    beq :+
+    lda tmp_bx
+    clc
+    adc #16
+    sta tmp_bx
+:
+@beam_side_loop:
+    lda tmp_bx
+    cmp #248                ; 画面右端 (X=248) まで照射！
+    bcs @draw_normal_pbul
+    jsr push_one_sprite
+    lda tmp_bx
+    clc
+    adc #32                 ; 32px刻みで配置 (各フレーム最大6スプライト <= 8個制限)
+    bcs @draw_normal_pbul   ; 8bitオーバーフロー(256到達)で画面右端到達・脱出！
+    sta tmp_bx
+    jmp @beam_side_loop
+
 @draw_normal_pbul:
+
     ldx #MAX_PBULLETS-1
 @loop:
     lda pbul_flag,x
@@ -1246,14 +1423,147 @@ draw_enemies_oam:
     bpl @loop
     rts
 
-; ---- 48x32 巨大 MOJAxMOJA ボス (STAGE 1〜4 別デザイン) の OAM 描画 ----
-draw_boss_oam:
-    lda boss_state
-    bne :+
+; ---- スプライトによるテキスト描画 (tmp_bx, tmp_by から横へ8px刻みで OAM に配置) ----
+draw_sprite_text:
+    ldy #0
+@st_loop:
+    lda (text_ptr),y
+    beq @st_done
+    cmp #$20
+    beq @st_space           ; 空白は描画スキップしてXだけ進める
+    clc
+    adc #$60                ; ASCII -> フォントタイル ($80-$BF)
+    sta tmp_tile
+    lda #$00                ; パレット0
+    sta tmp_attr
+    sty tmp_save_y
+    jsr push_one_sprite
+    ldy tmp_save_y
+@st_space:
+    lda tmp_bx
+    clc
+    adc #8
+    sta tmp_bx
+    iny
+    bne @st_loop
+@st_done:
     rts
-:   cmp #2
+
+; ---- 横表示ロボット戦: 量産型中ボス (MOJA-01..04) & 宿敵・赤いMS (RIVAL RED MS) の OAM 描画 ----
+draw_boss_oam:
+    ; ワープ撤退演出中 (game_state == STATE_WARP かつ Stage 1〜3) なら、画面右へ離脱する赤いMSを描画！
+    lda game_state
+    cmp #STATE_WARP
+    bne @chk_bstate
+    lda current_stage
+    cmp #3
+    bcs @no_boss_draw
+    lda boss_x
+    cmp #232
+    bcs @no_boss_draw
+    ; 撤退ブースト噴射炎スプライト ($05) を赤いMSの左側に描画
+    lda boss_x
+    clc
+    adc #4
+    sta tmp_bx
+    lda boss_y
+    clc
+    adc #12
+    sta tmp_by
+    lda #$05
+    sta tmp_tile
+    lda #$00
+    sta tmp_attr
+    jsr push_one_sprite
+    jmp @boss_alive_draw
+
+@no_boss_draw:
+    rts
+
+@chk_bstate:
+    lda boss_state
+    beq @no_boss_draw
+    cmp #2
+    bne :+
+    jmp @do_boss_explode
+:   cmp #3
+    bne @chk_bstate4
+
+    ; =========================================================================
+    ; ---- boss_state = 3: WARNING 警告テキストを画面中央に大迫力点滅表示！ ----
+    ; =========================================================================
+    lda warning_timer
+    and #4
+    bne :+
+    rts                     ; 点滅OFFフレーム
+:
+    ; 1行目 (Y=80, X=96): "WARNING!" (8文字 -> 8スプライト制限以内)
+    lda #<str_warn_title
+    sta text_ptr
+    lda #>str_warn_title
+    sta text_ptr+1
+    lda #96
+    sta tmp_bx
+    lda #80
+    sta tmp_by
+    jsr draw_sprite_text
+
+    ; 2行目 (Y=96): "ENEMY MS" (8文字) または "RED MS" (6文字)
+    lda boss_type
+    bne @warn_rival_txt
+    lda #<str_warn_midboss
+    sta text_ptr
+    lda #>str_warn_midboss
+    sta text_ptr+1
+    lda #96
+    sta tmp_bx
+    jmp @draw_line2
+@warn_rival_txt:
+    lda #<str_warn_rival
+    sta text_ptr
+    lda #>str_warn_rival
+    sta text_ptr+1
+    lda #104
+    sta tmp_bx
+@draw_line2:
+    lda #96
+    sta tmp_by
+    jsr draw_sprite_text
+
+    ; 3行目 (Y=112, X=96): "APPROACH" (8文字 -> 8スプライト制限以内)
+    lda #<str_warn_approach
+    sta text_ptr
+    lda #>str_warn_approach
+    sta text_ptr+1
+    lda #96
+    sta tmp_bx
+    lda #112
+    sta tmp_by
+    jsr draw_sprite_text
+    rts
+
+@chk_bstate4:
+    ; boss_state == 4 (ボス飛来突入シーン) または 1 (戦闘中)
+    cmp #4
     bne @boss_alive_draw
 
+    ; 飛来突入シーン中はボスの右後方にジェット噴射炎 ($05) を描画！
+    lda boss_x
+    clc
+    adc #24
+    sta tmp_bx
+    lda boss_y
+    clc
+    adc #12
+    sta tmp_by
+    lda #$05
+    sta tmp_tile
+    lda #$00
+    sta tmp_attr
+    jsr push_one_sprite
+    jmp @boss_alive_draw
+
+@do_boss_explode:
     ; 撃破爆発中は 48x32 領域の左右2箇所に大爆発スプライトを展開
     lda boss_x
     clc
@@ -1285,36 +1595,35 @@ draw_boss_oam:
     rts
 
 @boss_alive_draw:
-    ; 被弾フラッシュ中はパレット1(シアン白)、通常はパレット2(ステージ固有ボス色)
+    ; 被弾フラッシュ中はパレット1(シアン白)、通常はパレット2(ステージ固有中ボス色 or 赤いMS専用色)
     lda #$02
     ldy boss_flash
     beq :+
     lda #$01
 :   sta tmp_attr
 
-    ; ステージ (0..3) に対応する左半分12タイルの先頭番号を取得 ($30, $3C, $C0, $CC)
+    ; 宿敵・赤いMS (boss_type == 1) なら PT1 $58-$63、量産型中ボス (boss_type == 0) ならステージ別 $30/$3C/$C0/$CC
+    lda boss_type
+    bne @use_rival_tile
     ldx current_stage
-    lda boss_base_tile_tbl,x
+    lda boss_base_tile_tbl,x ; PT1 $30(ザク), $3C(ドム), $C0(ズゴック), $CC(グフ)
+    jmp @got_ms_tile
+@use_rival_tile:
+    lda #$58                ; PT1 $58-$63: 宿敵・赤いモビルスーツ (24x32)
+@got_ms_tile:
     sta tmp_tile
 
-    ; 4行 x 6列 (48x32 px) を描画 (左3列: +0,+1,+2 通常 / 右3列: +2,+1,+0 H反転)
+
+    ; 24x32 (3列 x 4行 = 12スプライト) の横向きモビルスーツ本体を (boss_x + 12, boss_y) に描画！
+    ; (横3枚=24px幅のため、自機3枚+サーベル2枚と並んでも横8スプライト制限を超えず欠けゼロ！)
     lda boss_y
     sta tmp_by
     lda #4
     sta tmp2                ; 4行カウンタ
-@row_loop:
+@ms_row_loop:
     lda boss_x
-    sta tmp_bx
-    lda tmp_attr
-    and #$3F                ; H反転解除
-    sta tmp_attr
-
-    ; 左3列 (+0, +1, +2)
-    jsr push_one_sprite
-    inc tmp_tile
-    lda tmp_bx
     clc
-    adc #8
+    adc #12
     sta tmp_bx
 
     jsr push_one_sprite
@@ -1325,44 +1634,68 @@ draw_boss_oam:
     sta tmp_bx
 
     jsr push_one_sprite
-    lda tmp_bx
-    clc
-    adc #8
-    sta tmp_bx
-
-    ; 右3列 (+2, +1, +0 を H反転 $40)
-    lda tmp_attr
-    ora #$40
-    sta tmp_attr
-
-    jsr push_one_sprite
-    dec tmp_tile
+    inc tmp_tile
     lda tmp_bx
     clc
     adc #8
     sta tmp_bx
 
     jsr push_one_sprite
-    dec tmp_tile
-    lda tmp_bx
-    clc
-    adc #8
-    sta tmp_bx
-
-    jsr push_one_sprite
-
-    ; 次の行の先頭タイル (+3) へ進める
-    lda tmp_tile
-    clc
-    adc #3
-    sta tmp_tile
+    inc tmp_tile
 
     lda tmp_by
     clc
     adc #8
     sta tmp_by
     dec tmp2
-    bne @row_loop
+    bne @ms_row_loop
+
+    ; Stage 3・4 の赤いMS (オールレンジ試作型 / フルスペック型) は周囲にビット/ファンネル2機 ($0E) を展開！
+    lda boss_type
+    beq @chk_gouf_rod
+    lda current_stage
+    cmp #2
+    bcc @ms_draw_done
+    lda boss_x
+    sta tmp_bx
+    lda boss_y
+    clc
+    adc #8
+    sta tmp_by
+    lda #$0E
+    sta tmp_tile
+    lda #$02
+    sta tmp_attr
+    jsr push_one_sprite
+    lda boss_x
+    clc
+    adc #38
+    sta tmp_bx
+    jsr push_one_sprite
+    rts
+
+@chk_gouf_rod:
+    ; Stage 4 中ボス グフ型 (MOJA-04) は前方にヒート・ロッド (電熱鞭 $09) を伸縮展開！
+    lda current_stage
+    cmp #3
+    bne @ms_draw_done
+    lda boss_timer
+    and #$20
+    beq @ms_draw_done
+    lda boss_x
+    clc
+    adc #4
+    sta tmp_bx
+    lda boss_y
+    clc
+    adc #24
+    sta tmp_by
+    lda #$09
+    sta tmp_tile
+    lda #$01
+    sta tmp_attr
+    jsr push_one_sprite
+@ms_draw_done:
     rts
 
 ; ---- 敵弾の OAM 描画 ----
@@ -1586,8 +1919,18 @@ str_gameover:
 str_press_start:
     .byte "PRESS START BUTTON", 0
 
+str_warn_title:
+    .byte "WARNING!", 0
+str_warn_midboss:
+    .byte "ENEMY MS", 0
+str_warn_rival:
+    .byte "RED MS", 0
+str_warn_approach:
+    .byte "APPROACH", 0
+
 str_end_1:
     .byte "MISSION ACCOMPLISHED!!", 0
+
 str_end_2:
     .byte "EMPEROR MOJAxMOJA DEFEATED!", 0
 str_end_3:

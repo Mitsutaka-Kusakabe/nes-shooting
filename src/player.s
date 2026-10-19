@@ -12,6 +12,16 @@ FORM_LEGS   = 1         ; 01b: 第2形態 (コアファイター＋脚部)
 FORM_CHEST  = 2         ; 10b: 第2.5形態 (コアファイター＋胸部)
 FORM_GUNDAM = 3         ; 11b: 第3形態 (ガンダム フルドッキング)
 
+; ---- 仕様書 セクション5: 武器攻撃力・近接サーベル閾値定数 ----
+DMG_MISSILE          = 1
+DMG_LASER_TICK       = 2
+DMG_SABER            = 8
+DMG_PLASMA           = 5
+DMG_ENEMY_BULLET     = 1
+DMG_ENEMY_HEAVY      = 2
+SABER_TRIGGER_DIST_X = 24
+SABER_TRIGGER_DIST_Y = 28
+
 .segment "CODE"
 
 ; ---- 自機ステータス初期化 (ゲーム開始時: 初期形態コアファイター) ----
@@ -30,23 +40,36 @@ player_init:
     sta barrier_hp
     sta shot_timer
     sta laser_timer
+    sta saber_timer
     sta b_cooldown          ; Bボタン範囲攻撃 READY (0)
     sta b_blast_timer
     sta inv_timer
+    lda #1
+    sta difficulty_level    ; デフォルト難易度 = 1 (Normal)
     jsr clear_pbullets
     rts
 
 ; ---- ミス後のリスポーン初期化 (コアファイター形態で出撃) ----
 player_respawn:
+    lda side_mode
+    bne @resp_side
     lda #120
     sta player_x
     lda #184
     sta player_y
+    jmp @resp_common
+@resp_side:
+    lda #44
+    sta player_x
+    lda #100
+    sta player_y
+@resp_common:
     lda #90                 ; 1.5秒の無敵時間
     sta inv_timer
     lda #0
     sta shot_timer
     sta laser_timer
+    sta saber_timer
     sta b_cooldown
     sta b_blast_timer
     lda #FORM_CORE
@@ -55,6 +78,7 @@ player_respawn:
     sta weapon_level
     jsr clear_pbullets
     rts
+
 
 clear_pbullets:
     ldx #MAX_PBULLETS-1
@@ -77,16 +101,35 @@ update_player:
     beq :+
     dec b_cooldown
 :
-    ; 8方向移動 (2px/フレーム、2フレームに1回+1pxボーナスで軽快移動)
+    ; ビームサーベル3コマアニメーション更新 (saber_timer: 9..7=コマ1抜刀, 6..4=コマ2一閃+弾消し, 3..1=コマ3残心)
+    lda saber_timer
+    beq :+
+    jsr update_beam_saber
+    dec saber_timer
+:
+    ; 8方向移動 (道中: 2.5px/f, 横画面ボス戦: 1.5px/f でサーベルの間合い調整を快適に！)
+    lda side_mode
+    bne @side_player_spd
+    ; 縦画面道中: 2.5px/frame
     lda frame_count
     and #1
     clc
     adc #2
-    sta tmp                 ; tmp = 移動速度 (2.5px/frame)
+    sta tmp
+    jmp @do_player_move
+@side_player_spd:
+    ; 横画面ボス戦: 1.5px/frame (奇数フレーム1px, 偶数フレーム2px)
+    lda frame_count
+    and #1
+    clc
+    adc #1
+    sta tmp
+@do_player_move:
 
     lda buttons
     and #BTN_LEFT
     beq @chk_right
+
     lda player_x
     sec
     sbc tmp
@@ -143,16 +186,20 @@ update_player:
     jmp @chk_fire_a
 
 @tick_laser:
-    ; レーザー照射中 (120フレーム = 2.0秒間): 敵貫通ダメージ処理を実行し、新規発射はロック
+    ; レーザー照射中 (48フレーム): 敵貫通ダメージ処理を実行し、新規発射はロック
     jsr apply_gundam_laser_beam
     dec laser_timer
     bne @chk_fire_b
-    ; 2秒間の照射終了！ -> クールタイム 0.5秒 (30フレーム) を開始！
+    ; 照射終了！ -> クールタイム 0.5秒 (30フレーム) を開始！
     lda #30
     sta shot_timer
     jmp @chk_fire_b
 
 @chk_fire_a:
+    ; サーベル斬撃中は新規発射しない
+    lda saber_timer
+    bne @chk_fire_b
+
     ; 連射クールダウン / レーザー後クールタイム(30f=0.5秒) 減算
     lda shot_timer
     beq @can_shoot_a
@@ -212,9 +259,26 @@ update_player:
     jsr update_pbullets
     rts
 
-; ---- Aボタン主兵装発射処理 (4形態別) ----
+; ---- Aボタン主兵装発射処理 (近距離オートサーベル分岐 Check_Attack_Type + 4形態別射撃) ----
 fire_main_weapon:
-    ; 第3形態 (ガンダム) は弾プールを使わず 2秒間貫通レーザー照射を開始する
+    ; 1. 近距離判定 (Check_Attack_Type): 前方 SABER_TRIGGER_DIST 以内に敵またはボスがいればビームサーベル発動！
+    jsr check_saber_range
+    beq @ranged_attack
+
+    ; ---- 近接ビームサーベル発動！ (3コマアニメ: 9フレーム, 威力 DMG_SABER=8 + 弾消し) ----
+    lda #9                  ; コマ1(9..7) -> コマ2(6..4) -> コマ3(3..1)
+    sta saber_timer
+    lda #12                 ; サーベル振り後のクールダウン
+    sta shot_timer
+    lda #0
+    sta laser_timer         ; レーザー照射中なら中断して斬り込む
+    lda #SFX_LASER
+    jsr play_sfx
+    jsr update_beam_saber
+    rts
+
+@ranged_attack:
+    ; 2. 遠距離射撃: 第3形態 (ガンダム) は弾プールを使わず 2秒間貫通レーザー照射を開始する
     lda weapon_type
     cmp #FORM_GUNDAM
     bne @check_bullet_pool
@@ -242,13 +306,22 @@ fire_main_weapon:
     ; 形態 (0=初期コアファイター, 1=第2形態コア+脚部, 2=第2.5形態コア+胸部) で分岐
     lda weapon_type
     cmp #FORM_LEGS
-    beq @fire_legs_3way
-    cmp #FORM_CHEST
+    bne :+
+    jmp @fire_legs_3way
+:   cmp #FORM_CHEST
     beq @fire_chest_2way
 
     ; ---- 初期形態 (0: コアファイター): 通常ミサイル (1WAY) ----
     lda #SFX_SHOT
     jsr play_sfx
+    lda #$07                ; ミサイルタイル
+    sta tmp_tile
+    lda #1
+    sta tmp_dmg
+    lda #0
+    sta tmp_pierce
+    lda side_mode
+    bne @core_side
     lda player_x
     clc
     adc #4
@@ -261,12 +334,21 @@ fire_main_weapon:
     sta tmp_vx
     lda #<(-6)
     sta tmp_vy
-    lda #$07                ; ミサイルタイル
-    sta tmp_tile
-    lda #1
-    sta tmp_dmg
+    jsr spawn_pbullet
+    rts
+@core_side:
+    lda player_x
+    clc
+    adc #14
+    sta tmp_bx
+    lda player_y
+    clc
+    adc #6
+    sta tmp_by
+    lda #6
+    sta tmp_vx
     lda #0
-    sta tmp_pierce
+    sta tmp_vy
     jsr spawn_pbullet
     rts
 
@@ -274,8 +356,16 @@ fire_main_weapon:
     ; ---- 第2.5形態 (2: コアファイター＋胸部): 2WAY ミサイル ----
     lda #SFX_SHOT
     jsr play_sfx
+    lda #$07                ; 直進ミサイル
+    sta tmp_tile
+    lda #1
+    sta tmp_dmg
+    lda #0
+    sta tmp_pierce
+    lda side_mode
+    bne @chest_side
 
-    ; 左ミサイル (player_x)
+    ; 縦画面: 左右2連ミサイル
     lda player_x
     sta tmp_bx
     lda player_y
@@ -286,19 +376,32 @@ fire_main_weapon:
     sta tmp_vx
     lda #<(-7)
     sta tmp_vy
-    lda #$07                ; 直進ミサイル
-    sta tmp_tile
-    lda #1
-    sta tmp_dmg
-    lda #0
-    sta tmp_pierce
     jsr spawn_pbullet
-
-    ; 右ミサイル (player_x + 8)
     lda player_x
     clc
     adc #8
     sta tmp_bx
+    jsr spawn_pbullet
+    rts
+@chest_side:
+    ; 横表示ロボット戦: 上下2連水平ミサイル
+    lda player_x
+    clc
+    adc #16
+    sta tmp_bx
+    lda player_y
+    clc
+    adc #2
+    sta tmp_by
+    lda #7
+    sta tmp_vx
+    lda #0
+    sta tmp_vy
+    jsr spawn_pbullet
+    lda player_y
+    clc
+    adc #10
+    sta tmp_by
     jsr spawn_pbullet
     rts
 
@@ -306,6 +409,12 @@ fire_main_weapon:
     ; ---- 第2形態 (1: コアファイター＋脚部): 3WAY ミサイル ----
     lda #SFX_SHOT
     jsr play_sfx
+    lda #1
+    sta tmp_dmg
+    lda #0
+    sta tmp_pierce
+    lda side_mode
+    bne @legs_side
 
     ; 中央ミサイル
     lda player_x
@@ -322,10 +431,6 @@ fire_main_weapon:
     sta tmp_vy
     lda #$07                ; 直進ミサイル
     sta tmp_tile
-    lda #1
-    sta tmp_dmg
-    lda #0
-    sta tmp_pierce
     jsr spawn_pbullet
 
     ; 左斜めミサイル
@@ -355,6 +460,35 @@ fire_main_weapon:
     jsr spawn_pbullet
     rts
 
+@legs_side:
+    ; 横表示ロボット戦: 右方向 3WAY ミサイル
+    lda player_x
+    clc
+    adc #16
+    sta tmp_bx
+    lda player_y
+    clc
+    adc #6
+    sta tmp_by
+    lda #7
+    sta tmp_vx
+    lda #0
+    sta tmp_vy
+    lda #$07
+    sta tmp_tile
+    jsr spawn_pbullet
+    lda #6
+    sta tmp_vx
+    lda #<(-2)
+    sta tmp_vy
+    lda #$0B
+    sta tmp_tile
+    jsr spawn_pbullet
+    lda #2
+    sta tmp_vy
+    jsr spawn_pbullet
+    rts
+
 @fire_gundam_laser:
     ; ---- 第3形態 (3: ガンダム): 自機から画面端まで貫通するレーザーを照射開始 (48フレーム)！ ----
     lda #48                 ; 48フレーム照射 (従来の120fから2/5に短縮し体感2秒に調整)
@@ -364,7 +498,7 @@ fire_main_weapon:
     jsr apply_gundam_laser_beam
     rts
 
-; ---- 第3形態の貫通ロングレーザー照射ダメージ処理 (自機から画面上端まで敵を貫通) ----
+; ---- 第3形態の貫通ロングレーザー照射ダメージ処理 (自機から画面端まで敵・ボスを貫通) ----
 apply_gundam_laser_beam:
     ; 16フレームごとにビーム持続音を鳴らす
     lda laser_timer
@@ -373,20 +507,20 @@ apply_gundam_laser_beam:
     lda #SFX_LASER
     jsr play_sfx
 :
-    ; レーザー中心X = player_x + 11 (右腕ビームライフル銃口ライン)
-    ; 1. 画面上端〜自機Yより上にいるすべての通常敵を貫通して撃破！
+    ; 1. 縦スクロール道中の通常敵を貫通して撃破！
     ldx #MAX_ENEMIES-1
 @l_eloop:
     lda enemy_flag,x
     cmp #1
     bne @l_enext
 
-    ; 自機より上 (enemy_y < player_y) にいるか
+    lda side_mode
+    bne @l_enemy_side
+
+    ; 縦画面: 自機より上 (enemy_y < player_y) かつ |enemy_x - (player_x + 7)| < 14
     lda enemy_y,x
     cmp player_y
     bcs @l_enext
-
-    ; X座標判定: |(enemy_x + 8) - (player_x + 15)| < 14 -> |enemy_x - (player_x + 7)| < 14
     lda player_x
     clc
     adc #7
@@ -397,10 +531,26 @@ apply_gundam_laser_beam:
     adc #1
 :   cmp #14
     bcs @l_enext
+    jmp @l_hit_enemy
 
+@l_enemy_side:
+    ; 横表示: 自機より右 (enemy_x >= player_x) かつ |enemy_y - player_y| < 18
+    lda enemy_x,x
+    cmp player_x
+    bcc @l_enext
+    lda player_y
+    sec
+    sbc enemy_y,x
+    bcs :+
+    eor #$FF
+    adc #1
+:   cmp #18
+    bcs @l_enext
+
+@l_hit_enemy:
     ; レーザー貫通ヒット！雑魚敵を一撃で貫通撃破し、レーザーは止まらず画面端まで進む
     stx tmp_save_x
-    lda #3
+    lda #DMG_LASER_TICK
     jsr damage_enemy_x
     ldx tmp_save_x
 
@@ -408,7 +558,7 @@ apply_gundam_laser_beam:
     dex
     bpl @l_eloop
 
-    ; 2. ボスへの貫通レーザー連続照射ダメージ (8フレームに1回 = 1回の照射で最大6ダメージ)
+    ; 2. ボスへの貫通レーザー連続照射ダメージ (8フレームに1回 = DMG_LASER_TICK=2 × 6回 = 計12ダメージ)
     lda boss_state
     cmp #1
     bne @l_done
@@ -416,7 +566,10 @@ apply_gundam_laser_beam:
     and #$07
     bne @l_done             ; 48(初回), 40, 32, 24, 16, 8 の計6回ヒット
 
-    ; ボス横幅判定: (player_x + 15) が boss_x .. boss_x + 48 の範囲内か
+    lda side_mode
+    bne @l_boss_side
+
+    ; 縦画面ボス判定: (player_x + 15) が boss_x .. boss_x + 48 の範囲内か
     lda player_x
     clc
     adc #15
@@ -425,10 +578,209 @@ apply_gundam_laser_beam:
     bcc @l_done
     cmp #50
     bcs @l_done
+    jmp @l_hit_boss
 
-    lda #1
+@l_boss_side:
+    ; 横表示ロボット戦ボス判定: 自機ライフルY (player_y + 6) が ボス縦幅 (boss_y - 8 .. boss_y + 32) の範囲内か
+    lda player_y
+    clc
+    adc #14
+    sec
+    sbc boss_y
+    bcc @l_done
+    cmp #40
+    bcs @l_done
+
+@l_hit_boss:
+    lda #DMG_LASER_TICK
     jsr damage_boss_by_a
 @l_done:
+    rts
+
+
+; ---- 近接ビームサーベル発動距離チェック (Check_Attack_Type: 横画面・ボス戦 side_mode != 0 のみ発動！) ----
+; 出力: A = 1 (横画面ボス戦で前方 SABER_TRIGGER_DIST 以内に敵またはボスあり -> サーベル発動), 0 (遠距離射撃)
+check_saber_range:
+    lda side_mode
+    beq @out_of_range       ; 縦スクロール道中 (side_mode == 0) ではビームサーベルを発動しない！
+    lda weapon_type
+    cmp #FORM_GUNDAM
+    bne @out_of_range       ; 第3形態 (ガンダム) 以外はビームサーベルを持たない！
+
+    ldx #MAX_ENEMIES-1
+@s_eloop:
+    lda enemy_flag,x
+    cmp #1
+    bne @s_enext
+
+    ; X距離: |enemy_x - player_x| <= SABER_TRIGGER_DIST_X (24)
+    lda player_x
+    sec
+    sbc enemy_x,x
+    bcs :+
+    eor #$FF
+    adc #1
+:   cmp #SABER_TRIGGER_DIST_X+1
+    bcs @s_enext
+
+    ; Y距離: 敵が自機の前方近距離 (player_y - 32 <= enemy_y <= player_y + 8) にいるか
+    lda player_y
+    clc
+    adc #8
+    sec
+    sbc enemy_y,x
+    bcc @s_enext
+    cmp #SABER_TRIGGER_DIST_Y+12
+    bcc @in_range
+
+@s_enext:
+    dex
+    bpl @s_eloop
+
+    ; ボスとの近接距離判定 (boss_state == 1)
+    lda boss_state
+    cmp #1
+    bne @out_of_range
+
+    ; ボス縦幅 (boss_y - 24 .. boss_y + 55) の範囲内か
+    lda player_y
+    clc
+    adc #24
+    sec
+    sbc boss_y
+    bcc @out_of_range
+    cmp #80
+    bcs @out_of_range
+    ; ボス横幅 (boss_x - 60 .. boss_x + 48) の範囲内か (サイズ2倍リーチ！)
+    lda player_x
+    clc
+    adc #60
+    sec
+    sbc boss_x
+    bcc @out_of_range
+    cmp #110
+    bcc @in_range
+
+@out_of_range:
+    lda #0
+    rts
+@in_range:
+    lda #1
+    rts
+
+; ---- 近接ビームサーベル 3コマアニメーション & コマ2 斬撃・弾消し判定 ----
+; saber_timer:
+;   9..7 = コマ1: 振りかぶり・抜刀 (PT1 $90-$97, 32x16 チャージ光刃)
+;   6..4 = コマ2: 振り下ろし一閃 (PT1 $A0-$AB, 32x24 巨大ビーム三日月スラッシュ！威力8＋弾消し)
+;   3..1 = コマ3: 斬り抜け・残心 (PT1 $B0-$B7, 32x16 閃光の余波)
+update_beam_saber:
+    lda saber_timer
+    cmp #7
+    bcs @saber_early_ret    ; コマ1(9..7) は抜刀モーションのみ
+    cmp #4
+    bcs @saber_frame2       ; コマ2(6..4) は一閃＋弾消し＋攻撃判定
+@saber_early_ret:
+    rts
+
+@saber_frame2:
+    ; ==== コマ2 (saber_timer == 6..4): 前方斬撃ボックス内の【敵弾消し判定 (前方60px超ワイド！)】 ====
+    ldx #MAX_EBULLETS-1
+@sb_bloop:
+    lda ebul_flag,x
+    beq @sb_bnext
+
+    ; 敵弾が自機右側 (player_x - 8 <= ebul_x <= player_x + 64) にあるか
+    lda ebul_x,x
+    clc
+    adc #8
+    sec
+    sbc player_x
+    bcc @sb_bnext
+    cmp #72
+    bcs @sb_bnext
+
+    ; player_y - 24 <= ebul_y <= player_y + 36
+    lda ebul_y,x
+    clc
+    adc #24
+    sec
+    sbc player_y
+    bcc @sb_bnext
+    cmp #60
+    bcs @sb_bnext
+
+    ; 巨大ビームサーベルで敵弾を一刀両断・消去！
+    lda #0
+    sta ebul_flag,x
+@sb_bnext:
+    dex
+    bpl @sb_bloop
+
+    ; ==== コマ2: 前方斬撃ボックス内の【敵機への高威力ダメージ (DMG_SABER = 8)】 ====
+    ldx #MAX_ENEMIES-1
+@sb_eloop:
+    lda enemy_flag,x
+    cmp #1
+    bne @sb_enext
+
+    lda enemy_x,x
+    clc
+    adc #8
+    sec
+    sbc player_x
+    bcc @sb_enext
+    cmp #72
+    bcs @sb_enext
+
+    lda enemy_y,x
+    clc
+    adc #24
+    sec
+    sbc player_y
+    bcc @sb_enext
+    cmp #60
+    bcs @sb_enext
+
+    ; サーベル直撃！威力 DMG_SABER (8) で一刀両断！
+    stx tmp_save_x
+    lda #DMG_SABER
+    jsr damage_enemy_x
+    ldx tmp_save_x
+
+@sb_enext:
+    dex
+    bpl @sb_eloop
+
+    ; ==== コマ2初撃フレーム (saber_timer == 6) のみボスへ DMG_SABER (8) ダメージ！ ====
+    lda saber_timer
+    cmp #6
+    bne @saber_done
+    lda boss_state
+    cmp #1
+    bne @saber_done
+    lda player_y
+    clc
+    adc #24
+    sec
+    sbc boss_y
+    bcc @saber_done
+    cmp #80
+    bcs @saber_done
+    lda player_x
+    clc
+    adc #60
+    sec
+    sbc boss_x
+    bcc @saber_done
+    cmp #110
+    bcs @saber_done
+
+    lda #DMG_SABER
+    jsr damage_boss_by_a
+
+
+
+@saber_done:
     rts
 
 ; ---- 空きスロットを探して自機弾を1発生成 ----
@@ -495,7 +847,7 @@ update_pbullets:
     bpl @loop
     rts
 
-; ---- Bボタン範囲攻撃 (PLASMA SHOCKWAVE) の効果適用 ----
+; ---- Bボタン範囲攻撃 (PLASMA SHOCKWAVE: 威力 DMG_PLASMA=5 + 敵弾一掃) の効果適用 ----
 apply_b_blast_effect:
     ; 1. 画面内の敵弾 (ebul_flag) をすべて消去！
     ldx #MAX_EBULLETS-1
@@ -505,13 +857,13 @@ apply_b_blast_effect:
     dex
     bpl @clr_eb
 
-    ; 2. 4フレームごとに範囲内の敵とボスへ電撃ダメージ
+    ; 2. 4フレームごとに範囲内の敵とボスへ電撃ダメージ (DMG_PLASMA = 5)
     lda b_blast_timer
     and #3
     cmp #3
     bne @blast_done
 
-    ; 雑魚敵への範囲ダメージ (|ex - b_blast_x| < 72 かつ |ey - b_blast_y| < 72)
+    ; 雑魚敵への範囲ダメージ (|ex - b_blast_x| < 76 かつ |ey - b_blast_y| < 76)
     ldx #MAX_ENEMIES-1
 @eloop:
     lda enemy_flag,x
@@ -536,9 +888,9 @@ apply_b_blast_effect:
 :   cmp #76
     bcs @enext
 
-    ; 範囲ヒット！敵HPを 2 減らす
+    ; 範囲ヒット！敵HPを DMG_PLASMA (5) 減らす
     stx tmp_save_x
-    lda #2
+    lda #DMG_PLASMA
     jsr damage_enemy_x
     ldx tmp_save_x
 
@@ -546,7 +898,10 @@ apply_b_blast_effect:
     dex
     bpl @eloop
 
-    ; ボスへの範囲ダメージ (距離 88px 以内なら1ヒットあたりダメージ2)
+    ; ボスへの範囲ダメージ (初撃フレーム b_blast_timer == 23 のみ DMG_PLASMA = 5 ダメージ)
+    lda b_blast_timer
+    cmp #23
+    bne @blast_done
     lda boss_state
     cmp #1
     bne @blast_done
@@ -560,13 +915,34 @@ apply_b_blast_effect:
     adc #1
 :   cmp #92
     bcs @blast_done
-    lda #2
+    lda #DMG_PLASMA
     jsr damage_boss_by_a
 
 @blast_done:
     rts
 
 .segment "RODATA"
+; =========================================================
+; 仕様書 セクション5: 難易度調整・計算テーブル (Difficulty & Balance LUTs)
+; =========================================================
+; 中ボス HP テーブル (Stage 1〜4: ザク型30, ドム型35, ズゴック型40, グフ型50)
+MidBoss_HP_Table:
+    .byte 30, 35, 40, 50
+
+; ライバル機 (赤いMS) HP テーブル (Stage 1〜4: 80, 90, 100, 120)
+Rival_HP_Table:
+    .byte 80, 90, 100, 120
+
+; 難易度別 HP補正倍率テーブル (固定小数点 Low/High: Easy=$0080[0.5x], Normal=$0100[1.0x], Hard=$0140[1.25x])
+Difficulty_HP_Mult_Lo:
+    .byte $80, $00, $40
+Difficulty_HP_Mult_Hi:
+    .byte $00, $01, $01
+
+; 難易度別 敵弾速度テーブル (Easy=1, Normal=2, Hard=3)
+Difficulty_BulletSpeed:
+    .byte $01, $02, $03
+
 ; 連射レベル (1..5) ごとの画面内最大弾数と発射間隔フレーム
 rapid_max_bullets:
     .byte 3, 4, 6, 7, 8

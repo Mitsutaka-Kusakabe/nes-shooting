@@ -149,7 +149,8 @@ for _ in range(48):
 assert zp("laser_timer") == 0 and zp("shot_timer") == 30, f"Expected 30f (0.5s) cooldown after laser, got laser={zp('laser_timer')}, shot={zp('shot_timer')}"
 print(f"[OK] Form 3 Laser irradiated for 48 frames and entered 0.5s (30 frames) cooldown!")
 
-# Test taking an enemy bullet hit while in Form 3 (Gundam) -> MUST purge back to Form 1 (Core Fighter) without losing a life!
+# Test 2-Stage Armor Purge System (Spec 3.1):
+# 1st hit in Form 3 (Gundam) -> Purges to Form 2 (Legs, weapon_type=1)
 set_zp("inv_timer", 0)
 lives_before = zp("lives")
 cpu.ram[syms["ebul_flag"]] = 1
@@ -158,8 +159,71 @@ cpu.ram[syms["ebul_y"]] = zp("player_y") + 3
 cpu.ram[syms["ebul_vx"]] = 0
 cpu.ram[syms["ebul_vy"]] = 1
 run_frame(0x00)
+assert zp("weapon_type") == 1 and zp("weapon_level") == 2 and zp("lives") == lives_before and zp("game_state") == 0
+print(f"[OK] 1st Hit in Form 3 (Gundam) -> Purged 1st armor layer to Form 2 (weapon_type=1) with lives={zp('lives')} intact!")
+
+# 2nd hit in Form 2 (Legs) -> Purges to Form 1 (Core Fighter, weapon_type=0)
+set_zp("inv_timer", 0)
+cpu.ram[syms["ebul_flag"]] = 1
+cpu.ram[syms["ebul_x"]] = zp("player_x") + 4
+cpu.ram[syms["ebul_y"]] = zp("player_y") + 3
+run_frame(0x00)
 assert zp("weapon_type") == 0 and zp("weapon_level") == 1 and zp("lives") == lives_before and zp("game_state") == 0
-print(f"[OK] Hit while in Form 3 (Gundam) -> Purged back to Form 1 (Core Fighter) with lives={zp('lives')} intact!")
+print(f"[OK] 2nd Hit in Form 2 (Legs) -> Purged 2nd armor layer to Form 1 (Core Fighter) with lives={zp('lives')} intact!")
+
+# Test Close-Range Auto Beam Saber: ONLY triggers in Side-View (Boss Battle: side_mode == 1), NOT in Vertical Scroll (side_mode == 0)!
+cpu.ram[syms["enemy_flag"]] = 1
+cpu.ram[syms["enemy_x"]] = zp("player_x")
+cpu.ram[syms["enemy_y"]] = zp("player_y") - 16
+cpu.ram[syms["enemy_hp"]] = 6
+set_zp("side_mode", 0)
+set_zp("shot_timer", 0)
+run_frame(0x80)  # Press A in Vertical Scroll (side_mode=0) -> Must NOT trigger Beam Saber!
+assert zp("saber_timer") == 0, f"Beam Saber should NOT trigger in Vertical Scroll (side_mode=0), got saber_timer={zp('saber_timer')}"
+print(f"[OK] Vertical Scroll (side_mode=0): Pressing A in close range fires normal shot (Beam Saber disabled in vertical mode)!")
+
+# Now test in Side-View Boss Battle mode (side_mode=1):
+cpu.ram[syms["enemy_flag"]] = 1
+cpu.ram[syms["enemy_x"]] = zp("player_x")
+cpu.ram[syms["enemy_y"]] = zp("player_y") - 16
+cpu.ram[syms["enemy_hp"]] = 6
+cpu.ram[syms["ebul_flag"]] = 1
+cpu.ram[syms["ebul_x"]] = zp("player_x") + 4
+cpu.ram[syms["ebul_y"]] = zp("player_y") - 14
+cpu.ram[syms["ebul_vx"]] = 0
+cpu.ram[syms["ebul_vy"]] = 0
+set_zp("side_mode", 1)
+set_zp("shot_timer", 0)
+# Form 1 / 2 / 2.5 (non-Gundam) must NOT trigger Beam Saber even in Side-View!
+for wt in (0, 1, 2):
+    set_zp("weapon_type", wt)
+    set_zp("shot_timer", 0)
+    run_frame(0x00)
+    run_frame(0x80)
+    assert zp("saber_timer") == 0, f"Beam Saber must be Form 3 only, but triggered with weapon_type={wt}"
+    for i in range(MAX_PBULLETS_TEST := 6):
+        cpu.ram[syms["pbul_flag"] + i] = 0
+print("[OK] Side-View Boss Battle: Forms 1/2/2.5 (non-Gundam) do NOT use Beam Saber (ranged attack only)!")
+cpu.ram[syms["enemy_flag"]] = 1
+cpu.ram[syms["enemy_hp"]] = 6
+cpu.ram[syms["ebul_flag"]] = 1
+cpu.ram[syms["ebul_x"]] = zp("player_x") + 4
+cpu.ram[syms["ebul_y"]] = zp("player_y") - 14
+set_zp("weapon_type", 3)
+set_zp("shot_timer", 0)
+run_frame(0x00)
+run_frame(0x80)  # Press A in Side-View mode (side_mode=1) as Form 3 with enemy in close range -> Auto-triggers Beam Saber (saber_timer=9)!
+assert zp("saber_timer") == 9, f"Expected Beam Saber to trigger in Side-View (saber_timer=9), got {zp('saber_timer')}"
+for _ in range(4):
+    run_frame(0x00)  # Advance into Frame 2 (saber_timer=6..4: slash + bullet clear!)
+assert cpu.ram[syms["ebul_flag"]] == 0, "Beam Saber Frame 2 did not clear enemy bullet!"
+assert cpu.ram[syms["enemy_flag"]] == 2, f"Beam Saber Frame 2 did not defeat HP=6 enemy with DMG_SABER=8! flag={cpu.ram[syms['enemy_flag']]}"
+for _ in range(5):
+    run_frame(0x00)
+set_zp("side_mode", 0)
+set_zp("weapon_type", 0)
+print(f"[OK] Side-View Boss Battle (side_mode=1): Close-Range Auto Beam Saber (3-frame anim) triggered, cleared enemy bullet, and dealt DMG_SABER=8!")
+
 
 # Test Form 2.5 (Core Fighter + Chest Parts only -> weapon_type=2, 2-WAY Missile) when Leg Parts are skipped!
 cpu.ram[syms["item_flag"]] = 1
@@ -181,28 +245,88 @@ run_frame(0x40)  # BTN_B = 0x40
 print(f"[OK] Pressed B -> b_cooldown={zp('b_cooldown')}, b_blast_timer={zp('b_blast_timer')}, ebul_flag={cpu.ram[syms['ebul_flag']]}")
 assert zp("b_cooldown") > 100 and zp("b_blast_timer") > 0 and cpu.ram[syms["ebul_flag"]] == 0
 
-# 5. Test Stage 1..4 Bosses & Warp Sequence -> Victory Ending
+# 5. Test Stage 1..4 Mid-Bosses (MOJA-01..04) & Rival Red MS Bosses + Side-View Switching & Warp Escape -> Victory Ending
+expected_midboss_hp = [30, 35, 40, 50]
+expected_rival_hp   = [80, 90, 100, 120]
+
 for stage_num in range(4):
     assert zp("current_stage") == stage_num, f"Expected stage {stage_num}, got {zp('current_stage')}"
-    # Advance meta_idx to 63 so the stage boss spawns on the next scroll row
-    set_zp("meta_idx", 63)
+    assert zp("side_mode") == 0, f"Stage {stage_num+1} should start in Vertical Scroll mode (side_mode=0)"
+
+    # 5a. Advance meta_idx to 31 so the Mid-Boss warning triggers on the next scroll row (meta_idx == 32)
+    set_zp("meta_idx", 31)
     set_zp("meta_sub_row", 1)
     for _ in range(20):
         run_frame(0x00)
+        if zp("boss_state") == 3:
+            break
+    assert zp("boss_state") == 3 and zp("boss_type") == 0 and zp("side_mode") == 0, \
+        f"Stage {stage_num+1} Mid-Boss WARNING did not start in Vertical Scroll! state={zp('boss_state')}, side={zp('side_mode')}"
+    print(f"[OK] Stage {stage_num+1} Mid-Boss (MOJA-0{stage_num+1}) WARNING triggered in Vertical Scroll (side_mode=0, warning_timer={zp('warning_timer')})!")
+
+    # Wait for 120-frame WARNING phase + gliding intro entrance (boss_state 3 -> 4 -> 1)
+    for _ in range(160):
+        run_frame(0x00)
         if zp("boss_state") == 1:
             break
-    assert zp("boss_state") == 1, f"Stage {stage_num+1} boss did not spawn!"
-    print(f"[OK] Stage {stage_num+1} Boss spawned! HP={zp('boss_hp')}")
+    assert zp("boss_state") == 1 and zp("boss_type") == 0 and zp("side_mode") == 1, \
+        f"Stage {stage_num+1} Mid-Boss did not enter battle in Side-View mode! state={zp('boss_state')}, side={zp('side_mode')}, timer={zp('warning_timer')}"
+    assert zp("boss_hp") == expected_midboss_hp[stage_num], \
+        f"Stage {stage_num+1} Mid-Boss HP mismatch: expected {expected_midboss_hp[stage_num]}, got {zp('boss_hp')}"
+    print(f"[OK] Stage {stage_num+1} Mid-Boss (MOJA-0{stage_num+1}) entered battle in Side-View mode (PT1)! HP={zp('boss_hp')}")
 
-    # Reduce boss HP to 1 and shoot it with A button
+    # Defeat Mid-Boss with 2x Size Beam Saber from 50px away and verify seamless return to Vertical Scroll mode (side_mode=0)
     set_zp("boss_hp", 1)
-    set_zp("player_x", zp("boss_x") + 8)
+    set_zp("weapon_type", 3)  # ビームサーベルは第3形態 (ガンダム) 専用
+    set_zp("player_x", zp("boss_x") - 50)
+    set_zp("player_y", zp("boss_y") + 8)
     for _ in range(30):
         run_frame(0x80)
         if zp("boss_state") == 2:
             break
-    assert zp("boss_state") == 2, f"Stage {stage_num+1} boss did not enter dying state!"
-    print(f"[OK] Stage {stage_num+1} Boss defeated! Entering explosion sequence...")
+    assert zp("boss_state") == 2, f"Stage {stage_num+1} Mid-Boss did not enter dying state!"
+    for _ in range(95):
+        run_frame(0x00)
+        if zp("boss_state") == 0:
+            break
+    assert zp("boss_state") == 0 and zp("side_mode") == 0 and zp("game_state") == 0, \
+        f"Mid-Boss defeat did not return to Vertical Scroll! state={zp('game_state')}, side={zp('side_mode')}"
+    print(f"[OK] Stage {stage_num+1} Mid-Boss defeated -> Returned seamlessly to Vertical Scroll (side_mode=0)!")
+
+    # 5b. Advance meta_idx to 63 so the Rival Red MS Boss warning triggers
+    set_zp("meta_idx", 63)
+    set_zp("meta_sub_row", 1)
+    for _ in range(20):
+        run_frame(0x00)
+        if zp("boss_state") == 3:
+            break
+    assert zp("boss_state") == 3 and zp("boss_type") == 1 and zp("side_mode") == 0, \
+        f"Stage {stage_num+1} Rival WARNING did not start in Vertical Scroll! state={zp('boss_state')}, side={zp('side_mode')}"
+    print(f"[OK] Stage {stage_num+1} Rival Red MS Boss WARNING triggered in Vertical Scroll (warning_timer={zp('warning_timer')})!")
+
+    # Wait for 120-frame WARNING + gliding intro entrance
+    for _ in range(160):
+        run_frame(0x00)
+        if zp("boss_state") == 1:
+            break
+    assert zp("boss_state") == 1 and zp("boss_type") == 1 and zp("side_mode") == 1, \
+        f"Stage {stage_num+1} Rival Boss did not enter battle in Side-View mode! state={zp('boss_state')}"
+    assert zp("boss_hp") == expected_rival_hp[stage_num], \
+        f"Stage {stage_num+1} Rival Boss HP mismatch: expected {expected_rival_hp[stage_num]}, got {zp('boss_hp')}"
+    print(f"[OK] Stage {stage_num+1} Rival Red MS Boss entered battle in Side-View mode! HP={zp('boss_hp')}")
+
+    # Reduce Rival Boss HP to 1 and defeat it from 50px away with 2x Size Beam Saber
+    set_zp("boss_hp", 1)
+    set_zp("weapon_type", 3)  # ビームサーベルは第3形態 (ガンダム) 専用
+    set_zp("player_x", zp("boss_x") - 50)
+    set_zp("player_y", zp("boss_y") + 8)
+    for _ in range(30):
+        run_frame(0x80)
+        if zp("boss_state") == 2:
+            break
+
+    assert zp("boss_state") == 2, f"Stage {stage_num+1} Rival Boss did not enter dying state!"
+    print(f"[OK] Stage {stage_num+1} Rival Red MS defeated! Entering explosion & Warp Escape sequence...")
 
     # Wait for boss explosion (88 frames) -> Warp Sequence (STATE_WARP = 1)
     for _ in range(95):
@@ -210,7 +334,7 @@ for stage_num in range(4):
         if zp("game_state") == 1:
             break
     assert zp("game_state") == 1 and zp("warp_mode") == 1, f"Did not enter STATE_WARP! state={zp('game_state')}"
-    print(f"[OK] Stage {stage_num+1} Clear -> High-Speed WARP sequence active (warp_mode={zp('warp_mode')})!")
+    print(f"[OK] Stage {stage_num+1} Clear -> High-Speed WARP Escape sequence active (warp_mode={zp('warp_mode')})!")
 
     # Wait for Warp Sequence (150 frames) to finish
     for _ in range(160):
@@ -219,13 +343,14 @@ for stage_num in range(4):
             break
 
     if stage_num < 3:
-        assert zp("game_state") == 6 and zp("current_stage") == stage_num + 1
-        print(f"[OK] Warp completed -> Advanced to Stage {stage_num+2} Briefing!")
+        assert zp("game_state") == 6 and zp("current_stage") == stage_num + 1 and zp("side_mode") == 0
+        print(f"[OK] Warp completed -> Advanced to Stage {stage_num+2} Briefing (side_mode reset to 0)!")
         for _ in range(115):
             run_frame(0x00)
         assert zp("game_state") == 0
     else:
         assert zp("game_state") == 5
-        print(f"[OK] Stage 4 Boss defeated & Warp completed -> Reached Victory Ending (STATE_ENDING=5)!")
+        print(f"[OK] Stage 4 Final Rival Red MS defeated & Warp completed -> Reached Victory Ending (STATE_ENDING=5)!")
 
 print("\nALL TESTS PASSED PERFECTLY!")
+

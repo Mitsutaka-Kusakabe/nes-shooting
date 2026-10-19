@@ -8,6 +8,9 @@ init_stage_bg:
     lda #0
     sta cam_nt              ; 開始ネームテーブル (0=$2000)
     sta cam_y               ; 開始スクロールY (0)
+    sta cam_x               ; 開始スクロールX (0)
+    sta side_mode           ; 0=縦スクロール道中モード
+    sta warning_timer       ; WARNING演出タイマー
     sta scroll_sub          ; サブピクセルカウンタ
     sta meta_idx            ; ステージ進行メタ行 (0..63)
     sta row_pending         ; NMI 行転送フラグ
@@ -118,8 +121,24 @@ init_stage_attr:
     bne @arow
     rts
 
-; ---- 毎フレームの縦スクロール更新 ----
+; ---- 毎フレームの縦スクロール / 横表示モード時の水平スクロール更新 ----
 update_scroll:
+    ; 横表示・1-on-1 ロボット戦モード (side_mode == 1) なら水平方向 ($2005 cam_x) にスクロール！
+    lda side_mode
+    beq @vert_scroll_mode
+    lda warp_mode
+    beq @side_normal_spd
+    ; ワープ撤退演出中 (Exec_Warp_Escape_Sequence): 水平方向へ 8px/フレームの超高速ハイパーワープ！
+    lda cam_x
+    clc
+    adc #8
+    sta cam_x
+    rts
+@side_normal_spd:
+    inc cam_x
+    rts
+
+@vert_scroll_mode:
     ; スクロール速度の決定:
     ; - ワープ中 (warp_mode=1): 8px/フレームの超高速スクロール！
     ; - 通常道中 / ボス戦: 1px/フレーム (2フレームに2px = 毎フレーム1px)
