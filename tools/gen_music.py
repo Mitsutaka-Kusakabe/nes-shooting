@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """
-Generate assets/music_stage.s : 通常ステージBGM「LUNAR CATACOMB DRIVE」(オリジナル曲)
-80年代アクションRPGのダンジョン曲風 (短調・疾走16分ベース・哀愁リード) を意識した完全オリジナル楽曲。
-
-書式: 1小節 = 16ステップ (16分音符)。テンポ 6フレーム/ステップ = 150BPM
-  メロディ/ベース: 音名 (例 D5, Bb4, C#5) / '-' = 前の音を伸ばす / '.' = 休符
-  ドラム        : 'K' = キック(DPCM) / 'S' = スネア(DPCM) / '.' = なし  (ハイハットはエンジン側で自動)
-  ベースは三角波 (表記より1オクターブ低く鳴る)
-出力コード: 0 = 休符, $FF = 伸ばし, 1..64 = 音程 (1 = A1 ... 64 = C7)
+Generate:
+1. assets/music_stage.s : 通常ステージBGM「LUNAR CATACOMB DRIVE」 (D minor, 150 BPM)
+2. assets/music_boss.s  : ボス戦BGM「CRIMSON BATTLE GROUND」 (YS2 Boss style, E minor, 180 BPM)
+3. assets/music_title.s : タイトルBGM「SPACE MERCHANT - THE SYONIN」 (YS2 The Syonin style, F major, 130 BPM)
 """
 
 CPU = 1789773.0
@@ -63,7 +59,7 @@ def bass_drive(r1, r2=None):
 
 
 def bass_gallop(r1, r2=None):
-    """ギャロップ型ベース (Bセクション用、休符で歯切れよく)"""
+    """ギャロップ型ベース (休符で歯切れよく)"""
     r2 = r2 or r1
     pat = [0, None, 12, 0, 0, None, 12, 0]
     toks = []
@@ -74,18 +70,41 @@ def bass_gallop(r1, r2=None):
     return toks
 
 
+def bass_boss_drive(r1, r2=None):
+    """YS2ボス風: 激しいルート・オクターブ・5度を織り交ぜた16分スラッシュベース"""
+    r2 = r2 or r1
+    pat = [0, 12, 0, 12, 7, 12, 0, 12]
+    toks = []
+    for root in (r1, r2):
+        base = note_index(root)
+        for o in pat:
+            toks.append(base + o)
+    return toks
+
+
+def bass_bounce(r1, r2=None):
+    """シャッフル・バウンスベース (The Syonin風: ルートと5度の軽快な跳ね)"""
+    r2 = r2 or r1
+    pat = [0, None, 12, None, 7, None, 12, None]
+    toks = []
+    for root in (r1, r2):
+        base = note_index(root)
+        for o in pat:
+            toks.append(REST if o is None else base + o)
+    return toks
+
+
+# =============================================================================
+# 1. 通常ステージ曲: LUNAR CATACOMB DRIVE
+# =============================================================================
 D_STD = "K . . . S . . K K . K . S . . ."
 D_INTRO1 = "K . . . . . . . K . . . . . . ."
 D_FILL = "K . . . S . . K K . S S S S S S"
 D_B = "K . . K S . . K . K K . S . K ."
 
-# ---- 小節定義: (メロディ, ベース, ドラム) ----
-BARS = {
-    # イントロ: ベースとドラムだけで疾走感を立ち上げ、2小節目で駆け上がり
+BARS_STAGE = {
     "I1": (". . . . . . . . . . . . . . . .", bass_drive("D3"), D_INTRO1),
     "I2": (". . . . . . . . A4 - C5 - D5 - E5 -", bass_drive("D3", "A2"), D_FILL),
-
-    # A セクション: Dm | Bb | C | Dm | Dm | Bb | Gm A | A
     "A1": ("F5 - - - - - E5 - D5 - - - A4 - - -", bass_drive("D3"), D_STD),
     "A2": ("Bb4 - - - C5 - D5 - F5 - - - E5 - D5 -", bass_drive("Bb2"), D_STD),
     "A3": ("E5 - - - - - D5 - C5 - - - G4 - - -", bass_drive("C3"), D_STD),
@@ -94,8 +113,6 @@ BARS = {
     "A6": ("Bb5 - - - A5 - G5 - F5 - - - G5 - A5 -", bass_drive("Bb2"), D_STD),
     "A7": ("G5 - F5 - E5 - D5 - E5 - - - C#5 - - -", bass_drive("G2", "A2"), D_STD),
     "A8": ("A4 - - - - - - - . . . . E5 - F5 -", bass_drive("A2"), D_FILL),
-
-    # B セクション: Gm | A | Dm | F | Gm | A | Bb C | A (16分の下降ラン)
     "B1": ("G5 - - - - - - - Bb5 - A5 - G5 - F5 -", bass_gallop("G2"), D_B),
     "B2": ("E5 - - - - - - - C#5 - D5 - E5 - - -", bass_gallop("A2"), D_B),
     "B3": ("F5 - - - - - E5 - D5 - - - F5 - A5 -", bass_gallop("D3"), D_B),
@@ -106,13 +123,95 @@ BARS = {
     "B8": ("A5 G5 F5 E5 D5 C#5 D5 E5 F5 E5 D5 C#5 A4 - - -", bass_drive("A2"), D_FILL),
 }
 
-ORDER = (
+ORDER_STAGE = (
     ["I1", "I2"]
     + ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"]
     + ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"]
     + ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"]
 )
-LOOP_POS = 2  # ループ時はイントロを飛ばして A1 から
+LOOP_STAGE = 2
+
+
+# =============================================================================
+# 2. ボス戦曲: CRIMSON BATTLE GROUND (YS2 Battle Ground Style)
+# E minor, テンポ 5フレーム/step = 180 BPM
+# =============================================================================
+BD_FAST1 = "K . K . S . K . K . K . S . K ."
+BD_FAST2 = "K . K . S . K . K K . K S . S ."
+BD_FILL  = "K . K . S . K . S S S S S S S S"
+BD_HIT   = "K . . . S . . . K . . . S . S ."
+
+BARS_BOSS = {
+    "BI1": ("E5 . G5 . B5 . E6 . D#6 . B5 . G5 . D#5 .", bass_boss_drive("E3"), BD_HIT),
+    "BI2": ("E5 . G5 . B5 . E6 . D#6 - F#6 - G6 - A6 -", bass_boss_drive("E3", "B2"), BD_FILL),
+    "BA1": ("B5 - - - A5 - G5 - F#5 - G5 - E5 - - -", bass_boss_drive("E3"), BD_FAST1),
+    "BA2": ("C6 - - - B5 - A5 - G5 - - - A5 - B5 -", bass_boss_drive("C3"), BD_FAST2),
+    "BA3": ("A5 - - - G5 - F#5 - E5 - F#5 - D5 - - -", bass_boss_drive("D3"), BD_FAST1),
+    "BA4": ("E5 - - - - - - - . . B4 - D5 - E5 -", bass_boss_drive("E3"), BD_FAST2),
+    "BA5": ("B5 - - - C6 - D6 - B5 - - - G5 - - -", bass_boss_drive("E3"), BD_FAST1),
+    "BA6": ("C6 - - - D6 - E6 - C6 - - - A5 - - -", bass_boss_drive("C3"), BD_FAST2),
+    "BA7": ("D6 - - - C6 - B5 - A5 - - - B5 - C6 -", bass_boss_drive("D3"), BD_FAST1),
+    "BA8": ("B5 - - - - - - - . . F#5 - G5 - A5 -", bass_boss_drive("B2"), BD_FILL),
+    "BB1": ("C6 - - - - - - - E6 - D6 - C6 - B5 -", bass_boss_drive("A2"), BD_FAST1),
+    "BB2": ("B5 - - - - - - - D6 - C6 - B5 - A5 -", bass_boss_drive("B2"), BD_FAST2),
+    "BB3": ("A5 - - - G5 - F#5 - G5 - - - A5 - - -", bass_boss_drive("C3"), BD_FAST1),
+    "BB4": ("F#5 - - - - - - - . . A5 - B5 - C6 -", bass_boss_drive("D3"), BD_FAST2),
+    "BB5": ("D6 - - - - - - - F#6 - E6 - D6 - C6 -", bass_boss_drive("D3"), BD_FAST1),
+    "BB6": ("E6 - - - - - - - B5 - - - G5 - - -", bass_boss_drive("E3"), BD_FAST2),
+    "BB7": ("C6 - - - B5 - A5 - B5 - - - D#6 - - -", bass_boss_drive("C3", "B2"), BD_FAST1),
+    "BB8": ("E6 D#6 E6 F#6 G6 F#6 E6 D#6 B5 - D#6 - E6 - - -", bass_boss_drive("B2"), BD_FILL),
+}
+
+ORDER_BOSS = (
+    ["BI1", "BI2"]
+    + ["BA1", "BA2", "BA3", "BA4", "BA5", "BA6", "BA7", "BA8"]
+    + ["BB1", "BB2", "BB3", "BB4", "BB5", "BB6", "BB7", "BB8"]
+)
+LOOP_BOSS = 2
+
+
+# =============================================================================
+# 3. タイトル曲: SPACE MERCHANT - THE SYONIN (YS2 The Syonin Style)
+# F major / D minor, 軽快なバウンス・シャッフルビート (7フレーム/step = 130 BPM)
+# 愉快でキャッチー、それでいて商人らしい抜け目のなさと活気のあるメロディ！
+# =============================================================================
+TD_BEAT1 = "K . . . S . . . K . K . S . . ."
+TD_BEAT2 = "K . . . S . . . K . . . S . S ."
+TD_INTRO = "K . . . . . . . K . . . S . S ."
+TD_FILL  = "K . K . S . . K S S S S S S S S"
+
+BARS_TITLE = {
+    # イントロ: 鐘やラッパのように明るく陽気なファンファーレ
+    "TI1": ("C5 . F5 . A5 . C6 . A5 . F5 . C5 . . .", bass_bounce("F3"), TD_INTRO),
+    "TI2": ("D5 . F5 . Bb5 . D6 . C6 - Bb5 - A5 - G5 -", bass_bounce("Bb2", "C3"), TD_FILL),
+
+    # Aセクション: 軽妙なスキップと跳ねるような商人のテーマ (F -> Bb -> C -> F)
+    "TA1": ("A5 - F5 - C5 - F5 - A5 - Bb5 - C6 - - -", bass_bounce("F3"), TD_BEAT1),
+    "TA2": ("D6 - C6 - Bb5 - A5 - G5 - - - - - - -", bass_bounce("Bb2", "C3"), TD_BEAT2),
+    "TA3": ("Bb5 - G5 - D5 - G5 - Bb5 - C6 - D6 - - -", bass_bounce("G2", "C3"), TD_BEAT1),
+    "TA4": ("C6 - Bb5 - A5 - G5 - F5 - - - - - - -", bass_bounce("F3"), TD_BEAT2),
+    "TA5": ("A5 - F5 - C5 - F5 - A5 - Bb5 - C6 - - -", bass_bounce("F3"), TD_BEAT1),
+    "TA6": ("D6 - - - F6 - - - E6 - D6 - C6 - - -", bass_bounce("Bb2", "F3"), TD_BEAT2),
+    "TA7": ("Bb5 - A5 - G5 - F5 - E5 - F5 - G5 - - -", bass_bounce("C3"), TD_BEAT1),
+    "TA8": ("F5 - - - - - - - . . C5 - D5 - E5 -", bass_bounce("F3"), TD_FILL),
+
+    # Bセクション: 短調が混じるちょっとコミカル＆いたずらっぽい駆け引き (Dm -> Gm -> A -> Dm)
+    "TB1": ("F5 - D5 - A4 - D5 - F5 - - - D5 - - -", bass_bounce("D3"), TD_BEAT1),
+    "TB2": ("G5 - E5 - Bb4 - E5 - G5 - - - E5 - - -", bass_bounce("G2"), TD_BEAT2),
+    "TB3": ("A5 - G5 - F5 - E5 - F5 - E5 - D5 - C#5 -", bass_bounce("A2"), TD_BEAT1),
+    "TB4": ("D5 - - - - - - - . . F5 - G5 - A5 -", bass_bounce("D3"), TD_BEAT2),
+    "TB5": ("Bb5 - G5 - D5 - G5 - Bb5 - - - - - - -", bass_bounce("G2"), TD_BEAT1),
+    "TB6": ("C6 - A5 - F5 - A5 - C6 - - - - - - -", bass_bounce("F3"), TD_BEAT2),
+    "TB7": ("D6 - C6 - Bb5 - A5 - G5 - A5 - Bb5 - G5 -", bass_bounce("Bb2", "C3"), TD_BEAT1),
+    "TB8": ("C6 - - - - - - - . . G5 - A5 - Bb5 -", bass_bounce("C3"), TD_FILL),
+}
+
+ORDER_TITLE = (
+    ["TI1", "TI2"]
+    + ["TA1", "TA2", "TA3", "TA4", "TA5", "TA6", "TA7", "TA8"]
+    + ["TB1", "TB2", "TB3", "TB4", "TB5", "TB6", "TB7", "TB8"]
+)
+LOOP_TITLE = 2  # イントロ後は TA1 からループ
 
 
 def period(idx):
@@ -123,42 +222,71 @@ def period(idx):
     return p
 
 
-def main():
-    names = list(BARS.keys())
+def generate_music_file(filename, title, prefix, bars, order, loop_pos):
+    names = list(bars.keys())
     out = []
-    out.append("; 通常ステージBGM「LUNAR CATACOMB DRIVE」(オリジナル曲)")
+    out.append(f"; {title}")
     out.append("; tools/gen_music.py により自動生成 (直接編集しないこと)")
-    out.append(".segment \"RODATA\"\n")
-    out.append(f"STG_LOOP = {LOOP_POS}")
-    out.append("stg_order:")
-    idxs = [names.index(n) for n in ORDER]
+    out.append('.segment "RODATA"\n')
+    out.append(f"{prefix}_LOOP = {loop_pos}")
+    out.append(f"{prefix}_order:")
+    idxs = [names.index(n) for n in order]
     for i in range(0, len(idxs), 16):
         out.append("    .byte " + ", ".join(str(v) for v in idxs[i:i + 16]))
     out.append("    .byte $FF\n")
-    out.append("stg_pat_lo:")
-    out.append("    .byte " + ", ".join(f"<stg_pat_{n}" for n in names))
-    out.append("stg_pat_hi:")
-    out.append("    .byte " + ", ".join(f">stg_pat_{n}" for n in names) + "\n")
+    out.append(f"{prefix}_pat_lo:")
+    out.append("    .byte " + ", ".join(f"<{prefix}_pat_{n}" for n in names))
+    out.append(f"{prefix}_pat_hi:")
+    out.append("    .byte " + ", ".join(f">{prefix}_pat_{n}" for n in names) + "\n")
     for n in names:
-        mel, bass, drum = BARS[n]
+        mel, bass, drum = bars[n]
         m = parse_line(mel)
         b = bass if isinstance(bass, list) else parse_line(bass)
         d = parse_drum(drum)
-        out.append(f"stg_pat_{n}:")
+        out.append(f"{prefix}_pat_{n}:")
         for row in (m, b, d):
             out.append("    .byte " + ", ".join(f"${v:02X}" for v in row))
-    out.append("\n; 音程周期テーブル (1 = A1 ... 64 = C7, 0 = 未使用)")
-    per = [0] + [period(i) for i in range(1, 65)]
-    out.append("stg_period_lo:")
-    for i in range(0, 65, 16):
-        out.append("    .byte " + ", ".join(f"${p & 0xFF:02X}" for p in per[i:i + 16]))
-    out.append("stg_period_hi:")
-    for i in range(0, 65, 16):
-        out.append("    .byte " + ", ".join(f"${p >> 8:02X}" for p in per[i:i + 16]))
-    with open("assets/music_stage.s", "w", encoding="utf-8") as f:
+
+    if prefix == "stg":
+        out.append("\n; 音程周期テーブル (1 = A1 ... 64 = C7, 0 = 未使用)")
+        per = [0] + [period(i) for i in range(1, 65)]
+        out.append("stg_period_lo:")
+        for i in range(0, 65, 16):
+            out.append("    .byte " + ", ".join(f"${p & 0xFF:02X}" for p in per[i:i + 16]))
+        out.append("stg_period_hi:")
+        for i in range(0, 65, 16):
+            out.append("    .byte " + ", ".join(f"${p >> 8:02X}" for p in per[i:i + 16]))
+
+    with open(filename, "w", encoding="utf-8") as f:
         f.write("\n".join(out) + "\n")
-    secs = len(ORDER) * 16 * 6 / 60.0
-    print(f"Generated assets/music_stage.s ({len(names)} bars, order {len(ORDER)} bars = {secs:.1f}s)")
+    print(f"Generated {filename} ({len(names)} bars, order {len(order)} bars)")
+
+
+def main():
+    generate_music_file(
+        "assets/music_stage.s",
+        "通常ステージBGM「LUNAR CATACOMB DRIVE」(オリジナル曲)",
+        "stg",
+        BARS_STAGE,
+        ORDER_STAGE,
+        LOOP_STAGE
+    )
+    generate_music_file(
+        "assets/music_boss.s",
+        "ボス戦BGM「CRIMSON BATTLE GROUND」(YS2 Battle Ground Style オリジナル曲)",
+        "boss",
+        BARS_BOSS,
+        ORDER_BOSS,
+        LOOP_BOSS
+    )
+    generate_music_file(
+        "assets/music_title.s",
+        "タイトルBGM「SPACE MERCHANT - THE SYONIN」(YS2 The Syonin Style オリジナル曲)",
+        "title",
+        BARS_TITLE,
+        ORDER_TITLE,
+        LOOP_TITLE
+    )
 
 
 if __name__ == "__main__":

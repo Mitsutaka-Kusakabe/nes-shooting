@@ -364,19 +364,24 @@ update_bgm:
     sta $4008
     rts
 :
-    ; テンポ制御: 通常ステージ・ボス戦は 6フレーム/step (150 BPM)
+    ; テンポ制御: ボス戦は 5フレーム/step (180 BPM YS2風超高速ビート！)
+    ; 通常ステージは 6フレーム/step (150 BPM)
     ; タイトル・クリア等は 7フレーム/step
     inc bgm_tick
     lda #6
     ldx bgm_track
-    cpx #TRACK_STAGE1
+    cpx #TRACK_BOSS
+    bne :+
+    lda #5
+    jmp @cmp_tempo
+:   cpx #TRACK_STAGE1
     beq :+
     cpx #TRACK_STAGE2
     beq :+
-    cpx #TRACK_BOSS
-    beq :+
     lda #7
-:   cmp bgm_tick
+:
+@cmp_tempo:
+    cmp bgm_tick
     bcc @step_next
     beq @step_next
     rts
@@ -385,14 +390,24 @@ update_bgm:
     lda #0
     sta bgm_tick
 
-    ; 通常ステージ (TRACK_STAGE1, TRACK_STAGE2) か判定
+    ; ボス戦 (TRACK_BOSS) か判定
     lda bgm_track
+    cmp #TRACK_BOSS
+    bne :+
+    jmp @do_boss_bgm
+:
+    ; タイトル画面 (TRACK_TITLE) か判定
+    cmp #TRACK_TITLE
+    bne :+
+    jmp @do_title_bgm
+:
+    ; 通常ステージ (TRACK_STAGE1, TRACK_STAGE2) か判定
     cmp #TRACK_STAGE1
     beq @do_stage_bgm
     cmp #TRACK_STAGE2
     beq @do_stage_bgm
 
-    ; ---- 従来 32ステップ曲 (TITLE / BOSS / CLEAR) ----
+    ; ---- 従来 32ステップ曲 (CLEAR) ----
     ldx bgm_step
     inx
     txa
@@ -401,19 +416,9 @@ update_bgm:
     tax
 
     lda bgm_track
-    cmp #TRACK_TITLE
-    beq @trk_title
-    cmp #TRACK_BOSS
-    beq @trk_boss
     cmp #TRACK_CLEAR
     beq @trk_clear
     rts
-
-@trk_title:
-    lda mel_title,x
-    tay
-    lda bass_title,x
-    jmp @play_legacy_notes
 
 @trk_boss:
     lda mel_boss,x
@@ -468,8 +473,8 @@ update_bgm:
     lda stg_order,x
     cmp #$FF
     bne :+
-    ; ループ位置 (STG_LOOP) へジャンプ
-    lda #STG_LOOP
+    ; ループ位置 (stg_LOOP) へジャンプ
+    lda #stg_LOOP
     sta bgm_order_idx
     tax
     lda stg_order,x
@@ -478,7 +483,30 @@ update_bgm:
     sta text_ptr
     lda stg_pat_hi,x
     sta text_ptr+1
+    jmp @seq_play_channels
 
+    ; =========================================================================
+    ; ---- 新・ボス戦BGM「CRIMSON BATTLE GROUND」再生ルーチン (YS2風 180BPM) ----
+    ; =========================================================================
+@do_boss_bgm:
+    ; 小節ポインタ text_ptr を計算: boss_order[bgm_order_idx] のパターンアドレス
+    ldx bgm_order_idx
+    lda boss_order,x
+    cmp #$FF
+    bne :+
+    ; ループ位置 (boss_LOOP) へジャンプ
+    lda #boss_LOOP
+    sta bgm_order_idx
+    tax
+    lda boss_order,x
+:   tax
+    lda boss_pat_lo,x
+    sta text_ptr
+    lda boss_pat_hi,x
+    sta text_ptr+1
+
+    ; ---- 共通シーケンス再生 (text_ptr: 小節データ, bgm_bar_step: 0..15) ----
+@seq_play_channels:
     ; 1. メロディ (SQ1)
     ldy bgm_bar_step
     lda (text_ptr),y
@@ -488,7 +516,7 @@ update_bgm:
     beq @stg_rest_mel
     ; ノート発音
     tax
-    lda #%10111011          ; Duty 50%, Vol 11
+    lda #%10111100          ; Duty 50%, Vol 12
     sta $4000
     lda #$08
     sta $4001
@@ -594,8 +622,33 @@ update_bgm:
 @env_only:
     rts
 
+    ; =========================================================================
+    ; ---- 新・タイトルBGM「SPACE MERCHANT - THE SYONIN」再生ルーチン (YS2風 130BPM) ----
+    ; =========================================================================
+@do_title_bgm:
+    ; 小節ポインタ text_ptr を計算: title_order[bgm_order_idx] のパターンアドレス
+    ldx bgm_order_idx
+    lda title_order,x
+    cmp #$FF
+    bne :+
+    ; ループ位置 (title_LOOP) へジャンプ
+    lda #title_LOOP
+    sta bgm_order_idx
+    tax
+    lda title_order,x
+:   tax
+    lda title_pat_lo,x
+    sta text_ptr
+    lda title_pat_hi,x
+    sta text_ptr+1
+    jmp @seq_play_channels
+
 .segment "RODATA"
 .include "../assets/music_stage.s"
+.include "../assets/music_boss.s"
+.include "../assets/music_title.s"
+
+
 
 pw_arp_lo:
     .byte $AA, $87, $71, $55

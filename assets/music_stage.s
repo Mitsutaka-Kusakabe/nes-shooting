@@ -2,7 +2,7 @@
 ; tools/gen_music.py により自動生成 (直接編集しないこと)
 .segment "RODATA"
 
-STG_LOOP = 2
+stg_LOOP = 2
 stg_order:
     .byte 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 4, 5, 6, 7
     .byte 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
