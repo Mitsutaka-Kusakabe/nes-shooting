@@ -186,12 +186,12 @@ update_player:
     jmp @chk_fire_a
 
 @tick_laser:
-    ; レーザー照射中 (48フレーム): 敵貫通ダメージ処理を実行し、新規発射はロック
+    ; レーザー照射中 (30フレーム = 0.5秒): 敵貫通ダメージ処理を実行し、新規発射はロック
     jsr apply_gundam_laser_beam
     dec laser_timer
     bne @chk_fire_b
-    ; 照射終了！ -> クールタイム 0.5秒 (30フレーム) を開始！
-    lda #30
+    ; 照射終了！ -> クールタイム 0.3秒 (18フレーム) を開始！
+    lda #18
     sta shot_timer
     jmp @chk_fire_b
 
@@ -200,11 +200,11 @@ update_player:
     lda saber_timer
     bne @chk_fire_b
 
-    ; 連射クールダウン / レーザー後クールタイム(30f=0.5秒) 減算
+    ; 連射クールダウン / レーザー後クールタイム(18f=0.3秒) 減算
     lda shot_timer
     beq @can_shoot_a
     dec shot_timer
-    ; 第3形態(ガンダム)のレーザー0.5秒クールタイム中は連打による短縮を禁止（連射不可仕様の厳守）
+    ; 第3形態(ガンダム)のレーザー0.3秒クールタイム中は連打による短縮を禁止（連射不可仕様の厳守）
     lda weapon_type
     cmp #FORM_GUNDAM
     beq @chk_fire_b
@@ -213,7 +213,7 @@ update_player:
     and #BTN_A
     beq @chk_fire_b
     lda shot_timer
-    cmp #3
+    cmp #6
     bcc @can_shoot_a
     jmp @chk_fire_b
 
@@ -285,7 +285,7 @@ fire_main_weapon:
     jmp @fire_gundam_laser
 
 @check_bullet_pool:
-    ; 現在のアクティブ弾数を数え、上限 (6発) を超えていたら発射しない
+    ; 現在のアクティブ弾数を数え、上限 (4発) を超えていたら発射しない (画面の視認性向上と過剰弾幕の防止)
     ldy #0
     ldx #MAX_PBULLETS-1
 @cnt_loop:
@@ -295,12 +295,12 @@ fire_main_weapon:
 :   dex
     bpl @cnt_loop
 
-    cpy #6
+    cpy #4
     bcc :+
     rts
 :
-    ; ミサイル系の連射間隔タイマーをセット (8フレーム間隔)
-    lda #8
+    ; ミサイル系の連射間隔タイマーをセット (15フレーム間隔 = 約4発/秒)
+    lda #15
     sta shot_timer
 
     ; 形態 (0=初期コアファイター, 1=第2形態コア+脚部, 2=第2.5形態コア+胸部) で分岐
@@ -490,8 +490,8 @@ fire_main_weapon:
     rts
 
 @fire_gundam_laser:
-    ; ---- 第3形態 (3: ガンダム): 自機から画面端まで貫通するレーザーを照射開始 (48フレーム)！ ----
-    lda #48                 ; 48フレーム照射 (従来の120fから2/5に短縮し体感2秒に調整)
+    ; ---- 第3形態 (3: ガンダム): 自機から画面端まで貫通するレーザーを照射開始 (30フレーム = 0.5秒)！ ----
+    lda #30                 ; 30フレーム照射 (0.5秒)
     sta laser_timer
     lda #SFX_LASER
     jsr play_sfx
@@ -502,11 +502,14 @@ fire_main_weapon:
 apply_gundam_laser_beam:
     ; 16フレームごとにビーム持続音を鳴らす
     lda laser_timer
-    and #$0F
-    bne :+
-    lda #SFX_LASER
+    cmp #30
+    beq :+
+    cmp #15
+    beq :+
+    bne @chk_eloop
+:   lda #SFX_LASER
     jsr play_sfx
-:
+@chk_eloop:
     ; 1. 縦スクロール道中の通常敵を貫通して撃破！
     ldx #MAX_ENEMIES-1
 @l_eloop:
@@ -558,14 +561,20 @@ apply_gundam_laser_beam:
     dex
     bpl @l_eloop
 
-    ; 2. ボスへの貫通レーザー連続照射ダメージ (8フレームに1回 = DMG_LASER_TICK=2 × 6回 = 計12ダメージ)
+    ; 2. ボスへの貫通レーザー連続照射ダメージ (10フレームに1回: 30f, 20f, 10f = DMG_LASER_TICK=2 × 3回 = 計6ダメージ)
     lda boss_state
     cmp #1
     bne @l_done
     lda laser_timer
-    and #$07
-    bne @l_done             ; 48(初回), 40, 32, 24, 16, 8 の計6回ヒット
+    cmp #30
+    beq @do_boss_hit
+    cmp #20
+    beq @do_boss_hit
+    cmp #10
+    beq @do_boss_hit
+    bne @l_done
 
+@do_boss_hit:
     lda side_mode
     bne @l_boss_side
 

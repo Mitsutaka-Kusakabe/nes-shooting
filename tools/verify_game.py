@@ -140,14 +140,14 @@ for _ in range(250):
 assert zp("weapon_type") == 3 and zp("weapon_level") == 3
 print(f"[OK] Ally Support Craft delivered Chest Parts -> Docked into Form 3 (Gundam MS, weapon_type=3)!")
 
-# Test Form 3 Laser (48f continuous full-screen piercing beam + 30f cooldown)
+# Test Form 3 Laser (30f = 0.5s continuous full-screen piercing beam + 18f = 0.3s cooldown)
 set_zp("shot_timer", 0)
-run_frame(0x80)  # Press A in Form 3 -> starts 48-frame laser irradiation!
-assert zp("laser_timer") == 48, f"Expected laser_timer=48, got {zp('laser_timer')}"
-for _ in range(48):
+run_frame(0x80)  # Press A in Form 3 -> starts 30-frame laser irradiation!
+assert zp("laser_timer") == 30, f"Expected laser_timer=30, got {zp('laser_timer')}"
+for _ in range(30):
     run_frame(0x00)
-assert zp("laser_timer") == 0 and zp("shot_timer") == 30, f"Expected 30f (0.5s) cooldown after laser, got laser={zp('laser_timer')}, shot={zp('shot_timer')}"
-print(f"[OK] Form 3 Laser irradiated for 48 frames and entered 0.5s (30 frames) cooldown!")
+assert zp("laser_timer") == 0 and zp("shot_timer") == 18, f"Expected 18f (0.3s) cooldown after laser, got laser={zp('laser_timer')}, shot={zp('shot_timer')}"
+print(f"[OK] Form 3 Laser irradiated for 30 frames (0.5s) and entered 0.3s (18 frames) cooldown!")
 
 # Test 2-Stage Armor Purge System (Spec 3.1):
 # 1st hit in Form 3 (Gundam) -> Purges to Form 2 (Legs, weapon_type=1)
