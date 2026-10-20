@@ -87,7 +87,11 @@ class NESWithPPU(CPU6502):
             return
         super().write(addr, val)
 
-    def render_png(self, path):
+    def render_png(self, path, scale=1, crop=None):
+        fb = self.render_fb()
+        save_fb_png(fb, path, scale, crop)
+
+    def render_fb(self):
         w, h = 256, 240
         bg_c0 = NES_PALETTE[self.pal[0] & 0x3F]
         fb = [[bg_c0 for _ in range(w)] for _ in range(h)]
@@ -150,20 +154,31 @@ class NESWithPPU(CPU6502):
                             col_id = self.pal[16 + pal_idx * 4 + c] & 0x3F
                             fb[yy][xx] = NES_PALETTE[col_id]
 
-        # Encode PNG
-        raw = bytearray()
-        for row in fb:
+        return fb
+
+def save_fb_png(fb, path, scale=1, crop=None):
+    """フレームバッファ (240行x256列のRGB) をPNG出力。crop=(x, y, w, h) で切り出し、scale倍に拡大。"""
+    if crop is not None:
+        cx, cy, cw, ch = crop
+        fb = [row[cx:cx + cw] for row in fb[cy:cy + ch]]
+    h = len(fb)
+    w = len(fb[0])
+    raw = bytearray()
+    for row in fb:
+        scaled_row = bytearray()
+        for r, g, b in row:
+            scaled_row.extend(bytes((r, g, b)) * scale)
+        for _ in range(scale):
             raw.append(0)
-            for r, g, b in row:
-                raw.extend((r, g, b))
-        def chunk(tag, data):
-            return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-        png = b"\x89PNG\r\n\x1a\n"
-        png += chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
-        png += chunk(b"IDAT", zlib.compress(bytes(raw), 9))
-        png += chunk(b"IEND", b"")
-        with open(path, "wb") as f:
-            f.write(png)
+            raw.extend(scaled_row)
+    def chunk(tag, data):
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+    png = b"\x89PNG\r\n\x1a\n"
+    png += chunk(b"IHDR", struct.pack(">IIBBBBB", w * scale, h * scale, 8, 2, 0, 0, 0))
+    png += chunk(b"IDAT", zlib.compress(bytes(raw), 9))
+    png += chunk(b"IEND", b"")
+    with open(path, "wb") as f:
+        f.write(png)
 
 with open("game.nes", "rb") as f:
     rom = f.read()

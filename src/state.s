@@ -1229,13 +1229,13 @@ draw_player_and_barrier:
     sec
     sbc #2
     sta tmp_by
-    lda #$0B
+    lda #$FF                ; 柄 (PT1 $FF)
     sta tmp_tile
     lda #$00                ; パレット0 (ガンダムカラー)
     sta tmp_attr
     jsr push_one_sprite
 
-    ; 4連結の斜め光刃 (PT1 $0A) を斜め右上へ展開！
+    ; 4連結の斜め光刃 (PT1 $FE) を斜め右上へ展開！
     lda player_x
     clc
     adc #14
@@ -1244,7 +1244,7 @@ draw_player_and_barrier:
     sec
     sbc #8
     sta tmp_by
-    lda #$0A
+    lda #$FE
     sta tmp_tile
     jsr push_one_sprite
 
@@ -2129,7 +2129,7 @@ draw_boss_oam:
     bne @boss_draw_slash
 
     ; ---- 【ボスの上段の構え】: 手元を肩口に掲げ、光刃を斜め左上へ頭上高く構える！ ----
-    ; 柄・手首 (PT1 $0B) at (boss_x + 10, boss_y - 2)
+    ; 柄・手首 (PT1 $FF) at (boss_x + 10, boss_y - 2)
     lda boss_x
     clc
     adc #10
@@ -2138,11 +2138,11 @@ draw_boss_oam:
     sec
     sbc #2
     sta tmp_by
-    lda #$0B
+    lda #$FF
     sta tmp_tile
     jsr push_one_sprite
 
-    ; 4連結の斜め光刃 (PT1 $0A, 水平反転 %01000000 で斜め左上へ！)
+    ; 4連結の斜め光刃 (PT1 $FE, 水平反転 %01000000 で斜め左上へ！)
     lda tmp_attr
     ora #%01000000          ; 水平反転 (H-flip)
     sta tmp_attr
@@ -2156,7 +2156,7 @@ draw_boss_oam:
     sec
     sbc #8
     sta tmp_by
-    lda #$0A
+    lda #$FE
     sta tmp_tile
     jsr push_one_sprite
 

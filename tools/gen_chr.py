@@ -1089,7 +1089,8 @@ BEAM_SLIM_HORIZ_8 = [
 ]
 pt1_tiles[0x09] = grid_to_tile(BEAM_SLIM_HORIZ_8)
 
-# PT1 $0A: 横画面用 サーベル上段の構え（45度斜め上光刃）
+# PT1 $FE: 横画面用 サーベル上段の構え（45度斜め上光刃）
+# ※ PT1 $0A/$0B は第2形態3WAYミサイルのタイルと共用のため、空きタイル $FE/$FF に配置する
 BEAM_SLIM_DIAG_8 = [
     ".....233",
     "....2332",
@@ -1100,9 +1101,9 @@ BEAM_SLIM_DIAG_8 = [
     "332.....",
     "32......",
 ]
-pt1_tiles[0x0A] = grid_to_tile(BEAM_SLIM_DIAG_8)
+pt1_tiles[0xFE] = grid_to_tile(BEAM_SLIM_DIAG_8)
 
-# PT1 $0B: 横画面用 サーベル柄・拳 (4x4コンパクト)
+# PT1 $FF: 横画面用 サーベル柄・拳 (4x4コンパクト)
 SABER_HILT_8 = [
     "........",
     "...22...",
@@ -1113,7 +1114,7 @@ SABER_HILT_8 = [
     "........",
     "........",
 ]
-pt1_tiles[0x0B] = grid_to_tile(SABER_HILT_8)
+pt1_tiles[0xFF] = grid_to_tile(SABER_HILT_8)
 
 # PT1 $90-$97: 横画面 巨大ビームサーベル コマ1 抜刀・斜め右上チャージ光刃 (32x16 = 8スプライト)
 SABER_HUGE_F1 = [
@@ -1135,7 +1136,7 @@ SABER_HUGE_F1 = [
     "..11113333333332................",
 ]
 for i, t in enumerate(split_32x16(SABER_HUGE_F1)):
-    pt1_tiles[0x90 + i] = t
+    pass  # 旧・巨大サーベル用タイル ($90-$97) は廃止。ASCIIフォント(数字等)を上書きして横画面HUDが化けるため書き込まない
 
 # PT1 $A0-$AB: 横画面 巨大ビームサーベル コマ2 振り下ろし大一閃 (32x24 = 12スプライト, 威力8 + 弾消し)
 SABER_HUGE_F2 = [
@@ -1165,7 +1166,7 @@ SABER_HUGE_F2 = [
     "................................",
 ]
 for i, t in enumerate(split_32x24(SABER_HUGE_F2)):
-    pt1_tiles[0xA0 + i] = t
+    pass  # 旧・巨大サーベル用タイル ($A0-$AB) は廃止 (ASCIIフォント 'A'〜'K' を上書きしてHUDが化けるため)
 
 # PT1 $B0-$B7: 横画面 巨大ビームサーベル コマ3 斬り抜け・残心 (32x16 = 8スプライト)
 SABER_HUGE_F3 = [
@@ -1187,7 +1188,7 @@ SABER_HUGE_F3 = [
     "................22..............",
 ]
 for i, t in enumerate(split_32x16(SABER_HUGE_F3)):
-    pt1_tiles[0xB0 + i] = t
+    pass  # 旧・巨大サーベル用タイル ($B0-$B7) は廃止 (ASCIIフォントを上書きするため)
 
 # 1. PT1 $D8-$DC: 横画面用 右向きコアファイター (16x16) ＆ アフターバーナー噴射炎 (8x8)
 CORE_FIGHTER_SIDE_16 = [
