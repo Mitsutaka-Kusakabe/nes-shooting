@@ -90,6 +90,8 @@ boss_max_hp:    .res 1  ; ボス最大HP (狂乱近接モード HP <= 2/5 判定
 boss_beam_timer:.res 1  ; STAGE 4 大ボス メガ粒子ビームタイマー (45..1=チャージ, 0=未発動, 255..220=照射中)
 boss_charge_phase:.res 1 ; 狂乱近接突撃フェーズ (0=前進突撃, 1=0.5秒追い詰め, 2=後退離脱, 3=仕切り直し待機)
 boss_charge_timer:.res 1 ; 近接戦闘フェーズ管理タイマー
+boss_saber_stance:.res 1 ; ボスサーベル構え (0=上段の構え, 1=振り下ろし一閃)
+boss_saber_timer: .res 1 ; ボスサーベル構えタイマー (0.5s = 30f)
 spawner_cnt:    .res 1  ; 3機編隊スポナー 残り生成機数 (3..1)
 spawner_timer:  .res 1  ; 3機編隊スポナー 次機生成タイマー (12フレーム間隔)
 spawner_pattern:.res 1  ; 3機編隊パターン (0=V字降下, 1=サイン波, 2=縦一列)

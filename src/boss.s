@@ -20,6 +20,9 @@ boss_init:
     sta boss_timer
     sta boss_flash
     sta boss_beam_timer
+    sta boss_saber_stance
+    lda #30
+    sta boss_saber_timer
     rts
 
 ; ---- ステージ中盤 (meta_idx == 32) 到達時の「量産型ロボット中ボス (MOJA-01..04)」WARNING警告開始 ----
@@ -248,6 +251,9 @@ update_boss:
     lda #0
     sta boss_charge_phase
     sta boss_charge_timer
+    sta boss_saber_stance
+    lda #30
+    sta boss_saber_timer
     lda #SFX_WARP
     jsr play_sfx
     jmp @chk_state_melee
@@ -422,6 +428,32 @@ update_boss:
 ;   3 = 仕切り直し待機フェーズ (20フレーム一時停止し、自機に反撃チャンスを与えて再突進)
 ; =========================================================================
 update_boss_melee_charge:
+    ; ---- ボスのサーベル構え切り替え (上段の構え 0.5s ⇄ 振り下ろし 0.5s) ----
+    lda boss_saber_timer
+    beq @toggle_boss_saber_stance
+    dec boss_saber_timer
+    jmp @saber_cycle_done
+
+@toggle_boss_saber_stance:
+    lda boss_saber_stance
+    eor #1
+    sta boss_saber_stance
+    beq @boss_to_jodan
+    ; 振り下ろし一閃へ移行 (30フレーム = 0.5秒)
+    lda #SFX_LASER
+    jsr play_sfx
+    lda #30
+    sta boss_saber_timer
+    jmp @saber_cycle_done
+@boss_to_jodan:
+    ; 上段構えへ移行 (24〜36フレームのランダム幅)
+    lda frame_count
+    and #7
+    clc
+    adc #26
+    sta boss_saber_timer
+@saber_cycle_done:
+
     ; 突進・移動スピード (中ボス: 2px/f, 赤いMS: 平均2.5px/f)
     lda #2
     ldy boss_type
@@ -778,6 +810,9 @@ damage_boss_by_a:
     lda #0
     sta boss_charge_phase
     sta boss_charge_timer
+    sta boss_saber_stance
+    lda #30
+    sta boss_saber_timer
     lda #SFX_WARP           ; ブースト急加速音
     jsr play_sfx
     lda #4

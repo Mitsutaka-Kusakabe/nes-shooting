@@ -1194,28 +1194,96 @@ draw_player_and_barrier:
 @chk_saber_draw:
     ; 近接ビームサーベル描画 (横画面専用: ボスのサーベルと同型の直進ビーム刃 32px)
     lda side_mode
-    beq @chk_b_ring         ; 縦スクロール道中はサーベル非表示
-    lda weapon_type
+    bne :+
+    jmp @chk_b_ring         ; 縦スクロール道中はサーベル非表示
+:   lda weapon_type
     cmp #FORM_GUNDAM
     bne @chk_timer_saber    ; ガンダム形態以外はサーベル非表示
 
-    ; ボス狂乱突進中 (boss_state == 5) ならガンダムは常時サーベル構え状態を維持！
+    ; ボス狂乱突進中 (boss_state == 5) ならガンダムは常時サーベル戦闘モード！
     lda boss_state
     cmp #5
-    beq @do_draw_saber
+    beq @do_draw_gundam_saber
 
 @chk_timer_saber:
     lda saber_timer
-    beq @chk_b_ring
+    bne :+
+    jmp @chk_b_ring
+:
 
-@do_draw_saber:
-    ; ボスのサーベル (PT1 $09 水平ビーム刃) と同型・同等の直進ビームサーベル光刃 (32px) を描画！
-    lda #$00
-    ldy saber_timer
-    beq :+
+@do_draw_gundam_saber:
+    ; Aボタンが押されているか (buttons & BTN_A) または saber_timer > 0 か？
+    lda buttons
+    and #BTN_A
+    bne @gundam_draw_slash
+    lda saber_timer
+    bne @gundam_draw_slash
+
+    ; ---- 【自機の上段の構え】 (ボタンリリース中): 斜め右上に頭上高く構える！ ----
+    ; 柄・手首 (PT1 $0B) at (player_x + 8, player_y - 2)
+    lda player_x
+    clc
+    adc #8
+    sta tmp_bx
+    lda player_y
+    sec
+    sbc #2
+    sta tmp_by
+    lda #$0B
+    sta tmp_tile
+    lda #$00                ; パレット0 (ガンダムカラー)
+    sta tmp_attr
+    jsr push_one_sprite
+
+    ; 4連結の斜め光刃 (PT1 $0A) を斜め右上へ展開！
+    lda player_x
+    clc
+    adc #14
+    sta tmp_bx
+    lda player_y
+    sec
+    sbc #8
+    sta tmp_by
+    lda #$0A
+    sta tmp_tile
+    jsr push_one_sprite
+
+    lda tmp_bx
+    clc
+    adc #6
+    sta tmp_bx
+    lda tmp_by
+    sec
+    sbc #6
+    sta tmp_by
+    jsr push_one_sprite
+
+    lda tmp_bx
+    clc
+    adc #6
+    sta tmp_bx
+    lda tmp_by
+    sec
+    sbc #6
+    sta tmp_by
+    jsr push_one_sprite
+
+    lda tmp_bx
+    clc
+    adc #6
+    sta tmp_bx
+    lda tmp_by
+    sec
+    sbc #6
+    sta tmp_by
+    jsr push_one_sprite
+    jmp @chk_b_ring
+
+@gundam_draw_slash:
+    ; ---- 【自機の振り下ろし一閃】 (Aボタン押下中): 水平前方に直線の光刃を一閃！ ----
     lda frame_count
-    and #1                  ; 斬撃中は毎フレーム0と1で激しく閃光
-:   sta tmp_attr
+    and #1                  ; 斬撃中は白とシアンで激しく明滅
+    sta tmp_attr
 
     ; 刀身のY座標 (ガンダムの右手位置 player_y - 1 に完全同期)
     lda player_y
@@ -1223,14 +1291,11 @@ draw_player_and_barrier:
     sbc #1
     sta tmp_by
 
-    ; 手元X座標 (斬撃 saber_timer > 0 中は +4px 踏み込み突き出し)
+    ; 手元X座標 (player_x + 14)
     lda player_x
     clc
     adc #14
-    ldy saber_timer
-    beq :+
-    adc #4
-:   sta tmp_bx
+    sta tmp_bx
 
     ; 根元 (手元)
     lda #$09
@@ -2042,7 +2107,9 @@ draw_boss_oam:
     ; 狂乱近接戦闘中 (boss_state == 5) は前方に武器（ヒートホーク / 赤ビームサーベル光刃 $09）を長さ3倍(32px)で常時構えて突撃・戦闘！
     lda boss_state
     cmp #5
-    bne @chk_normal_special_weapon
+    beq :+
+    jmp @chk_normal_special_weapon
+:
 
     ; ボス前方に手元から伸びる直線の光刃スプライトを4連結描画 (32px長)
     lda boss_type
@@ -2056,13 +2123,86 @@ draw_boss_oam:
 @draw_boss_weapon:
     sta tmp_attr
 
-    ; Y座標: モビルスーツ手元高さ (boss_y + 4: ビーム光刃が胸部・腕部 Y=7..8 の手元に完全一致！)
+    ; boss_saber_stance == 0: 上段の構え (斜め左上)
+    ; boss_saber_stance == 1: 振り下ろし一閃 (水平前方)
+    lda boss_saber_stance
+    bne @boss_draw_slash
+
+    ; ---- 【ボスの上段の構え】: 手元を肩口に掲げ、光刃を斜め左上へ頭上高く構える！ ----
+    ; 柄・手首 (PT1 $0B) at (boss_x + 10, boss_y - 2)
+    lda boss_x
+    clc
+    adc #10
+    sta tmp_bx
+    lda boss_y
+    sec
+    sbc #2
+    sta tmp_by
+    lda #$0B
+    sta tmp_tile
+    jsr push_one_sprite
+
+    ; 4連結の斜め光刃 (PT1 $0A, 水平反転 %01000000 で斜め左上へ！)
+    lda tmp_attr
+    ora #%01000000          ; 水平反転 (H-flip)
+    sta tmp_attr
+
+    ; セグメント1
+    lda boss_x
+    clc
+    adc #6
+    sta tmp_bx
+    lda boss_y
+    sec
+    sbc #8
+    sta tmp_by
+    lda #$0A
+    sta tmp_tile
+    jsr push_one_sprite
+
+    ; セグメント2
+    lda tmp_bx
+    sec
+    sbc #6
+    sta tmp_bx
+    lda tmp_by
+    sec
+    sbc #6
+    sta tmp_by
+    jsr push_one_sprite
+
+    ; セグメント3
+    lda tmp_bx
+    sec
+    sbc #6
+    sta tmp_bx
+    lda tmp_by
+    sec
+    sbc #6
+    sta tmp_by
+    jsr push_one_sprite
+
+    ; セグメント4 (切先)
+    lda tmp_bx
+    sec
+    sbc #6
+    sta tmp_bx
+    lda tmp_by
+    sec
+    sbc #6
+    sta tmp_by
+    jsr push_one_sprite
+    jmp @ms_draw_done
+
+@boss_draw_slash:
+    ; ---- 【ボスの振り下ろし一閃】: 水平前方に直線の光刃を一閃！ ----
+    ; Y座標: モビルスーツ手元高さ (boss_y + 4)
     lda boss_y
     clc
     adc #4
     sta tmp_by
 
-    ; 根元 (手元 boss_x + 4: モビルスーツ前端 boss_x + 12 の手元にぴったり接続)
+    ; 根元 (手元 boss_x + 4)
     lda boss_x
     clc
     adc #4

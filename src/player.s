@@ -116,6 +116,20 @@ update_player:
     jsr update_beam_saber
     dec saber_timer
 :
+    ; ボス狂乱突進中、Aボタン長押し中は振り下ろし継続＋前方弾消し判定を維持
+    lda side_mode
+    beq :+
+    lda boss_state
+    cmp #5
+    bne :+
+    lda weapon_type
+    cmp #FORM_GUNDAM
+    bne :+
+    lda buttons
+    and #BTN_A
+    beq :+
+    jsr update_beam_saber
+:
     ; 8方向移動 (道中: 2.5px/f, 横画面ボス戦: 1.5px/f でサーベルの間合い調整を快適に！)
     lda side_mode
     bne @side_player_spd
@@ -209,6 +223,13 @@ update_player:
     lda saber_timer
     bne @chk_fire_b
 
+    ; ボス狂乱突進戦中 (boss_state == 5) は射撃クールタイムに関わらず即座にサーベル振り下ろし可能！
+    lda side_mode
+    beq :+
+    lda boss_state
+    cmp #5
+    beq @can_shoot_a
+:
     ; 連射クールダウン / レーザー後クールタイム(42f=0.7秒) 減算
     lda shot_timer
     beq @can_shoot_a
@@ -715,6 +736,16 @@ check_saber_range:
 
 ; ---- 近接ビームサーベル 斬撃＆弾消し処理 ----
 update_beam_saber:
+    ; 狂乱突進中 (boss_state == 5) かつ Aボタン長押し中は常に振り下ろし弾消し判定を有効化！
+    lda side_mode
+    beq @chk_timer_cut
+    lda boss_state
+    cmp #5
+    bne @chk_timer_cut
+    lda buttons
+    and #BTN_A
+    bne @saber_frame2
+@chk_timer_cut:
     lda saber_timer
     cmp #7
     bcs @saber_early_ret    ; コマ1(9..7) は抜刀モーションのみ

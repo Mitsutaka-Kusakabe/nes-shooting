@@ -268,14 +268,25 @@ nes.ram[syms["laser_timer"]] = 0
 run_frame(0x80)
 nes.render_png("build/boss.png")
 
-# 4.05. Saber Duel Screen (Both Gundam and Boss holding straight horizontal beam sabers clashing!)
+# 4.05. Saber Duel Screen - Jodan (Both in High Guard: 上段の構え)
 nes.ram[syms["boss_state"]] = 5    # 狂乱近接モード
+nes.ram[syms["boss_x"]] = 100
+nes.ram[syms["boss_y"]] = 92
+nes.ram[syms["player_x"]] = 44
+nes.ram[syms["player_y"]] = 92
+nes.ram[syms["boss_saber_stance"]] = 0 # 上段の構え
+run_frame(0x00)                    # ボタンリリース -> 自機も上段の構え！
+nes.render_png("build/boss_saber_jodan.png")
+
+# 4.06. Saber Duel Screen - Slash (Both in Downward Slash: 振り下ろし一閃)
+nes.ram[syms["boss_state"]] = 5
 nes.ram[syms["boss_x"]] = 80
 nes.ram[syms["boss_y"]] = 92
 nes.ram[syms["player_x"]] = 44
 nes.ram[syms["player_y"]] = 92
-nes.ram[syms["saber_timer"]] = 0   # 自機もサーベル構え状態を常時維持！
-run_frame(0x00)
+nes.ram[syms["boss_saber_stance"]] = 1 # 振り下ろし一閃
+nes.ram[syms["saber_timer"]] = 6
+run_frame(0x80)                    # Aボタン押下 -> 自機も振り下ろし一閃！
 nes.render_png("build/boss_saber_duel.png")
 
 # 4.1. Boss fight Form 1 (Side-View: Core Fighter with jet flame facing right vs Boss)
