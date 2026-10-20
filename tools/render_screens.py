@@ -208,8 +208,21 @@ for _ in range(5):
     run_frame(0)
 nes.render_png("build/title.png")
 
+# 1.1. Title screen with BOSS BATTLE selected
+run_frame(0x20) # SELECT
+run_frame(0)
+run_frame(0x20) # SELECT
+run_frame(0)
+for _ in range(4):
+    run_frame(0x01) # RIGHT
+    run_frame(0)
+nes.render_png("build/title_boss_menu.png")
+
 # 2. Briefing screen
-run_frame(0x10)
+# Return to menu 0 and press start
+run_frame(0x20) # SELECT -> menu 0
+run_frame(0)
+run_frame(0x10) # START
 run_frame(0)
 nes.render_png("build/briefing.png")
 
@@ -239,7 +252,7 @@ nes.ram[syms["warning_timer"]] = 101
 run_frame(0x00)
 nes.render_png("build/warning.png")
 
-# 4. Boss fight screen (Side-View Robot Battle: Right-Facing Gundam slashing with 2x Size HUGE Beam Saber vs Rival Red MS!)
+# 4. Boss fight screen (Side-View Robot Battle: Right-Facing Gundam slashing with straight Beam Saber vs Rival Red MS!)
 nes.ram[syms["ally_state"]] = 0
 nes.ram[syms["weapon_type"]] = 3   # Form 3: Gundam MS (F3)
 nes.ram[syms["weapon_level"]] = 3
@@ -250,10 +263,41 @@ nes.ram[syms["boss_x"]] = 176
 nes.ram[syms["boss_y"]] = 92
 nes.ram[syms["player_x"]] = 116    # 決戦間合い (60px前方)
 nes.ram[syms["player_y"]] = 96
-nes.ram[syms["saber_timer"]] = 5   # コマ2: 振り下ろし大一閃！ (32x24 巨大ビームサーベル)
+nes.ram[syms["saber_timer"]] = 5   # サーベル一閃
 nes.ram[syms["laser_timer"]] = 0
 run_frame(0x80)
 nes.render_png("build/boss.png")
+
+# 4.05. Saber Duel Screen (Both Gundam and Boss holding straight horizontal beam sabers clashing!)
+nes.ram[syms["boss_state"]] = 5    # 狂乱近接モード
+nes.ram[syms["boss_x"]] = 80
+nes.ram[syms["boss_y"]] = 92
+nes.ram[syms["player_x"]] = 44
+nes.ram[syms["player_y"]] = 92
+nes.ram[syms["saber_timer"]] = 0   # 自機もサーベル構え状態を常時維持！
+run_frame(0x00)
+nes.render_png("build/boss_saber_duel.png")
+
+# 4.1. Boss fight Form 1 (Side-View: Core Fighter with jet flame facing right vs Boss)
+nes.ram[syms["saber_timer"]] = 0
+nes.ram[syms["weapon_type"]] = 0   # Form 1: Core Fighter
+nes.ram[syms["weapon_level"]] = 1
+nes.ram[syms["player_x"]] = 64
+nes.ram[syms["player_y"]] = 96
+run_frame(0x80)
+nes.render_png("build/boss_form1.png")
+
+# 4.2. Boss fight Form 2 (Side-View: Core Fighter + Legs facing right vs Boss)
+nes.ram[syms["weapon_type"]] = 1   # Form 2: Core + Legs
+nes.ram[syms["weapon_level"]] = 2
+run_frame(0x80)
+nes.render_png("build/boss_form2.png")
+
+# 4.3. Boss fight Form 2.5 (Side-View: Core Fighter + Chest facing right vs Boss)
+nes.ram[syms["weapon_type"]] = 2   # Form 2.5: Core + Chest
+nes.ram[syms["weapon_level"]] = 2
+run_frame(0x80)
+nes.render_png("build/boss_form25.png")
 
 # 4.5. Boss fight laser irradiation screen (Gundam firing full-screen mega particle beam penetrating through Boss to screen edge!)
 nes.ram[syms["saber_timer"]] = 0

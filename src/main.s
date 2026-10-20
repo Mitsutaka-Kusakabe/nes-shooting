@@ -34,7 +34,9 @@ rng_hi:         .res 1
 game_state:     .res 1  ; 0=PLAYING 1=WARP 2=DEAD 3=GAMEOVER 4=TITLE 5=ENDING 6=BRIEFING
 state_timer:    .res 1  ; ステート演出用タイマー
 paused:         .res 1  ; 1=ポーズ中
-menu_sel:       .res 1  ; タイトルメニュー選択 (0=START, 1=STAGE SELECT)
+menu_sel:       .res 1  ; タイトルメニュー選択 (0=START, 1=STAGE SELECT, 2=BOSS BATTLE)
+boss_select:    .res 1  ; ボス戦モード選択 (0..3=中ボス1..4, 4=宿敵・赤いMS)
+boss_battle_mode: .res 1 ; ボス戦専用モード中フラグ (0=通常, 1=ボス戦モード)
 current_stage:  .res 1  ; 0=MOON, 1=MARS, 2=JUPITER, 3=EARTH ORBIT
 lives:          .res 1  ; 残機数
 
@@ -84,6 +86,14 @@ boss_y:         .res 1
 boss_dir:       .res 1
 boss_timer:     .res 1
 boss_flash:     .res 1
+boss_max_hp:    .res 1  ; ボス最大HP (狂乱近接モード HP <= 2/5 判定用)
+boss_beam_timer:.res 1  ; STAGE 4 大ボス メガ粒子ビームタイマー (45..1=チャージ, 0=未発動, 255..220=照射中)
+boss_charge_phase:.res 1 ; 狂乱近接突撃フェーズ (0=前進突撃, 1=0.5秒追い詰め, 2=後退離脱, 3=仕切り直し待機)
+boss_charge_timer:.res 1 ; 近接戦闘フェーズ管理タイマー
+spawner_cnt:    .res 1  ; 3機編隊スポナー 残り生成機数 (3..1)
+spawner_timer:  .res 1  ; 3機編隊スポナー 次機生成タイマー (12フレーム間隔)
+spawner_pattern:.res 1  ; 3機編隊パターン (0=V字降下, 1=サイン波, 2=縦一列)
+spawner_base_x: .res 1  ; 3機編隊 基準X座標
 
 ; スコア (6桁 10進: score+0=十万 .. score+5=一)
 score:          .res 6

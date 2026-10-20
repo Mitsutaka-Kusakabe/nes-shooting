@@ -150,34 +150,43 @@ show_title:
     lda #>str_title_menu1
     sta text_ptr+1
     lda #$22
-    ldx #$89
+    ldx #$87
     jsr write_text_at
 
-    ; Row 22 (Y=176): STAGE SELECT:  -
+    ; Row 22 (Y=176): STAGE SELECT:
     lda #<str_title_menu2
     sta text_ptr
     lda #>str_title_menu2
     sta text_ptr+1
     lda #$22
-    ldx #$C9
+    ldx #$C7
     jsr write_text_at
 
-    ; Row 25 (Y=200): A:MISSILE/LASER/WIDE (LV1-5)
+    ; Row 24 (Y=192): BOSS BATTLE :
+    lda #<str_title_menu3
+    sta text_ptr
+    lda #>str_title_menu3
+    sta text_ptr+1
+    lda #$23
+    ldx #$07
+    jsr write_text_at
+
+    ; Row 26 (Y=208): A:SHOT / B:BLAST
     lda #<str_title_ctrl1
     sta text_ptr
     lda #>str_title_ctrl1
     sta text_ptr+1
     lda #$23
-    ldx #$22
+    ldx #$48
     jsr write_text_at
 
-    ; Row 27 (Y=216): B:RANGE BLAST (COOLDOWN)
+    ; Row 27 (Y=216): SELECT: SABER MODE (IN BOSS)
     lda #<str_title_ctrl2
     sta text_ptr
     lda #>str_title_ctrl2
     sta text_ptr+1
     lda #$23
-    ldx #$64
+    ldx #$62
     jsr write_text_at
 
     ; タイトルの属性テーブル: 上部ロゴ行はパレット2 (ゴールド)、本文はパレット3 (白)
@@ -214,46 +223,105 @@ show_title:
 
 update_title:
     jsr clear_oam
-    ; SELECT または 上下で メニュー選択 (0=START, 1=STAGE SELECT)
+
+    ; 上下または SELECT で メニュー選択 (0=START, 1=STAGE SELECT, 2=BOSS BATTLE)
     lda btn_press
-    and #(BTN_SELECT | BTN_UP | BTN_DOWN)
-    beq @chk_lr
+    and #BTN_DOWN
+    bne @menu_down
+    lda btn_press
+    and #BTN_SELECT
+    bne @menu_down
+    lda btn_press
+    and #BTN_UP
+    bne @menu_up
+    jmp @chk_lr
+
+@menu_down:
+    inc menu_sel
     lda menu_sel
-    eor #1
+    cmp #3
+    bcc :+
+    lda #0
     sta menu_sel
+:   lda #SFX_SHOT
+    jsr play_sfx
+    jmp @chk_lr
+
+@menu_up:
+    lda menu_sel
+    beq :+
+    dec menu_sel
+    jmp @mu_ok
+:   lda #2
+    sta menu_sel
+@mu_ok:
     lda #SFX_SHOT
     jsr play_sfx
 
 @chk_lr:
-    ; 左右または Bボタンで 開始ステージ (1〜4) を切替可能
+    ; 左右または Bボタンで選択肢を変更
     lda btn_press
     and #(BTN_RIGHT | BTN_B)
     beq @chk_left
+
+    ; menu_sel == 1: STAGE SELECT (0..3)
+    lda menu_sel
+    cmp #1
+    bne :+
     lda current_stage
     clc
     adc #1
     and #3
     sta current_stage
-    lda #1
-    sta menu_sel
     lda #SFX_POWERUP
     jsr play_sfx
+    jmp @draw_t_spr
+:
+    ; menu_sel == 2: BOSS BATTLE (0..4)
+    cmp #2
+    bne @draw_t_spr
+    lda boss_select
+    clc
+    adc #1
+    cmp #5
+    bcc :+
+    lda #0
+:   sta boss_select
+    lda #SFX_POWERUP
+    jsr play_sfx
+    jmp @draw_t_spr
+
 @chk_left:
     lda btn_press
     and #BTN_LEFT
     beq @draw_t_spr
+
+    lda menu_sel
+    cmp #1
+    bne :+
     lda current_stage
     sec
     sbc #1
     and #3
     sta current_stage
-    lda #1
-    sta menu_sel
+    lda #SFX_POWERUP
+    jsr play_sfx
+    jmp @draw_t_spr
+:
+    cmp #2
+    bne @draw_t_spr
+    lda boss_select
+    beq :+
+    dec boss_select
+    jmp @bl_ok
+:   lda #4
+    sta boss_select
+@bl_ok:
     lda #SFX_POWERUP
     jsr play_sfx
 
 @draw_t_spr:
-    ; カーソル矢印 ($16) at Y=159 (menu 0) or Y=175 (menu 1)
+    ; カーソル矢印 ($16) at Y=159 (menu 0), Y=175 (menu 1), Y=191 (menu 2)
     lda menu_sel
     asl
     asl
@@ -266,7 +334,7 @@ update_title:
     sta OAM_BUF+1
     lda #$00
     sta OAM_BUF+2
-    lda #56
+    lda #46
     sta OAM_BUF+3
 
     ; 選択ステージ番号 ('1'..'4') をスプライト表示 (Y=175, X=184)
@@ -281,10 +349,87 @@ update_title:
     lda #184
     sta OAM_BUF+7
 
+    ; BOSS BATTLE 選択表示 (Y=191):
+    ; 番号/文字 (X=160): '1'..'4' または 'R'
+    lda #191
+    sta OAM_BUF+8
+    lda boss_select
+    cmp #4
+    bcs :+
+    adc #$91                ; '1'..'4'
+    jmp :++
+:   lda #$B2                ; 'R' (Rival Red MS)
+:   sta OAM_BUF+9
+    lda #$01
+    sta OAM_BUF+10
+    lda #160
+    sta OAM_BUF+11
+
+    ; ハイフン '-' (X=168)
+    lda #191
+    sta OAM_BUF+12
+    lda #$8D                ; '-' (ASCII $2D + $60 = $8D)
+    sta OAM_BUF+13
+    lda #$01
+    sta OAM_BUF+14
+    lda #168
+    sta OAM_BUF+15
+
+    ; ボス名 (X=176, 184, 192, 200: ZAKU / DOM / ZGOK / GOUF / RED)
+    lda boss_select
+    asl
+    asl
+    tax
+
+    ; 文字0 (X=176)
+    lda #191
+    sta OAM_BUF+16
+    lda boss_name_spr_table,x
+    sta OAM_BUF+17
+    lda #$01
+    sta OAM_BUF+18
+    lda #176
+    sta OAM_BUF+19
+
+    ; 文字1 (X=184)
+    lda #191
+    sta OAM_BUF+20
+    lda boss_name_spr_table+1,x
+    sta OAM_BUF+21
+    lda #$01
+    sta OAM_BUF+22
+    lda #184
+    sta OAM_BUF+23
+
+    ; 文字2 (X=192)
+    lda #191
+    sta OAM_BUF+24
+    lda boss_name_spr_table+2,x
+    sta OAM_BUF+25
+    lda #$01
+    sta OAM_BUF+26
+    lda #192
+    sta OAM_BUF+27
+
+    ; 文字3 (X=200, 空白なら非表示)
+    lda boss_name_spr_table+3,x
+    beq @hide_ch3
+    lda #191
+    sta OAM_BUF+28
+    lda boss_name_spr_table+3,x
+    sta OAM_BUF+29
+    lda #$01
+    sta OAM_BUF+30
+    lda #200
+    sta OAM_BUF+31
+    jmp @title_showcase
+@hide_ch3:
+    lda #240
+    sta OAM_BUF+28
+
+@title_showcase:
     ; タイトル画面中央 (Y=78〜96) のビジュアルショーケース:
-    ; 中央: KBX-026 SAMURAI (X=120, Y=88) + レーザービーム
-    ; 左右: 地球外生命体 MOJAxMOJA (X=64, X=176, Y=80)
-    lda #16
+    lda #32
     sta oam_ptr
     lda #120
     sta player_x
@@ -325,16 +470,29 @@ update_title:
     sta tmp_attr
     jsr push_16x16_metatile
 
-    ; START または Aボタンでミッション開始！
+    ; START または Aボタンでゲーム開始！
     lda btn_press
     and #(BTN_START | BTN_A)
     beq @ret
+
     lda menu_sel
-    bne :+
-    lda #0                  ; START MISSION なら STAGE 1 から
+    cmp #2
+    beq @start_boss_battle_mode
+    cmp #1
+    beq @start_stage_select_mode
+
+    ; menu_sel == 0: START MISSION (Stage 1 から開始)
+    lda #0
     sta current_stage
-:
-    ; 新規ゲーム初期化
+    sta boss_battle_mode
+    jmp @start_game_common
+
+@start_stage_select_mode:
+    lda #0
+    sta boss_battle_mode
+    jmp @start_game_common
+
+@start_game_common:
     lda #3
     sta lives
     lda #0
@@ -346,6 +504,18 @@ update_title:
     sta score+5
     jsr player_init
     jsr start_stage_briefing
+    rts
+
+@start_boss_battle_mode:
+    lda #0
+    sta score+0
+    sta score+1
+    sta score+2
+    sta score+3
+    sta score+4
+    sta score+5
+    jsr player_init
+    jsr enter_boss_battle_play
 @ret:
     rts
 
@@ -467,6 +637,99 @@ enter_stage_play:
     sta PPUMASK
     rts
 
+; ---- ボス戦専用モード (BOSS BATTLE MODE) 開始 ----
+enter_boss_battle_play:
+    lda #0
+    sta PPUMASK
+    sta PPUCTRL
+
+    jsr ppu_init
+    jsr init_stage_bg
+    jsr enemies_init
+    jsr boss_init
+    jsr clear_pbullets
+    jsr clear_oam
+
+    lda #1
+    sta boss_battle_mode
+
+    ; boss_select (0..3 = 中ボス1..4, 4 = 宿敵・赤いMS)
+    lda boss_select
+    cmp #4
+    bcs @bb_rival
+    sta current_stage
+    lda #0
+    sta boss_type
+    ldx current_stage
+    lda MidBoss_HP_Table,x
+    sta boss_hp
+    sta boss_max_hp
+    jmp @bb_setup_combat
+
+@bb_rival:
+    lda #3
+    sta current_stage
+    lda #1
+    sta boss_type
+    lda Rival_HP_Table+3
+    sta boss_hp
+    sta boss_max_hp
+
+@bb_setup_combat:
+    lda #1
+    sta side_mode
+    sta cam_x
+    lda #1                  ; 1 = 通常戦闘直撃突入！
+    sta boss_state
+    lda #176
+    sta boss_x
+    lda #92
+    sta boss_y
+    lda #0
+    sta boss_dir
+    sta boss_timer
+    sta boss_flash
+    sta boss_beam_timer
+    sta boss_charge_phase
+    sta boss_charge_timer
+
+    ; 自機を第3形態ガンダム (フルパワー) で配置！
+    lda #44
+    sta player_x
+    lda #100
+    sta player_y
+    lda #FORM_GUNDAM
+    sta weapon_type
+    lda #3
+    sta weapon_level
+    lda #5                  ; たっぷり残機5機
+    sta lives
+    lda #60
+    sta inv_timer
+    lda #0
+    sta b_cooldown
+    sta b_blast_timer
+    sta saber_timer
+    sta laser_timer
+    lda #STATE_PLAYING
+    sta game_state
+
+    ; BGM開始
+    lda #TRACK_BOSS
+    jsr set_bgm_track
+
+    ; PPU横スクロール設定
+    bit PPUSTATUS
+    lda cam_x
+    sta PPUSCROLL
+    lda cam_y
+    sta PPUSCROLL
+    lda #%10001000          ; NMI ON, BG=PT0, SPR=PT1 (横表示MSバンク)
+    sta PPUCTRL
+    lda #%00011110
+    sta PPUMASK
+    rts
+
 ; ============================================================
 ; 演出ステート更新 (STATE_WARP / STATE_DEAD / STATE_GAMEOVER / STATE_ENDING / STATE_BRIEFING)
 ; ============================================================
@@ -560,6 +823,14 @@ update_state:
     sta cam_x
     lda #4
     sta kill_flash
+
+    lda boss_battle_mode
+    beq :+
+    lda #0
+    sta boss_battle_mode
+    jsr show_title
+    rts
+:
     lda current_stage
     cmp #3
     bcs @all_clear
@@ -575,6 +846,8 @@ update_state:
     ; ---- 自機撃墜演出 ----
     dec state_timer
     bne @dead_ret
+    lda lives
+    beq @to_gameover
     dec lives
     beq @to_gameover
     ; 残機があればその場でリスポーン復帰
@@ -589,6 +862,7 @@ update_state:
     rts
 
 @do_gameover:
+    jsr clear_oam           ; ゲームオーバー画面中はスプライト全非表示を確実に維持
     lda btn_press
     and #(BTN_START | BTN_A)
     beq :+
@@ -628,6 +902,12 @@ show_gameover:
     sta cam_y
     sta side_mode
     sta row_pending
+    sta boss_state          ; ボス状態をクリアして戦闘ループを終了
+    sta boss_charge_phase
+    sta boss_charge_timer
+    sta boss_beam_timer
+    sta laser_timer
+    sta saber_timer
     lda #STATE_GAMEOVER
     sta game_state
 
@@ -651,7 +931,7 @@ show_gameover:
     ldx #$27
     jsr write_text_at
 
-    lda #TRACK_NONE
+    lda #TRACK_GAMEOVER
     jsr set_bgm_track
 
     bit PPUSTATUS
@@ -912,62 +1192,77 @@ draw_player_and_barrier:
     jsr draw_samurai_at_py
 
 @chk_saber_draw:
-    ; 近接ビームサーベル 3コマアニメーション描画 (横画面専用: 32x16 / 32x24 / 32x16 の巨大光刃！)
+    ; 近接ビームサーベル描画 (横画面専用: ボスのサーベルと同型の直進ビーム刃 32px)
+    lda side_mode
+    beq @chk_b_ring         ; 縦スクロール道中はサーベル非表示
+    lda weapon_type
+    cmp #FORM_GUNDAM
+    bne @chk_timer_saber    ; ガンダム形態以外はサーベル非表示
+
+    ; ボス狂乱突進中 (boss_state == 5) ならガンダムは常時サーベル構え状態を維持！
+    lda boss_state
+    cmp #5
+    beq @do_draw_saber
+
+@chk_timer_saber:
     lda saber_timer
     beq @chk_b_ring
-    lda side_mode
-    beq @chk_b_ring         ; 縦画面ではサーベル描画なし
 
-    lda #$00                ; パレット0 (白コア + 紅蓮ビーム刃)
-    sta tmp_attr
+@do_draw_saber:
+    ; ボスのサーベル (PT1 $09 水平ビーム刃) と同型・同等の直進ビームサーベル光刃 (32px) を描画！
+    lda #$00
+    ldy saber_timer
+    beq :+
+    lda frame_count
+    and #1                  ; 斬撃中は毎フレーム0と1で激しく閃光
+:   sta tmp_attr
 
-    lda saber_timer
-    cmp #7
-    bcc @chk_sb_f2
-    ; ---- コマ1: 抜刀・斜め右上チャージ光刃 (PT1 $90-$97, 32x16) ----
-    lda #$90
-    sta tmp_tile
-    lda player_x
-    clc
-    adc #18
-    sta tmp_bx
+    ; 刀身のY座標 (ガンダムの右手位置 player_y - 1 に完全同期)
     lda player_y
     sec
-    sbc #2
+    sbc #1
     sta tmp_by
-    jsr push_32x16_metatile
-    jmp @chk_b_ring
 
-@chk_sb_f2:
-    cmp #4
-    bcc @chk_sb_f3
-    ; ---- コマ2: 振り下ろし大一閃！ (PT1 $A0-$AB, 32x24 巨大三日月スラッシュ) ----
-    lda #$A0
-    sta tmp_tile
+    ; 手元X座標 (斬撃 saber_timer > 0 中は +4px 踏み込み突き出し)
     lda player_x
     clc
-    adc #16
-    sta tmp_bx
-    lda player_y
-    sec
-    sbc #6
-    sta tmp_by
-    jsr push_32x24_metatile
-    jmp @chk_b_ring
-
-@chk_sb_f3:
-    ; ---- コマ3: 斬り抜け・残心 (PT1 $B0-$B7, 32x16) ----
-    lda #$B0
-    sta tmp_tile
-    lda player_x
-    clc
-    adc #18
-    sta tmp_bx
-    lda player_y
-    clc
+    adc #14
+    ldy saber_timer
+    beq :+
     adc #4
-    sta tmp_by
-    jsr push_32x16_metatile
+:   sta tmp_bx
+
+    ; 根元 (手元)
+    lda #$09
+    sta tmp_tile
+    jsr push_one_sprite
+
+    ; 刀身 (中間1)
+    lda tmp_bx
+    clc
+    adc #8
+    sta tmp_bx
+    lda #$09
+    sta tmp_tile
+    jsr push_one_sprite
+
+    ; 刀身 (中間2)
+    lda tmp_bx
+    clc
+    adc #8
+    sta tmp_bx
+    lda #$09
+    sta tmp_tile
+    jsr push_one_sprite
+
+    ; 先端 (切先)
+    lda tmp_bx
+    clc
+    adc #8
+    sta tmp_bx
+    lda #$09
+    sta tmp_tile
+    jsr push_one_sprite
 
 @chk_b_ring:
 
@@ -1048,13 +1343,98 @@ draw_samurai_at_py:
     jmp @draw_core_fighter
 
 @chk_form:
+    ; ボス戦 (side_mode != 0) の場合は全形態を右向き横視点シルエットで描画！
+    lda side_mode
+    beq :+
+    jmp @draw_side_player
+:
     lda weapon_type
-    beq @draw_core_fighter
-    cmp #FORM_LEGS
-    beq @draw_form2_legs
-    cmp #FORM_CHEST
-    beq @draw_form25_chest
+    bne :+
+    jmp @draw_core_fighter
+:   cmp #FORM_LEGS
+    bne :+
+    jmp @draw_form2_legs
+:   cmp #FORM_CHEST
+    bne :+
+    jmp @draw_form25_chest
+:   jmp @draw_gundam_ms
+
+@draw_side_player:
+    ; ---- 横画面ボス戦時の自機描画 (第1・第2・第2.5・第3形態すべて右向き戦闘姿勢！) ----
+    lda weapon_type
+    cmp #FORM_GUNDAM
+    bne :+
     jmp @draw_gundam_ms
+:   cmp #FORM_LEGS
+    bne :+
+    jmp @draw_side_form2
+:   cmp #FORM_CHEST
+    bne :+
+    jmp @draw_side_form25
+:
+
+    ; ---- 第1形態: 横向きコアファイター (シャープな右向き戦闘機シルエット PT1 $D8-$DB 16x16) ----
+    lda player_x
+    sta tmp_bx
+    lda player_y
+    sta tmp_by
+    lda #$D8
+    sta tmp_tile
+    lda #$00
+    sta tmp_attr
+    jsr push_16x16_metatile
+
+    ; 後部ジェット噴射炎 (PT1 $DC, 毎フレーム色明滅)
+    lda player_x
+    sec
+    sbc #6
+    sta tmp_bx
+    lda player_y
+    clc
+    adc #4
+    sta tmp_by
+    lda #$DC
+    sta tmp_tile
+    lda frame_count
+    and #1
+    asl                     ; 0 or 2
+    sta tmp_attr
+    jsr push_one_sprite
+    rts
+
+@draw_side_form2:
+    ; ---- 第2形態: 横向きコア＋脚部 (前方コアファイター ＋ 脚部ブースター PT1 $EA-$F2 24x24) ----
+    lda player_x
+    sec
+    sbc #4
+    sta tmp_bx
+    lda player_y
+    sec
+    sbc #4
+    sta tmp_by
+    lda #$EA
+    sta tmp_tile
+    lda #$00
+    sta tmp_attr
+    jsr push_24x24_metatile
+    rts
+
+@draw_side_form25:
+    ; ---- 第2.5形態: 横向きコア＋胸部 (Gundam上半身＋背部コアブースター PT1 $F3-$FB 24x24) ----
+    lda player_x
+    sec
+    sbc #4
+    sta tmp_bx
+    lda player_y
+    sec
+    sbc #4
+    sta tmp_by
+    lda #$F3
+    sta tmp_tile
+    lda #$00
+    sta tmp_attr
+    jsr push_24x24_metatile
+    rts
 
 @draw_form2_legs:
     ; ---- 第2形態: コアファイター＋脚部 ($48..$4D, 16x24) ----
@@ -1309,8 +1689,8 @@ draw_pbullets_oam:
 @draw_laser_side:
     ; ---- 横表示ロボット戦: ガンダムの右向きライフル銃口から画面右端まで水平貫通レーザー照射！ ----
     lda player_y
-    clc
-    adc #4                  ; 右向きライフルの銃口Y座標
+    sec
+    sbc #1                  ; 2pxビームの芯(row 3..4)をライフル銃口に完全一致させる
     sta tmp_by
     lda player_x
     clc
@@ -1595,12 +1975,21 @@ draw_boss_oam:
     rts
 
 @boss_alive_draw:
-    ; 被弾フラッシュ中はパレット1(シアン白)、通常はパレット2(ステージ固有中ボス色 or 赤いMS専用色)
+    ; 被弾フラッシュ中はパレット1(シアン白)
+    ; 狂乱突進中 (boss_state == 5) は4フレーム周期でパレット1(赤点滅/警告)と通常色を交互にしてモノアイ赤点滅を表現
     lda #$02
     ldy boss_flash
-    beq :+
+    bne @pal_flash
+    ldy boss_state
+    cpy #5
+    bne @set_attr
+    lda frame_count
+    and #4
+    beq @set_attr
+@pal_flash:
     lda #$01
-:   sta tmp_attr
+@set_attr:
+    sta tmp_attr
 
     ; 宿敵・赤いMS (boss_type == 1) なら PT1 $58-$63、量産型中ボス (boss_type == 0) ならステージ別 $30/$3C/$C0/$CC
     lda boss_type
@@ -1650,13 +2039,138 @@ draw_boss_oam:
     dec tmp2
     bne @ms_row_loop
 
+    ; 狂乱近接戦闘中 (boss_state == 5) は前方に武器（ヒートホーク / 赤ビームサーベル光刃 $09）を長さ3倍(32px)で常時構えて突撃・戦闘！
+    lda boss_state
+    cmp #5
+    bne @chk_normal_special_weapon
+
+    ; ボス前方に手元から伸びる直線の光刃スプライトを4連結描画 (32px長)
+    lda boss_type
+    bne @rival_saber_color
+    ; 中ボス: ヒートホーク (オレンジ/イエロー・パレット1)
+    lda #$01
+    jmp @draw_boss_weapon
+@rival_saber_color:
+    ; 赤いMS: 赤色ビームサーベル (専用赤・パレット2)
+    lda #$02
+@draw_boss_weapon:
+    sta tmp_attr
+
+    ; Y座標: モビルスーツ手元高さ (boss_y + 4: ビーム光刃が胸部・腕部 Y=7..8 の手元に完全一致！)
+    lda boss_y
+    clc
+    adc #4
+    sta tmp_by
+
+    ; 根元 (手元 boss_x + 4: モビルスーツ前端 boss_x + 12 の手元にぴったり接続)
+    lda boss_x
+    clc
+    adc #4
+    sta tmp_bx
+    lda #$09
+    sta tmp_tile
+    jsr push_one_sprite
+
+    ; 中間1 (X=boss_x - 4)
+    lda boss_x
+    sec
+    sbc #4
+    sta tmp_bx
+    lda #$09
+    sta tmp_tile
+    jsr push_one_sprite
+
+    ; 中間2 (X=boss_x - 12)
+    lda boss_x
+    sec
+    sbc #12
+    sta tmp_bx
+    lda #$09
+    sta tmp_tile
+    jsr push_one_sprite
+
+    ; 先端 (X=boss_x - 20)
+    lda boss_x
+    sec
+    sbc #20
+    sta tmp_bx
+    lda #$09
+    sta tmp_tile
+    jsr push_one_sprite
+    jmp @ms_draw_done
+
+@chk_normal_special_weapon:
+    ; Stage 4 最終ボス (赤いMS) の即死メガ粒子ビーム描画 (boss_beam_timer > 0)
+    lda current_stage
+    cmp #3
+    bne @chk_bit_funnel
+    lda boss_type
+    beq @chk_bit_funnel
+
+    ; チャージ中 (45..1): 胸部に激しく点滅する光球 ($0F) を描画
+    lda boss_beam_timer
+    beq @chk_bit_funnel
+    cmp #200
+    bcs @draw_mega_beam_firing
+
+    ; チャージ光球 (点滅)
+    lda frame_count
+    and #2
+    beq @chk_bit_funnel
+    lda boss_x
+    clc
+    adc #2
+    sta tmp_bx
+    lda boss_y
+    clc
+    adc #12
+    sta tmp_by
+    lda #$0F
+    sta tmp_tile
+    lda #$01
+    sta tmp_attr
+    jsr push_one_sprite
+    jmp @ms_draw_done
+
+@draw_mega_beam_firing:
+    ; ビーム照射中 (255..220): ボス銃口から画面左端まで極太メガ粒子ビームを一閃描画！
+    lda boss_y
+    clc
+    adc #12
+    sta tmp_by
+    lda boss_x
+    sec
+    sbc #16
+    sta tmp_bx
+
+@boss_mega_loop:
+    lda tmp_bx
+    cmp #8                  ; 画面左端 (X < 8) まで描画
+    bcc @ms_draw_done
+    lda #$09                ; ビーム光線タイル
+    sta tmp_tile
+    lda frame_count
+    and #1                  ; 赤($02)とシアン($01)で激しく明滅
+    clc
+    adc #1
+    sta tmp_attr
+    jsr push_one_sprite
+    lda tmp_bx
+    sec
+    sbc #24                 ; 24px刻みで左端まで照射
+    sta tmp_bx
+    jmp @boss_mega_loop
+
+@chk_bit_funnel:
     ; Stage 3・4 の赤いMS (オールレンジ試作型 / フルスペック型) は周囲にビット/ファンネル2機 ($0E) を展開！
     lda boss_type
-    beq @chk_gouf_rod
-    lda current_stage
+    bne :+
+    jmp @chk_gouf_rod
+:   lda current_stage
     cmp #2
-    bcc @ms_draw_done
-    lda boss_x
+    bcs :+
+    jmp @ms_draw_done
+:   lda boss_x
     sta tmp_bx
     lda boss_y
     clc
@@ -1892,10 +2406,24 @@ str_title_menu1:
     .byte "START MISSION", 0
 str_title_menu2:
     .byte "STAGE SELECT:", 0
+str_title_menu3:
+    .byte "BOSS BATTLE :", 0
 str_title_ctrl1:
-    .byte "A:MISSILE / 3WAY / BEAM RIFLE", 0
+    .byte "A:SHOT / B:BLAST", 0
 str_title_ctrl2:
-    .byte "B:RANGE BLAST (COOLDOWN)", 0
+    .byte "SELECT: SABER MODE (IN BOSS)", 0
+
+boss_name_spr_table:
+    ; 0: ZAKU
+    .byte $BA, $A1, $AB, $B5  ; 'Z', 'A', 'K', 'U'
+    ; 1: DOM_
+    .byte $A4, $AF, $AD, $00  ; 'D', 'O', 'M', ' '
+    ; 2: ZGOK
+    .byte $BA, $A7, $AF, $AB  ; 'Z', 'G', 'O', 'K'
+    ; 3: GOUF
+    .byte $A7, $AF, $B5, $A6  ; 'G', 'O', 'U', 'F'
+    ; 4: RED_
+    .byte $B2, $A5, $A4, $00  ; 'R', 'E', 'D', ' '
 
 str_brief_hdr:
     .byte "STAGE", 0

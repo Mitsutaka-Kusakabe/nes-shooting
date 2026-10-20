@@ -6,6 +6,7 @@ TRACK_STAGE1 = 2
 TRACK_STAGE2 = 3
 TRACK_BOSS   = 4
 TRACK_CLEAR  = 5
+TRACK_GAMEOVER = 6
 
 SFX_SHOT     = 1
 SFX_LASER    = 2
@@ -374,6 +375,10 @@ update_bgm:
     bne :+
     lda #5
     jmp @cmp_tempo
+:   cpx #TRACK_GAMEOVER
+    bne :+
+    lda #12                 ; 75 BPM: YS2 Rest in Peace 厳かなレクイエムテンポ
+    jmp @cmp_tempo
 :   cpx #TRACK_STAGE1
     beq :+
     cpx #TRACK_STAGE2
@@ -400,6 +405,11 @@ update_bgm:
     cmp #TRACK_TITLE
     bne :+
     jmp @do_title_bgm
+:
+    ; ゲームオーバー画面 (TRACK_GAMEOVER) か判定
+    cmp #TRACK_GAMEOVER
+    bne :+
+    jmp @do_gameover_bgm
 :
     ; 通常ステージ (TRACK_STAGE1, TRACK_STAGE2) か判定
     cmp #TRACK_STAGE1
@@ -517,7 +527,11 @@ update_bgm:
     ; ノート発音
     tax
     lda #%10111100          ; Duty 50%, Vol 12
-    sta $4000
+    ldy bgm_track
+    cpy #TRACK_GAMEOVER
+    bne :+
+    lda #%10111010          ; Duty 50%, Vol 10 (ゲームオーバーは落ち着いた優しい音量)
+:   sta $4000
     lda #$08
     sta $4001
     lda stg_period_lo,x
@@ -599,6 +613,13 @@ update_bgm:
     ; fall-through to @do_drums
 
 @do_drums:
+    lda bgm_track
+    cmp #TRACK_GAMEOVER
+    bne :+
+    lda #$30
+    sta $400C               ; ゲームオーバーはドラム・ハイハット完全消音
+    rts
+:
     ; ノイズSFXが鳴っていないときだけリズムハイハットを刻む
     lda sfx_noi_timer
     bne @env_only
@@ -643,10 +664,30 @@ update_bgm:
     sta text_ptr+1
     jmp @seq_play_channels
 
+    ; =========================================================================
+    ; ---- ゲームオーバーBGM「REST IN PEACE」(YS2 Game Over Style) 再生ルーチン ----
+    ; =========================================================================
+@do_gameover_bgm:
+    ldx bgm_order_idx
+    lda gov_order,x
+    cmp #$FF
+    bne :+
+    lda #gov_LOOP
+    sta bgm_order_idx
+    tax
+    lda gov_order,x
+:   tax
+    lda gov_pat_lo,x
+    sta text_ptr
+    lda gov_pat_hi,x
+    sta text_ptr+1
+    jmp @seq_play_channels
+
 .segment "RODATA"
 .include "../assets/music_stage.s"
 .include "../assets/music_boss.s"
 .include "../assets/music_title.s"
+.include "../assets/music_gameover.s"
 
 
 

@@ -98,21 +98,22 @@ active_bullets = sum(cpu.ram[syms["pbul_flag"] + i] for i in range(8))
 print(f"[OK] SAMURAI moved ({px0},{py0}) -> ({px1},{py1}) and fired Normal Missile (active={active_bullets})")
 assert px1 > px0 and py1 < py0 and active_bullets >= 1
 
-# 3. Test 3-Stage Gundam Docking System via Ally Support Craft at 1/3 (meta_idx=21) and 2/3 (meta_idx=42)
+# 3. Test 3-Stage Gundam Docking System: Pre-Boss Sequential Docking (meta_idx=27)
 assert zp("weapon_type") == 0 and zp("weapon_level") == 1
 print(f"[OK] Initial Form 1 (Core Fighter): weapon_type={zp('weapon_type')}, weapon_level={zp('weapon_level')}")
 
-# Advance to just before 1/3 of stage (meta_idx=20 -> 21)
-set_zp("meta_idx", 20)
+# Advance to just before Pre-MidBoss Carrier (meta_idx=26 -> 27)
+set_zp("meta_idx", 26)
 set_zp("meta_sub_row", 1)
 for _ in range(20):
     run_frame(0x00)
     if zp("ally_state") == 1:
         break
 assert zp("ally_state") == 1 and zp("ally_part") == 0
-print(f"[OK] 1/3 Stage (meta_idx=21): Ally Support Craft arrived carrying Leg Parts (ally_part={zp('ally_part')})!")
+print(f"[OK] Pre-MidBoss Phase 1 (meta_idx=27): Ally Support Craft arrived carrying Leg Parts (ally_part={zp('ally_part')})!")
 
 # Let Ally Support Craft descend to Y=76, release the Leg Parts, and player docks with it!
+# Docking Leg Parts automatically triggers the second carrier carrying Chest Parts!
 set_zp("inv_timer", 250)
 for _ in range(250):
     run_frame(0x00)
@@ -121,33 +122,30 @@ for _ in range(250):
 assert zp("weapon_type") == 1 and zp("weapon_level") == 2
 print(f"[OK] Ally Support Craft delivered Leg Parts -> Docked into Form 2 (Core Fighter + Legs, 3-Way Missile)!")
 
-# Advance to just before 2/3 of stage (meta_idx=41 -> 42)
-set_zp("meta_idx", 41)
-set_zp("meta_sub_row", 1)
+# Next carrier should now be inbound with Chest Parts (ally_part=1)
 for _ in range(20):
     run_frame(0x00)
     if zp("ally_state") == 1:
         break
 assert zp("ally_state") == 1 and zp("ally_part") == 1
-print(f"[OK] 2/3 Stage (meta_idx=42): Ally Support Craft arrived carrying Chest Parts (ally_part={zp('ally_part')})!")
+print(f"[OK] Pre-MidBoss Phase 2 (Sequential): Ally Support Craft arrived carrying Chest Parts (ally_part={zp('ally_part')})!")
 
-# Let Ally Support Craft descend to Y=76, release the Chest Parts, and player docks with it!
-set_zp("inv_timer", 250)
+# Let Ally Support Craft descend and player docks with Chest Parts!
 for _ in range(250):
     run_frame(0x00)
     if zp("weapon_type") == 3:
         break
 assert zp("weapon_type") == 3 and zp("weapon_level") == 3
-print(f"[OK] Ally Support Craft delivered Chest Parts -> Docked into Form 3 (Gundam MS, weapon_type=3)!")
+print(f"[OK] Ally Support Craft delivered Chest Parts -> Docked into Form 3 (Gundam MS, weapon_type=3) BEFORE Mid-Boss!")
 
-# Test Form 3 Laser (30f = 0.5s continuous full-screen piercing beam + 18f = 0.3s cooldown)
+# Test Form 3 Laser (18f = 0.3s continuous full-screen slim laser + 42f = 0.7s cooldown)
 set_zp("shot_timer", 0)
-run_frame(0x80)  # Press A in Form 3 -> starts 30-frame laser irradiation!
-assert zp("laser_timer") == 30, f"Expected laser_timer=30, got {zp('laser_timer')}"
-for _ in range(30):
+run_frame(0x80)  # Press A in Form 3 -> starts 18-frame laser irradiation!
+assert zp("laser_timer") == 18, f"Expected laser_timer=18, got {zp('laser_timer')}"
+for _ in range(18):
     run_frame(0x00)
-assert zp("laser_timer") == 0 and zp("shot_timer") == 18, f"Expected 18f (0.3s) cooldown after laser, got laser={zp('laser_timer')}, shot={zp('shot_timer')}"
-print(f"[OK] Form 3 Laser irradiated for 30 frames (0.5s) and entered 0.3s (18 frames) cooldown!")
+assert zp("laser_timer") == 0 and zp("shot_timer") == 42, f"Expected 42f (0.7s) cooldown after laser, got laser={zp('laser_timer')}, shot={zp('shot_timer')}"
+print(f"[OK] Form 3 Laser irradiated for 18 frames (0.3s) and entered 0.7s (42 frames) cooldown!")
 
 # Test 2-Stage Armor Purge System (Spec 3.1):
 # 1st hit in Form 3 (Gundam) -> Purges to Form 2 (Legs, weapon_type=1)
@@ -275,10 +273,53 @@ for stage_num in range(4):
         f"Stage {stage_num+1} Mid-Boss HP mismatch: expected {expected_midboss_hp[stage_num]}, got {zp('boss_hp')}"
     print(f"[OK] Stage {stage_num+1} Mid-Boss (MOJA-0{stage_num+1}) entered battle in Side-View mode (PT1)! HP={zp('boss_hp')}")
 
-    # Defeat Mid-Boss with 2x Size Beam Saber from 50px away and verify seamless return to Vertical Scroll mode (side_mode=0)
+    # Test Boss Battle Wipeout -> Game Over (Verify fix for Issue 1)
+    if stage_num == 0:
+        ram_bk = bytearray(cpu.ram)
+        pc_bk, a_bk, x_bk, y_bk, sp_bk, p_bk = cpu.pc, cpu.a, cpu.x, cpu.y, cpu.sp, cpu.get_p()
+
+        # Player is in Form 1 (Core Fighter) with 1 life remaining, directly touching boss
+        set_zp("lives", 1)
+        set_zp("weapon_type", 0)
+        set_zp("inv_timer", 0)
+        set_zp("player_x", zp("boss_x") + 10)
+        set_zp("player_y", zp("boss_y") + 10)
+
+        # 1 frame: collision triggers hit_player -> STATE_DEAD (2), state_timer=70
+        run_frame(0x00)
+        assert zp("game_state") == 2, f"Boss touch did not trigger STATE_DEAD! state={zp('game_state')}"
+        assert zp("state_timer") == 70, f"state_timer not initialized to 70! timer={zp('state_timer')}"
+
+        # Run 70 frames while still overlapping boss - verify state_timer decrements to 0 and does NOT get stuck at 70!
+        for f in range(70):
+            # Keep player overlapping boss to ensure continuous collision testing
+            set_zp("player_x", zp("boss_x") + 10)
+            set_zp("player_y", zp("boss_y") + 10)
+            run_frame(0x00)
+            if zp("game_state") == 3:
+                break
+
+        assert zp("game_state") == 3, f"Boss wipeout did NOT transition to STATE_GAMEOVER! state={zp('game_state')}, timer={zp('state_timer')}, lives={zp('lives')}"
+        assert zp("lives") == 0, f"Lives was not 0! lives={zp('lives')}"
+        assert zp("boss_state") == 0, f"boss_state was not reset in show_gameover! boss_state={zp('boss_state')}"
+        assert zp("side_mode") == 0, f"side_mode was not reset in show_gameover! side_mode={zp('side_mode')}"
+        assert zp("bgm_track") == 6, f"bgm_track was not TRACK_GAMEOVER (6)! track={zp('bgm_track')}"
+        print("[OK] Boss Battle Wipeout (lives=0) successfully transitioned to GAME OVER with BGM Rest in Peace (TRACK_GAMEOVER=6)!")
+
+        # Press START to return to Title
+        run_frame(0x10)
+        assert zp("game_state") == 4, f"Game Over did not return to Title screen! state={zp('game_state')}"
+        print("[OK] Game Over screen accepted START and returned to Title Screen!")
+
+        # Restore state to resume normal test progression
+        cpu.ram[:] = ram_bk
+        cpu.pc, cpu.a, cpu.x, cpu.y, cpu.sp = pc_bk, a_bk, x_bk, y_bk, sp_bk
+        cpu.set_p(p_bk)
+
+    # Defeat Mid-Boss with Beam Saber within 46px blade range and verify seamless return to Vertical Scroll mode (side_mode=0)
     set_zp("boss_hp", 1)
     set_zp("weapon_type", 3)  # ビームサーベルは第3形態 (ガンダム) 専用
-    set_zp("player_x", zp("boss_x") - 50)
+    set_zp("player_x", zp("boss_x") - 40)
     set_zp("player_y", zp("boss_y") + 8)
     for _ in range(30):
         run_frame(0x80)
@@ -315,10 +356,48 @@ for stage_num in range(4):
         f"Stage {stage_num+1} Rival Boss HP mismatch: expected {expected_rival_hp[stage_num]}, got {zp('boss_hp')}"
     print(f"[OK] Stage {stage_num+1} Rival Red MS Boss entered battle in Side-View mode! HP={zp('boss_hp')}")
 
-    # Reduce Rival Boss HP to 1 and defeat it from 50px away with 2x Size Beam Saber
+    if stage_num == 0:
+        # Verify Melee Charge 0.5s Corner -> Retreat -> Re-charge Loop
+        set_zp("inv_timer", 90)  # keep player invulnerable during test
+        set_zp("player_x", 40)
+        set_zp("player_y", 90)
+        set_zp("boss_x", 176)
+        set_zp("boss_y", 90)
+        set_zp("boss_hp", 30)
+        set_zp("boss_state", 5)  # 狂乱近接モード
+        set_zp("boss_charge_phase", 0)
+        set_zp("boss_charge_timer", 0)
+
+        # Phase 0: Boss charges left towards player
+        for _ in range(70):
+            run_frame(0x00)
+            if zp("boss_charge_phase") == 1:
+                break
+        assert zp("boss_charge_phase") == 1, f"Did not enter Phase 1 corner! phase={zp('boss_charge_phase')}, bx={zp('boss_x')}"
+        assert zp("boss_charge_timer") == 30, f"Corner timer not 30 (0.5s)! timer={zp('boss_charge_timer')}"
+        print("[OK] Melee Charge: Boss charged in and triggered 0.5s (30-frame) corner phase!")
+
+        # Phase 1: Boss holds corner for exactly 30 frames (0.5s)
+        for _ in range(30):
+            run_frame(0x00)
+            if zp("boss_charge_phase") == 2:
+                break
+        assert zp("boss_charge_phase") == 2, f"Did not transition to Phase 2 retreat after 0.5s! phase={zp('boss_charge_phase')}"
+        print("[OK] Melee Charge: 0.5s corner limit expired, boss initiated retreat (いったん引く)!")
+
+        # Phase 2: Boss retreats rightwards to X=168
+        for _ in range(60):
+            run_frame(0x00)
+            if zp("boss_charge_phase") == 3:
+                break
+        assert zp("boss_charge_phase") == 3 and zp("boss_x") == 168, \
+            f"Boss did not retreat to X=168! phase={zp('boss_charge_phase')}, bx={zp('boss_x')}"
+        print("[OK] Melee Charge: Boss retreated to X=168, freeing player to maneuver and escape corner!")
+
+    # Reduce Rival Boss HP to 1 and defeat it within 46px blade reach with Beam Saber
     set_zp("boss_hp", 1)
     set_zp("weapon_type", 3)  # ビームサーベルは第3形態 (ガンダム) 専用
-    set_zp("player_x", zp("boss_x") - 50)
+    set_zp("player_x", zp("boss_x") - 40)
     set_zp("player_y", zp("boss_y") + 8)
     for _ in range(30):
         run_frame(0x80)

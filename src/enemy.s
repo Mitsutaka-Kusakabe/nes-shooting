@@ -37,6 +37,8 @@ enemies_init:
     sta item_flag,x
     dex
     bpl @clr_it
+    sta spawner_cnt
+    sta spawner_timer
     rts
 
 ; ---- ステージの新しいメタ行 (meta_idx) 到達時の編隊 & 味方支援機スポーン ----
@@ -45,27 +47,30 @@ spawn_wave_for_meta:
     beq :+
     rts
 :
-    ; ★ ステージの 1/3 地点 (meta_idx == 21 / 64): 味方支援機が「脚部パーツ (0)」を運んで登場！
+    ; ★ 中ボス (meta_idx == 32) 直前:
+    ; meta_idx == 27: 脚部パーツ運搬支援機 (第1陣) 出撃！
     ldy meta_idx
-    cpy #21
-    bne @chk_two_thirds
+    cpy #27
+    bne @chk_midboss_stage
     lda #0                  ; 0 = 脚部パーツ ($18)
     sta ally_part
     jsr spawn_ally_carrier
     rts
 
-@chk_two_thirds:
-    ; ★ ステージの 1/2 地点 (meta_idx == 32 / 64): 横表示・量産型ロボット中ボス (MOJA-01..04) が登場！
+@chk_midboss_stage:
+    ; ★ 中ボス (meta_idx == 32 / 64): 横表示・量産型ロボット中ボス (MOJA-01..04) 警告・登場！
     cpy #32
-    bne @chk_chest_part
+    bne @chk_boss_parts
     jsr spawn_midboss
     rts
 
-@chk_chest_part:
-    ; ★ ステージの 2/3 地点 (meta_idx == 42 / 64): 味方支援機が「胸部パーツ (1)」を運んで登場！
-    cpy #42
+@chk_boss_parts:
+    ; ★ 大ボス (meta_idx == 63) 直前:
+    ; meta_idx == 58: 脚部パーツ運搬支援機 (第1陣) 出撃！
+    ; （被弾等でコアファイターに戻っていても、大ボス直前に再び完全体へドッキング可能！）
+    cpy #58
     bne @normal_wave
-    lda #1                  ; 1 = 胸部パーツ ($19)
+    lda #0                  ; 0 = 脚部パーツ ($18)
     sta ally_part
     jsr spawn_ally_carrier
     rts
@@ -100,7 +105,11 @@ spawn_sub_wave:
     rts
 
 do_wave_spawn:
-    ; 現在の画面内生存敵数をカウントし、ステージ別上限に達していたらスポーンしない
+    ; 3機編隊スポナーが既にアクティブなら新規トリガーしない
+    lda spawner_cnt
+    bne @ret_spawn
+
+    ; 現在の画面内生存敵数をカウントし、上限に達していたらスポーンしない
     ldy #0
     ldx #MAX_ENEMIES-1
 @cnt_e:
@@ -115,24 +124,90 @@ do_wave_spawn:
     tya
     cmp stage_max_enemies,x
     bcc :+
+@ret_spawn:
     rts
 :
-    ; 敵を1体だけスポーン (X = 40..199)
+    ; 3機編隊スポナーの初期化
+    ; 基準X座標を決定 (48..192)
     jsr next_rng
     and #$7F
     clc
-    adc #40
-    sta tmp_bx
-    lda #20
-    sta tmp_by
+    adc #48
+    sta spawner_base_x
 
+    ; 編隊パターン (0=V字降下, 1=サイン波, 2=縦一列)
     ldy meta_idx
     lda (level_ptr),y
     and #3
+    sta spawner_pattern
+
+    lda #3                  ; 3機編隊
+    sta spawner_cnt
+    lda #1                  ; 1フレーム後に初機スポーン
+    sta spawner_timer
+    rts
+
+; ---- 毎フレームの3機編隊スポナー更新 (12フレーム間隔で連続スポーン) ----
+update_formation_spawner:
+    lda spawner_cnt
+    beq @f_ret
+    dec spawner_timer
+    bne @f_ret
+
+    ; 12フレームタイマーをリセット
+    lda #12
+    sta spawner_timer
+
+    ; 空きスロットがあるかチェック
+    ldy #0
+    ldx #MAX_ENEMIES-1
+:   lda enemy_flag,x
+    cmp #1
+    bne :+
+    iny
+:   dex
+    bpl :--
+    ldx current_stage
+    tya
+    cmp stage_max_enemies,x
+    bcs @f_cancel           ; 画面内が上限なら今回の編隊を終了
+
+    ; 機体ごとのXオフセットを計算 (spawner_cnt = 3, 2, 1)
+    ; 3機目(cnt=3): 中央 (base_x)
+    ; 2機目(cnt=2): 左 (-16)
+    ; 1機目(cnt=1): 右 (+16)
+    lda spawner_base_x
+    sta tmp_bx
+    lda spawner_cnt
+    cmp #2
+    bne :+
+    lda spawner_base_x
+    sec
+    sbc #16
+    sta tmp_bx
+    jmp @spawn_pos_ok
+:   cmp #1
+    bne @spawn_pos_ok
+    lda spawner_base_x
+    clc
+    adc #16
+    sta tmp_bx
+
+@spawn_pos_ok:
+    lda #18
+    sta tmp_by
+    lda spawner_pattern
     sta tmp_type
-    lda #0                  ; 敵機はパーツを持たない (味方支援機のみがパーツを運んでくる)
+    lda #0
     sta tmp_carrier
     jsr spawn_one_enemy
+
+    dec spawner_cnt
+@f_ret:
+    rts
+@f_cancel:
+    lda #0
+    sta spawner_cnt
     rts
 
 ; ---- 味方支援機 (ガンペリー輸送機) の出撃開始 ----
@@ -187,6 +262,7 @@ spawn_one_enemy:
 
 ; ---- 毎フレームの敵・敵弾・アイテム更新 ----
 update_enemies:
+    jsr update_formation_spawner
     ldx #MAX_ENEMIES-1
 @eloop:
     stx cur_enemy_idx
@@ -501,6 +577,15 @@ update_items:
     jsr play_sfx
     lda #5
     jsr add_score_hundreds  ; ドッキングボーナス +500点
+
+    ; 脚部パーツ (item_type == 0) をドッキング完了したら、即座に胸部パーツ運搬支援機 (第2陣) を出撃！
+    ; （ボス直前に脚部合体 -> すぐさま胸部合体と立て続けに変形して完全体へ！）
+    lda item_type,x
+    bne @skip_second_carrier
+    lda #1                  ; 1 = 胸部パーツ
+    sta ally_part
+    jsr spawn_ally_carrier
+@skip_second_carrier:
     ldx tmp_save_x
 
 @next:
@@ -630,7 +715,9 @@ enemy_fire_bullet:
     lda #<(-1)
     sta tmp_vx
 @set_vy:
-    lda #1                  ; 弾速はゆっくり (1px/フレーム)
+    ; 敵弾速度の底上げ (A案: 従来の1.5〜2倍速)
+    ; 縦方向 vy = 2 px/frame (高速化)
+    lda #2
     sta tmp_vy
     lda #$0E
     sta tmp_tile
@@ -685,10 +772,7 @@ update_ebullets:
     lda ebul_flag,x
     beq @next
 
-    ; 横方向 (vx) は2フレームに1回だけ移動させて斜め弾の角度と速度を緩やかにする
-    lda frame_count
-    and #1
-    bne @move_y
+    ; 横方向 (vx) 移動: 毎フレーム加算してキビキビ追従
     lda ebul_x,x
     clc
     adc ebul_vx,x
@@ -699,7 +783,7 @@ update_ebullets:
     sta ebul_x,x
 
 @move_y:
-    ; 縦方向 (vy) も基本 1px/フレームでゆっくり降下
+    ; 縦方向 (vy) 移動
     lda ebul_y,x
     clc
     adc ebul_vy,x
@@ -751,6 +835,8 @@ update_ebullets:
 ; - 第2 / 第2.5形態 (半合体: アーマー1層＋コア): 被弾でアーマー破損パージ -> 初期形態 (FORM_CORE) へ！
 ; - 初期形態 (コアファイター: HP 1): 被弾で1機撃墜 (STATE_DEAD)
 hit_player:
+    lda game_state
+    bne @ignore             ; STATE_PLAYING (0) 以外なら被弾判定しない！(撃墜中やワープ中、ゲームオーバー中など)
     lda inv_timer
     bne @ignore             ; 無敵時間中
     lda warp_mode
