@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOJAxMOJA WARS - Web キャラクターエディタ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <h1>👾 MOJAxMOJA WARS <span class="brand-badge">CHARACTER EDITOR</span></h1>
+    </div>
+
+    <!-- CHR Tile Budget Meter -->
+    <div class="chr-meter-container" title="ファミコンのスプライトパターンテーブル (最大256個の8x8タイル) の消費量">
+      <span>スプライト CHR:</span>
+      <div class="chr-meter-bar">
+        <div class="chr-meter-fill" id="chrMeterFill"></div>
+      </div>
+      <span id="chrMeterText">0 / 256 tiles (0%)</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="header-actions">
+      <a href="manual.html" target="_blank" class="btn" style="background:#238636; border-color:#238636; color:#fff;" title="取扱説明書を開く">📖 説明書</a>
+      <a href="../editor/index.html" class="btn" title="ステージエディタを開く">🌌 ステージエディタ</a>
+      <button class="btn" id="btn-import-json">📥 JSON 読込</button>
+      <input type="file" id="inp-import-json" accept=".json" style="display:none">
+      <button class="btn" id="btn-export-json">💾 JSON 保存</button>
+      <button class="btn btn-purple" id="btn-export-asm">📤 ca65 ASM 出力</button>
+    </div>
+  </header>
+
+  <!-- 3-Column Workspace Layout -->
+  <div class="editor-layout">
+
+    <!-- Left Sidebar: Characters, Animations, Palette -->
+    <div class="sidebar">
+      
+      <!-- Character List -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>🤖 キャラクター</span>
+          <div style="display:flex; gap:4px;">
+            <button class="btn btn-sm btn-primary" id="btn-add-char" title="新規キャラクター追加">＋</button>
+            <button class="btn btn-sm" id="btn-dup-char" title="キャラクター複製">📑</button>
+            <button class="btn btn-sm btn-danger" id="btn-del-char" title="キャラクター削除">🗑</button>
+          </div>
+        </div>
+        <div class="char-list" id="charList">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Animation States -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>🎬 アニメーション</span>
+          <button class="btn btn-sm" id="btn-add-anim" title="新規アニメーション追加">＋</button>
+        </div>
+        <div class="state-selector" id="animStateSelector">
+          <button class="state-chip active" data-state="idle">idle (待機)</button>
+          <button class="state-chip" data-state="fly">fly (移動)</button>
+          <button class="state-chip" data-state="attack">attack (攻撃)</button>
+          <button class="state-chip" data-state="damage">damage (被弾)</button>
+          <button class="state-chip" data-state="destroy">destroy (爆発)</button>
+        </div>
+      </div>
+
+      <!-- NES Sub-palette -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>🎨 NES パレット (透明＋3色)</span>
+          <select id="sel-subpalette-idx" style="background:var(--bg-card); color:#fff; border:1px solid var(--border); border-radius:3px; font-size:11px; padding:1px 4px;">
+            <option value="0">パレット 0 (自機/標準)</option>
+            <option value="1">パレット 1 (赤/ライバル)</option>
+            <option value="2">パレット 2 (緑/量産機)</option>
+            <option value="3">パレット 3 (黄/支援機)</option>
+          </select>
+        </div>
+        <div class="palette-slots">
+          <div class="palette-box transparent-slot" id="pal-slot-0" title="色 0: 完全透明">
+            <span>$0F</span>
+            <small style="font-size:9px;">透明</small>
+          </div>
+          <div class="palette-box" id="pal-slot-1" title="色 1: 暗いトーン">
+            <span>$00</span>
+          </div>
+          <div class="palette-box" id="pal-slot-2" title="色 2: 中間色">
+            <span>$16</span>
+          </div>
+          <div class="palette-box" id="pal-slot-3" title="色 3: ハイライト色">
+            <span>$20</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Center Workspace: Viewport & Canvas & Timeline -->
+    <div class="center-workspace">
+
+      <!-- Viewport Toolbar -->
+      <div class="viewport-toolbar">
+        <div class="viewport-tools-group">
+          <span style="font-weight:600; color:var(--text-dim);">ズーム:</span>
+          <select id="sel-zoom" style="background:var(--bg-card); color:#fff; border:1px solid var(--border); border-radius:3px; padding:2px 4px; font-size:11px;">
+            <option value="4">4x</option>
+            <option value="6">6x</option>
+            <option value="8">8x</option>
+            <option value="12" selected>12x (推奨)</option>
+            <option value="16">16x (特大)</option>
+            <option value="20">20x (超特大)</option>
+          </select>
+
+          <span style="color:var(--border); margin:0 4px;">|</span>
+
+          <label class="tool-toggle">
+            <input type="checkbox" id="chk-grid" checked>
+            <span>8x8 タイルグリッド</span>
+          </label>
+          <label class="tool-toggle">
+            <input type="checkbox" id="chk-pixel-grid">
+            <span>1px ピクセルグリッド</span>
+          </label>
+          <label class="tool-toggle">
+            <input type="checkbox" id="chk-onion" checked>
+            <span>オニオンスキン</span>
+          </label>
+        </div>
+
+        <div class="viewport-tools-group">
+          <label class="tool-toggle">
+            <input type="checkbox" id="chk-hurtbox" checked>
+            <span style="color:#58a6ff;">🟦 食らい判定 (Hurtbox)</span>
+          </label>
+          <label class="tool-toggle">
+            <input type="checkbox" id="chk-hitbox" checked>
+            <span style="color:#ff7b72;">🟥 攻撃判定 (Hitbox)</span>
+          </label>
+          <label class="tool-toggle">
+            <input type="checkbox" id="chk-scanline-warning" checked>
+            <span style="color:#f85149;" title="水平スキャンライン上に8枚以上のスプライトが重なった場合のチラつき警告">⚠️ 8スプライト制限警告</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Main Canvas Container -->
+      <div class="canvas-container" id="canvasContainer">
+        <div class="canvas-wrapper">
+          <!-- Scanline ruler on the left edge for 8-sprite hardware limit warnings -->
+          <div class="scanline-ruler" id="scanlineRuler" title="スキャンライン上の重なりスプライト枚数 (赤帯は8枚超過警告)"></div>
+          <canvas id="mainCanvas" width="256" height="256"></canvas>
+        </div>
+      </div>
+
+      <!-- Bottom Timeline & Frame Controls -->
+      <div class="bottom-timeline">
+        <div class="timeline-controls">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button class="btn btn-sm btn-primary" id="btn-play-anim">▶ 再生</button>
+            <button class="btn btn-sm" id="btn-prev-frame">⏮ 前コマ</button>
+            <button class="btn btn-sm" id="btn-next-frame">⏭ 次コマ</button>
+            <label class="tool-toggle" style="margin-left:6px;">
+              <input type="checkbox" id="chk-anim-loop" checked>
+              <span>ループ再生</span>
+            </label>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:11px;">
+            <span>コマ持続フレーム:</span>
+            <input type="number" id="inp-frame-duration" min="1" max="120" value="12" style="width:48px; background:var(--bg-card); color:#fff; border:1px solid var(--border); border-radius:3px; padding:2px 4px; text-align:right;">
+            <span style="color:var(--text-dim);">(12f ≒ 0.2秒)</span>
+          </div>
+
+          <div style="display:flex; gap:4px;">
+            <button class="btn btn-sm btn-success" id="btn-add-frame">＋ コマ追加</button>
+            <button class="btn btn-sm btn-danger" id="btn-del-frame">🗑 コマ削除</button>
+          </div>
+        </div>
+
+        <!-- Frame Strips -->
+        <div class="frame-strip" id="frameStrip">
+          <!-- Dynamically populated frame cards -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Sidebar: Image Import, CHR Tiles, Hitbox Inputs -->
+    <div class="sidebar right">
+
+      <!-- Image Import Dropzone -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>📥 画像インポート ＆ 自動減色</span>
+        </div>
+        <div class="dropzone" id="dropzone">
+          <div style="font-size:24px; margin-bottom:4px;">🖼️</div>
+          <div>PNG / GIF / JPEG 画像をドロップ</div>
+          <div style="font-size:11px; margin-top:4px; color:var(--text-dim);">または クリックして選択</div>
+          <input type="file" id="inp-image-file" accept="image/*" style="display:none">
+        </div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.4;">
+          ※ 自動的に 8x8 タイルへ分解、NESパレット（透明1色＋3色）へ減色し、重複タイルを自動除外します。
+        </div>
+      </div>
+
+      <!-- CHR Tile Bank (Deduplicated 8x8 tiles) -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>🧩 重複除外後 CHR タイル</span>
+          <span id="tileBankCount" style="font-family:var(--font-mono); font-size:11px; color:var(--accent-cyan);">0 tiles</span>
+        </div>
+        <div class="tile-bank-grid" id="tileBankGrid">
+          <!-- Dynamically populated 8x8 tile thumbnails -->
+        </div>
+      </div>
+
+      <!-- Hitbox & Hurtbox AABB Settings -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>🎯 当たり判定 (AABB互換)</span>
+        </div>
+        
+        <div style="margin-bottom:8px;">
+          <div style="font-weight:600; font-size:11px; color:#58a6ff; margin-bottom:4px;">🟦 食らい判定 (Hurtbox)</div>
+          <div class="box-inputs-grid">
+            <div class="box-input-row">
+              <label>X / Y</label>
+              <div>
+                <input type="number" id="inp-hurt-x" value="-8">
+                <input type="number" id="inp-hurt-y" value="-8">
+              </div>
+            </div>
+            <div class="box-input-row">
+              <label>W / H</label>
+              <div>
+                <input type="number" id="inp-hurt-w" value="16">
+                <input type="number" id="inp-hurt-h" value="16">
+              </div>
+            </div>
+          </div>
+          <div style="font-size:10px; color:var(--text-dim); margin-top:2px; font-family:var(--font-mono);">
+            半径 (Half W/H): <span id="lbl-hurt-half">8 x 8 px</span>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-weight:600; font-size:11px; color:#ff7b72; margin-bottom:4px;">🟥 攻撃判定 (Hitbox)</div>
+          <div class="box-inputs-grid">
+            <div class="box-input-row">
+              <label>X / Y</label>
+              <div>
+                <input type="number" id="inp-hit-x" value="-6">
+                <input type="number" id="inp-hit-y" value="-6">
+              </div>
+            </div>
+            <div class="box-input-row">
+              <label>W / H</label>
+              <div>
+                <input type="number" id="inp-hit-w" value="12">
+                <input type="number" id="inp-hit-h" value="12">
+              </div>
+            </div>
+          </div>
+          <div style="font-size:10px; color:var(--text-dim); margin-top:2px; font-family:var(--font-mono);">
+            半径 (Half W/H): <span id="lbl-hit-half">6 x 6 px</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette Variation (Color Swap) -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>🌈 パレット色違い複製</span>
+        </div>
+        <p style="font-size:11px; color:var(--text-dim); margin-bottom:8px;">
+          CHRタイルを無駄遣いせず、パレットID（0〜3）のみを変更した色違い敵キャラを複製します。
+        </p>
+        <button class="btn btn-sm" id="btn-duplicate-variation" style="width:100%; justify-content:center;">
+          🎨 色違いバリエーションとして複製
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Modal: Master NES Palette Picker -->
+  <div class="modal-overlay" id="modal-palette-picker" style="display:none;">
+    <div class="modal-content" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>🎨 ファミコン 54色マスターパレット</h3>
+        <button class="btn btn-sm" id="btn-close-palette-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11px; color:var(--text-dim); margin-bottom:8px;">
+          置き換える色をクリックして選択してください：
+        </div>
+        <div class="nes-master-grid" id="nesMasterPaletteGrid">
+          <!-- Dynamically populated 54 color cells -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Export ca65 Assembly -->
+  <div class="modal-overlay" id="modal-export-asm" style="display:none;">
+    <div class="modal-content" style="max-width:860px;">
+      <div class="modal-header">
+        <h3>📤 ca65 アセンブラソース出力 (OAMメタスプライト ＆ CHRタイル)</h3>
+        <button class="btn btn-sm" id="btn-close-asm-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <button class="btn btn-sm active" id="tab-asm-oam">📄 character_data.s (OAMメタスプライト & 判定)</button>
+          <button class="btn btn-sm" id="tab-asm-chr">🧩 character_tiles.s (CHR-ROM 2bpp ビットマップ)</button>
+        </div>
+        <textarea class="code-area" id="asmExportText" readonly spellcheck="false"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btn-copy-asm">📋 クリップボードにコピー</button>
+        <button class="btn btn-success" id="btn-download-asm">💾 ファイル保存</button>
+        <button class="btn" id="btn-dismiss-asm">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: JSON Export / Import -->
+  <div class="modal-overlay" id="modal-json" style="display:none;">
+    <div class="modal-content" style="max-width:760px;">
+      <div class="modal-header">
+        <h3 id="modalJsonTitle">💾 characters.json エクスポート</h3>
+        <button class="btn btn-sm" id="btn-close-json-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea class="code-area" id="jsonExportText" spellcheck="false"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btn-copy-json">📋 コピー</button>
+        <button class="btn btn-success" id="btn-download-json">💾 characters.json を保存</button>
+        <button class="btn" id="btn-dismiss-json">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Entry Scripts (Standard scripts for seamless offline file:/// support) -->
+  <script src="sprite-processor.js"></script>
+  <script src="character-editor.js"></script>
+</body>
+</html>

@@ -192,7 +192,8 @@ make clean                      # ビルド成果物を削除
 ├── docs/
 │   ├── SPEC.md               # 内部技術仕様書 (メモリマップ、APU、数式)
 │   ├── editor/               # Web ステージエディタ (index.html / manual.html / editor.js)
-│   └── audio-editor/         # Web 楽曲エディタ (index.html / manual.html / audio-editor.js)
+│   ├── audio-editor/         # Web 楽曲エディタ (index.html / manual.html / audio-editor.js)
+│   └── character-editor/     # Web キャラクターエディタ (index.html / manual.html / character-editor.js)
 ├── assets/
 │   ├── chr.s             # CHR-ROM タイルパターンデータ (tools/gen_chr.py により生成)
 │   ├── stages.s          # 全4ステージマップデータ (LVLMAP01 互換)
@@ -211,7 +212,7 @@ make clean                      # ビルド成果物を削除
 
 ## Web 開発支援ツール
 
-ブラウザ上で動作する2つの公式Webツールを提供しています。
+ブラウザ上で動作する3つの公式Webツールを提供しています。
 
 1. **[Web 楽曲エディタ (`docs/audio-editor/index.html`)](docs/audio-editor/index.html)** ｜ **[📖 楽曲エディタ説明書](docs/audio-editor/manual.html)**
    - ファミコン 2A03 APU (Pulse 1, Pulse 2, Triangle, DMCドラム) のリアルタイム Web Audio 合成エディタ。
@@ -224,7 +225,17 @@ make clean                      # ビルド成果物を削除
    - **BGM同期プレビュー**: `nes-audio-player.js` と連携し、BGMを再生しながら自機がスクロールして敵・イベントの到達タイミングを視覚的にプレビュー（中ボス・大ボスの自動曲切り替え対応）。
    - **💾 拡張設定入り .nes の書き出し**: 編集した設定をそのまま埋め込んだ `.nes` ROM のワンクリック書き出し。
    - **📤 ca65 ASM 出力**: 編集したマップおよびパラメータを `assets/stages.s` 用の ca65 アセンブラソースとして出力し、プロジェクトの標準仕様へ恒久適用可能。
+   - **👾 キャラインポート**: キャラクターエディタで保存した `characters.json` をロードし、タイムライン上に自機・支援機・敵・ボスをリアルタイムアニメーション表示。
    - **↺ 標準配置に戻す**: いつでも実機ROM本来のデフォルト地形にワンクリック復元。
+
+3. **[Web キャラクターエディタ (`docs/character-editor/index.html`)](docs/character-editor/index.html)** ｜ **[📖 キャラクターエディタ説明書](docs/character-editor/manual.html)**
+   - **画像ドラッグ＆ドロップ ＆ NES自動減色**: 一般のPNGイラストから最適なNES3色＋透明を抽出し、8x8タイルへ自動分解。
+   - **スプライト CHR 容量メーター**: 256タイルのハードウェア上限を常時監視し、容量超過を防止。
+   - **8スプライト制限警告**: 水平スキャンライン上のスプライト重なり枚数を解析し、チラつき発生ラインを警告。
+   - **アニメーションタイムライン**: `idle`, `fly`, `attack`, `damage`, `destroy` のステート管理とオニオンスキン描画。
+   - **AABB当たり判定設定**: 食らい判定 (Hurtbox) / 攻撃判定 (Hitbox) をドラッグ＆リサイズで設定（実機コード互換の半幅・半高を出力）。
+   - **ca65 デュアル出力**: `character_data.s` (OAMメタスプライト・判定テーブル) と `character_tiles.s` (CHR-ROM 2bpp ビットマップ) を分離出力。
+   - **`characters.json` 完全連携**: プロジェクトの保存・再編集、およびステージエディタへのキャラクターグラフィック供給。
 
 ## ライセンス
 

@@ -88,6 +88,7 @@
   <span class="sub">自機 KBX-026 SAMURAI / 全4面 ＆ BGM同期プレビュー</span>
   <a class="nav-link" href="manual.html" target="_blank" style="margin-left:auto; background:#1f6feb; border-color:#388bfd; color:#fff;">📖 操作説明書 ↗</a>
   <a class="nav-link" href="../audio-editor/index.html" target="_blank" style="margin-left:8px;">🎵 Web 楽曲エディタ ↗</a>
+  <a class="nav-link" href="../character-editor/index.html" target="_blank" style="margin-left:8px; background:#8957e5; border-color:#8957e5; color:#fff;">👾 キャラエディタ ↗</a>
 </header>
 
 <div id="stagebar">
@@ -96,6 +97,8 @@
   <button class="stage" data-s="2">STAGE 3: 木星 (JUPITER)</button>
   <button class="stage" data-s="3">STAGE 4: 地球付近 (EARTH)</button>
   <span style="flex:1"></span>
+  <button class="btn" id="btn-import-chars" style="background:#5c2a85;" title="キャラクターエディタで作成した characters.json を読み込んで配置キャラをアニメーション表示します">👾 キャラインポート</button>
+  <input type="file" id="inp-import-chars" accept=".json" style="display:none">
   <button class="btn" id="copy">🔗 URLをコピー</button>
   <button class="btn" id="btn-load-nes" title="手元の .nes ファイルをベースとして読み込みます">📂 base.nes を指定</button>
   <input type="file" id="inp-load-nes" accept=".nes" style="display:none">
@@ -213,6 +216,18 @@ let currentBgmZone = 'stage'; // 'stage' | 'midboss' | 'bigboss'
 let previewCol = -1;
 let isPreviewing = false;
 
+// Character Animation Data (Custom or Built-in)
+let customCharacters = null;
+let animGlobalTick = 0;
+
+// Continuous gentle animation loop for stage editor characters
+setInterval(() => {
+  animGlobalTick++;
+  if (!isPreviewing) {
+    draw();
+  }
+}, 100);
+
 const STAGE_NAMES = ['STAGE 1: MOON (月)', 'STAGE 2: MARS (火星)', 'STAGE 3: JUPITER (木星)', 'STAGE 4: EARTH ORBIT (地球付近)'];
 const STAGE_PAL = [
   { dark:'#555b6e', mid:'#a8b2c8', hi:'#ffffff', boss:'#e066ff' }, // Moon
@@ -295,6 +310,80 @@ function saveHash() {
 
 const map = () => maps.subarray(st*COLS, st*COLS+COLS);
 
+function drawCharacterSprite(type, x, y, tick) {
+  // If custom characters were loaded via characters.json, render their actual tiles!
+  if (customCharacters && Array.isArray(customCharacters)) {
+    const char = customCharacters.find(c => {
+      if (type === 'PLAYER') return c.category === 'player' || c.id.includes('PLAYER');
+      if (type === 'CARRIER') return c.category === 'ally' || c.id.includes('CARRIER');
+      if (type === 'MIDBOSS') return c.category === 'boss' && c.id.includes('SCOUT') || c.id.includes('MID');
+      if (type === 'SCOUT') return c.category === 'enemy' || c.id.includes('SCOUT');
+      if (type === 'BOSS') return c.category === 'boss' || c.id.includes('BOSS');
+      return false;
+    });
+
+    if (char && char.animations) {
+      const animFrames = char.animations.idle || char.animations.fly || Object.values(char.animations)[0];
+      if (animFrames && animFrames.length > 0) {
+        const frIdx = Math.floor(tick / 3) % animFrames.length;
+        const fr = animFrames[frIdx];
+        if (fr && fr.sprites && fr.tiles) {
+          fr.sprites.forEach(sp => {
+            const t = fr.tiles[sp.tileIndex];
+            if (!t) return;
+            for (let py = 0; py < 8; py++) {
+              for (let px = 0; px < 8; px++) {
+                const val = t[py * 8 + px];
+                if (val === 0) continue;
+                cx.fillStyle = val === 1 ? '#ffffff' : val === 2 ? '#ff5533' : '#55ffff';
+                cx.fillRect(x + sp.relX + px, y + sp.relY + py, 1, 1);
+              }
+            }
+          });
+          return;
+        }
+      }
+    }
+  }
+
+  // Built-in animated procedural sprites (Smooth pixel motion)
+  const animPhase = (tick % 4);
+  if (type === 'PLAYER') {
+    // KBX-026 Core Fighter
+    cx.fillStyle = '#ffffff'; cx.fillRect(x + 4, y + 2, 8, 12);
+    cx.fillStyle = '#1f6feb'; cx.fillRect(x + 2, y + 6, 12, 6);
+    cx.fillStyle = '#ff3333'; cx.fillRect(x + 6, y, 4, 4);
+    // Animated engine thrust flame
+    const flameH = 4 + (animPhase % 2) * 3;
+    cx.fillStyle = '#ffaa00'; cx.fillRect(x + 6, y + 14, 4, flameH);
+    cx.fillStyle = '#ffff55'; cx.fillRect(x + 7, y + 14, 2, flameH - 2);
+  } else if (type === 'CARRIER') {
+    // Ally Supply Transport Carrier
+    const bob = (animPhase % 2);
+    cx.fillStyle = '#00e5ff'; cx.fillRect(x + 2, y + bob, 20, 10);
+    cx.fillStyle = '#ffffff'; cx.fillRect(x + 6, y + bob + 2, 12, 4);
+    cx.fillStyle = '#ffd700'; cx.fillRect(x + 10, y + bob + 8, 4, 6); // cargo pod
+  } else if (type === 'MIDBOSS') {
+    // Green Zaku-type Midboss
+    const bob = (animPhase % 2);
+    cx.fillStyle = '#238636'; cx.fillRect(x, y + bob, 16, 20);
+    cx.fillStyle = '#2ea043'; cx.fillRect(x + 2, y + bob + 2, 12, 14);
+    cx.fillStyle = '#ff3355'; cx.fillRect(x + 6, y + bob + 5, 4, 3); // monoeye
+  } else if (type === 'SCOUT') {
+    // Scout Enemy
+    const spread = (animPhase % 2);
+    cx.fillStyle = '#ff5533'; cx.fillRect(x + 2 - spread, y, 12 + spread * 2, 8);
+    cx.fillStyle = '#ffffff'; cx.fillRect(x + 4, y + 2, 2, 2); cx.fillRect(x + 10, y + 2, 2, 2);
+  } else if (type === 'BOSS') {
+    // Rival Red MS Big Boss
+    const bob = (animPhase % 2);
+    cx.fillStyle = '#da3633'; cx.fillRect(x, y + bob, 32, 44);
+    cx.fillStyle = '#f85149'; cx.fillRect(x + 4, y + bob + 4, 24, 32);
+    cx.fillStyle = '#ffd700'; cx.fillRect(x + 10, y + bob + 8, 12, 4); // v-antenna
+    cx.fillStyle = '#58a6ff'; cx.fillRect(x + 14, y + bob + 14, 4, 3); // monoeye
+  }
+}
+
 function draw() {
   const m = map();
   const pal = STAGE_PAL[st];
@@ -324,6 +413,7 @@ function draw() {
       cx.fillStyle = '#00e5ff';
       cx.font = '9px monospace';
       cx.fillText('SUPPLY', x - 4, 12);
+      drawCharacterSprite('CARRIER', x - 4, 120, animGlobalTick);
     } else if (c === 32) {
       // 中ボス WARNING
       cx.fillStyle = 'rgba(255, 50, 50, 0.25)';
@@ -331,6 +421,7 @@ function draw() {
       cx.fillStyle = '#ff4444';
       cx.font = 'bold 9px monospace';
       cx.fillText('MIDBOSS', x - 6, 12);
+      drawCharacterSprite('MIDBOSS', x, 116, animGlobalTick);
     } else if (c === 58) {
       // 大ボス直前 再補給
       cx.fillStyle = 'rgba(0, 229, 255, 0.25)';
@@ -338,6 +429,7 @@ function draw() {
       cx.fillStyle = '#00e5ff';
       cx.font = '9px monospace';
       cx.fillText('SUPPLY', x - 4, 12);
+      drawCharacterSprite('CARRIER', x - 4, 120, animGlobalTick);
     } else if (c === 59) {
       // 大ボス WARNING ＆ 決戦エリア (COL 59..63)
       cx.fillStyle = 'rgba(255, 50, 50, 0.25)';
@@ -370,28 +462,18 @@ function draw() {
       cx.fillStyle = '#000';    cx.fillRect(x+5, 122, 6, 10);
     }
 
-    // 敵マーカー描画
+    // 敵マーカー描画 (アニメーション表示)
     if (f === 5 || (c & 1)) {
       const ey = 64 + ((c * 37) % 120);
-      cx.fillStyle = f === 5 ? '#ffdd00' : '#ff5533';
-      cx.fillRect(x+4, ey, 8, 10);
-      cx.fillStyle = '#ffffff';
-      cx.fillRect(x+5, ey+2, 2, 2);
-      cx.fillRect(x+9, ey+2, 2, 2);
+      drawCharacterSprite('SCOUT', x + 2, ey, animGlobalTick + c);
     }
   }
 
-  // 左端: KBX-026 スタート位置
-  cx.fillStyle = '#ffffff'; cx.fillRect(10, 120, 14, 16);
-  cx.fillStyle = '#2266ff'; cx.fillRect(12, 124, 10, 8);
-  cx.fillStyle = '#ff2222'; cx.fillRect(6, 122, 4, 12);
+  // 左端: KBX-026 スタート位置 (アニメーション自機)
+  drawCharacterSprite('PLAYER', 4, 116, animGlobalTick);
 
-  // 右端 (c=61..63): MOJAxMOJA BOSS
-  cx.fillStyle = pal.boss;
-  cx.fillRect(61*CELL, 96, 36, 64);
-  cx.fillStyle = '#ffffff';
-  cx.fillRect(61*CELL+8, 110, 8, 10);
-  cx.fillRect(61*CELL+8, 136, 8, 10);
+  // 右端 (c=61..63): MOJAxMOJA BOSS (アニメーションボス)
+  drawCharacterSprite('BOSS', 60 * CELL, 96, animGlobalTick);
 
   // BGM同期プレビュー スキャンライン & 自機位置
   if (previewCol >= 0 && previewCol < COLS) {
@@ -407,9 +489,8 @@ function draw() {
     cx.stroke();
     cx.lineWidth = 1;
 
-    // 飛行中の自機
-    cx.fillStyle = '#00ffff';
-    cx.fillRect(px + 2, 120, 12, 14);
+    // 飛行中のアニメーション自機
+    drawCharacterSprite('PLAYER', px, 116, animGlobalTick);
   }
 }
 
@@ -834,6 +915,33 @@ document.getElementById('btn-download-asm').addEventListener('click', () => {
 const closeAsmModal = () => document.getElementById('modal-export-asm').classList.remove('open');
 document.getElementById('btn-close-asm').addEventListener('click', closeAsmModal);
 document.getElementById('btn-close-asm-modal').addEventListener('click', closeAsmModal);
+
+// Import characters.json from Character Editor
+const btnImportChars = document.getElementById('btn-import-chars');
+const inpImportChars = document.getElementById('inp-import-chars');
+if (btnImportChars && inpImportChars) {
+  btnImportChars.addEventListener('click', () => inpImportChars.click());
+  inpImportChars.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.characters && Array.isArray(data.characters)) {
+            customCharacters = data.characters;
+            alert(`🎉 characters.json を読み込みました！\n登録キャラ数: ${data.characters.length} 体のアニメーションをステージ上に反映しました。`);
+            draw();
+          } else {
+            alert('無効な characters.json 形式です。');
+          }
+        } catch (err) {
+          alert('JSON パースエラー: ' + err.message);
+        }
+      };
+      reader.readAsText(e.target.files[0]);
+    }
+  });
+}
 </script>
 
 <!-- ASM Export Modal -->

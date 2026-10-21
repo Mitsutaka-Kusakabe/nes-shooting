@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOJAxMOJA WARS - Web キャラクターエディタ取扱説明書</title>
+  <link rel="stylesheet" href="../editor/style.css">
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    .manual-container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .manual-header {
+      border-bottom: 2px solid #30363d;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .manual-header h1 {
+      color: #fff;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .section-card h2 {
+      color: #58a6ff;
+      font-size: 18px;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-card h3 {
+      color: #79c0ff;
+      font-size: 15px;
+      margin: 16px 0 8px 0;
+    }
+    .manual-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+    .manual-table th, .manual-table td {
+      border: 1px solid #30363d;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .manual-table th {
+      background: #21262d;
+      color: #fff;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 11px;
+    }
+    .badge-purple { background: rgba(137,87,229,0.3); border: 1px solid #8957e5; color: #d2a8ff; }
+    .badge-blue { background: rgba(88,166,255,0.2); border: 1px solid #58a6ff; color: #58a6ff; }
+    .badge-red { background: rgba(248,81,73,0.25); border: 1px solid #f85149; color: #f85149; }
+    .badge-green { background: rgba(35,134,54,0.3); border: 1px solid #238636; color: #7ee787; }
+    code {
+      font-family: monospace;
+      background: #21262d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #79c0ff;
+      font-size: 12px;
+    }
+    ul, ol {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="manual-container">
+
+  <!-- ヘッダー -->
+  <div class="manual-header">
+    <div>
+      <h1>👾 Web キャラクターエディタ取扱説明書</h1>
+      <p style="color:#8b949e; font-size:13px; margin-top:4px;">
+        MOJAxMOJA WARS (FC/NES) スプライト・アニメーション・当たり判定オーサリング環境
+      </p>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <a href="index.html" class="btn" style="background:#8957e5; color:#fff; text-decoration:none; padding:8px 16px;">🚀 エディタを開く</a>
+      <a href="../editor/index.html" class="btn" style="color:#fff; text-decoration:none; padding:8px 16px;">🌌 ステージエディタ</a>
+    </div>
+  </div>
+
+  <!-- 1. 概要 -->
+  <div class="section-card">
+    <h2>1. 概要と開発目的</h2>
+    <p>
+      「<strong>Web キャラクターエディタ</strong>」は、ファミリーコンピュータ (NES) の厳格なハードウェア制約（256個のCHRタイル上限、1ライン8スプライト制限、透明1色＋3色のパレット制限）を遵守しながら、自機・敵機・ボスのドット絵グラフィック、アニメーション、当たり判定を直感的に作成・編集・管理できる公式Webオーサリングツールです。
+    </p>
+    <ul>
+      <li><strong>画像ドラッグ＆ドロップ ＆ NES自動減色:</strong> 一般のPNGイラストから最適なNES3色＋透明を抽出し、8x8タイルへ自動分解。</li>
+      <li><strong>CHR容量メーター:</strong> スプライトCHR（最大256タイル）のリアルタイム消費量を監視し、容量超過を防止。</li>
+      <li><strong>8スプライト制限警告:</strong> 水平スキャンライン上に8枚以上のスプライトが重なったチラつき危険ラインを警告表示。</li>
+      <li><strong>AABB当たり判定（Hitbox/Hurtbox）:</strong> キャンバス上で矩形をドラッグ＆リサイズして食らい判定・攻撃判定を設定。</li>
+      <li><strong>デュアルアセンブリ出力:</strong> <code>character_data.s</code> (OAM定義) と <code>character_tiles.s</code> (CHRビットマップ) を分離出力。</li>
+      <li><strong>ステージエディタ連携:</strong> <code>characters.json</code> を通じてステージマップ上にアニメーションを描画可能。</li>
+    </ul>
+  </div>
+
+  <!-- 2. ファミコン実機ハードウェア制約と本ツールの対策 -->
+  <div class="section-card">
+    <h2>2. ファミコン実機の仕様とエディタのサポート機能</h2>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">ハードウェア仕様</th>
+          <th style="width: 35%;">実機制約</th>
+          <th>本エディタの対応機能</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>スプライト CHR 容量</strong></td>
+          <td>スプライト用パターンテーブル（バンク0: <code>$0000-$0FFF</code>）に格納できる 8x8 タイルは <strong>最大256個</strong>。</td>
+          <td>
+            ヘッダーの「<strong>スプライト CHR メーター</strong>」で消費タイル数をリアルタイム表示（75%で黄、超過で赤色警告）。<br>
+            空タイル除去と同一タイルの重複排除によりCHR消費を最小化。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>水平スキャンライン制限</strong></td>
+          <td>水平1ライン上に同時表示できるスプライトは <strong>最大8枚（64px）</strong>。9枚目以降は消滅（チラつき・フリッカー）が発生。</td>
+          <td>
+            キャンバス左端の「<strong>スキャンラインルーラー</strong>」に警告インジケータ（赤帯）を表示し、安全なスプライト幅での作画を支援。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>スプライトパレット</strong></td>
+          <td>1スプライトあたり「<strong>透明1色 ＋ 任意3色</strong>」の全4色のみ使用可能。</td>
+          <td>
+            画像をドロップするとNESマスター54色から最適な3色を自動抽出。<br>
+            パレットIDの切り替えによる「<strong>パレット色違い複製</strong>」にも対応。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>OAMメタスプライト</strong></td>
+          <td>各キャラは複数の 8x8 スプライトを組み合わせて構成（例: 16x16なら4枚）。</td>
+          <td>
+            各フレームを相対X/Y、タイル番号、属性値のテーブルとして ca65 形式で自動フォーマット。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. 画像のインポートと自動分割 -->
+  <div class="section-card">
+    <h2>3. 画像インポートと自動減色・タイル分割</h2>
+    <ol>
+      <li>右パネル上部の「<strong>📥 画像インポート ＆ 自動減色</strong>」エリアに、手元の PNG、GIF、JPEG 等のドット絵画像をドラッグ＆ドロップします。</li>
+      <li>アルゴリズムが自動的に以下を実行します:
+        <ul>
+          <li>画像の透明度（アルファ値）を判別し、背景を透過化。</li>
+          <li>ファミコンのマスターパレット（全54色）から、使用頻度の高い <strong>最適な3色</strong> をユークリッド色差で算出してパレットスロットへ自動設定。</li>
+          <li>画像を 8x8 ピクセルのグリッドに分割。</li>
+          <li><strong>完全に透明な空タイルを除外</strong> するとともに、<strong>全く同じ絵柄のタイルを1つに統合（重複排除）</strong> して登録。</li>
+        </ul>
+      </li>
+      <li>右パネルの「<strong>🧩 重複除外後 CHR タイル</strong>」に、実際にROMへ焼き込まれる最小化されたタイル群が一覧表示されます。</li>
+    </ol>
+
+    <h3>🤖 画像生成AI（1024×1024px や黒背景JPEG）のスマート自動縮小</h3>
+    <p>
+      ChatGPT / DALL-E、Midjourney、Stable Diffusion 等の画像生成AIで生成したドット絵風画像は、ファイル自体が <strong>1024×1024 px（1ドット＝32px）</strong> などの超高解像度かつ <strong>黒背景JPEG</strong> で出力されることが大半です。
+    </p>
+    <ul>
+      <li><strong>自動グリッド検出 ＆ 縮小:</strong> エディタにそのままドロップするだけで、1ドットの刻み幅（32pxブロック等）を自動判定し、中心ピクセルサンプリングで <strong>32×32 や 16×16 などの正規実機サイズへ自動縮小</strong> します。</li>
+      <li><strong>黒背景・単色背景の自動透過:</strong> アルファチャンネルを持たないJPEG画像であっても、四隅の背景色（黒色など）を自動検出し、余分な外枠を透明化してキャラ本体のみを綺麗に抽出します。</li>
+    </ul>
+  </div>
+
+  <!-- 4. アニメーション編集とタイムライン -->
+  <div class="section-card">
+    <h2>4. アニメーション編集とオニオンスキン</h2>
+    <ul>
+      <li><strong>アニメーションステートの切り替え:</strong>
+        左パネルのチップから <code>idle</code>（待機）、<code>fly</code>（移動）、<code>attack</code>（攻撃）、<code>damage</code>（被弾）、<code>destroy</code>（撃破・爆発）を選択して、ステートごとに個別のモーションを作成できます。
+      </li>
+      <li><strong>コマ送りタイムライン:</strong>
+        画面下部のタイムラインで「<strong>＋ コマ追加</strong>」「<strong>🗑 コマ削除</strong>」を実行してモーションを展開します。
+      </li>
+      <li><strong>コマ持続フレーム（1/60秒単位）:</strong>
+        各コマの持続時間をNES実機フレーム数で指定します（例: <code>12f</code> ≒ 約0.2秒、<code>6f</code> ≒ 約0.1秒）。
+      </li>
+      <li><strong>オニオンスキン:</strong>
+        前コマのシルエットがキャンバス上に 30% の半透明で表示され、滑らかなアニメーションの中割り調整が容易に行えます。
+      </li>
+    </ul>
+  </div>
+
+  <!-- 5. 当たり判定（Hitbox / Hurtbox）の設定 -->
+  <div class="section-card">
+    <h2>5. 当たり判定（Hitbox / Hurtbox）の設定</h2>
+    <p>
+      キャンバス上でドラッグ＆リサイズ、または右パネルの数値入力で当たり判定を直接設定できます:
+    </p>
+    <ul>
+      <li><span class="badge badge-blue">🟦 食らい判定 (Hurtbox)</span>: 敵弾や敵機との接触で被弾する有効判定エリア。</li>
+      <li><span class="badge badge-red">🟥 攻撃判定 (Hitbox)</span>: 自機弾・近接サーベル・敵の体当たり等、相手にダメージを与える判定エリア。</li>
+    </ul>
+    <p>
+      ※ ゲーム本体（<code>src/enemy.s</code>, <code>src/player.s</code>）の衝突判定ルーチンと完全互換を保つため、中心座標からの <strong>半径（Half Width / Half Height）</strong> も自動計算されて出力されます。
+    </p>
+  </div>
+
+  <!-- 6. エクスポートと実機ROMへの組み込み -->
+  <div class="section-card">
+    <h2>6. データのエクスポートとプロジェクト適用</h2>
+
+    <h3>💾 characters.json（完全保存＆ステージエディタ連携）</h3>
+    <ul>
+      <li>ヘッダーの「<strong>💾 JSON 保存</strong>」をクリックすると、全キャラクター・全アニメーション・当たり判定・パレット設定を包含した <code>characters.json</code> をダウンロードできます。</li>
+      <li>「<strong>📥 JSON 読込</strong>」からいつでも保存状態を完全に復元できます。</li>
+      <li>ステージエディタ（<code>docs/editor/</code>）に読み込ませることで、ステージ上の敵やボスをアニメーション表示させることができます。</li>
+    </ul>
+
+    <h3>📤 ca65 ASM 出力（ソースコード化＆実機ビルド）</h3>
+    <p>
+      ヘッダーの「<strong>📤 ca65 ASM 出力</strong>」をクリックすると、役割の異なる2つのアセンブリコードが生成されます:
+    </p>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th>タブ・ファイル名</th>
+          <th>出力内容と役割</th>
+          <th>適用先ファイル</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>📄 character_data.s</strong></td>
+          <td>
+            OAMメタスプライト配列（スプライト枚数、相対Y, タイル番号, 属性, 相対X）およびアニメーションフレームテーブル、AABB当たり判定テーブル（Half-W, Half-H）。
+          </td>
+          <td><code>src/</code> 配下のデータファイル</td>
+        </tr>
+        <tr>
+          <td><strong>🧩 character_tiles.s</strong></td>
+          <td>
+            全重複除外タイルをファミコンPPUの 2bpp 形式（16バイト/タイル、Plane 0 + Plane 1）でエンコードした純粋なCHRビットマップ配列。
+          </td>
+          <td><code>assets/chr.s</code> または CHR領域</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- フッター戻るボタン -->
+  <div style="text-align: center; margin-top: 40px;">
+    <a href="index.html" class="btn" style="background:#8957e5; color:#fff; font-size: 16px; padding: 12px 28px; text-decoration:none;">🚀 キャラクターエディタに戻る</a>
+  </div>
+
+</div>
+
+</body>
+</html>
