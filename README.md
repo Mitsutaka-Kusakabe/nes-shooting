@@ -191,8 +191,8 @@ make clean                      # ビルド成果物を削除
 │   └── sound.s           # APU サウンドエンジン (BGM シーケンサ & SFX)
 ├── docs/
 │   ├── SPEC.md               # 内部技術仕様書 (メモリマップ、APU、数式)
-│   ├── editor/               # Web ステージエディタ (地形編集・拡張ROM書き出し・BGM同期プレビュー)
-│   └── audio-editor/         # Web 楽曲エディタ (NES APU ピアノロール・JSON/.s 出力)
+│   ├── editor/               # Web ステージエディタ (index.html / manual.html / editor.js)
+│   └── audio-editor/         # Web 楽曲エディタ (index.html / manual.html / audio-editor.js)
 ├── assets/
 │   ├── chr.s             # CHR-ROM タイルパターンデータ (tools/gen_chr.py により生成)
 │   ├── stages.s          # 全4ステージマップデータ (LVLMAP01 互換)
@@ -213,16 +213,18 @@ make clean                      # ビルド成果物を削除
 
 ブラウザ上で動作する2つの公式Webツールを提供しています。
 
-1. **[Web 楽曲エディタ (`docs/audio-editor/index.html`)](docs/audio-editor/index.html)**
+1. **[Web 楽曲エディタ (`docs/audio-editor/index.html`)](docs/audio-editor/index.html)** ｜ **[📖 楽曲エディタ説明書](docs/audio-editor/manual.html)**
    - ファミコン 2A03 APU (Pulse 1, Pulse 2, Triangle, DMCドラム) のリアルタイム Web Audio 合成エディタ。
    - ピアノロール＆16ステップドラムグリッドによる直感的な作曲。
    - `ca65` アセンブラ用 `.byte` 出力/読込、および `.nesbgm.json` プロジェクト保存対応。
    - 組み込みプリセット（Stage 1, Boss, Title, Game Over）の試聴・編集が可能。
 
-2. **[Web ステージエディタ (`docs/editor/index.html`)](docs/editor/index.html)**
+2. **[Web ステージエディタ (`docs/editor/index.html`)](docs/editor/index.html)** ｜ **[📖 ステージエディタ取扱説明書](docs/editor/manual.html)**
    - 全4面のメタ行地形デザインおよび 3機編隊スポナー間隔、敵弾速度、ボス狂乱突進HP閾値のカスタマイズ。
-   - **BGM同期プレビュー**: `nes-audio-player.js` と連携し、BGMを再生しながら自機がスクロールして敵・イベントの到達タイミングを視覚的にプレビュー。
-   - 編集した設定をそのまま埋め込んだ `.nes` ROM のワンクリック書き出し。
+   - **BGM同期プレビュー**: `nes-audio-player.js` と連携し、BGMを再生しながら自機がスクロールして敵・イベントの到達タイミングを視覚的にプレビュー（中ボス・大ボスの自動曲切り替え対応）。
+   - **💾 拡張設定入り .nes の書き出し**: 編集した設定をそのまま埋め込んだ `.nes` ROM のワンクリック書き出し。
+   - **📤 ca65 ASM 出力**: 編集したマップおよびパラメータを `assets/stages.s` 用の ca65 アセンブラソースとして出力し、プロジェクトの標準仕様へ恒久適用可能。
+   - **↺ 標準配置に戻す**: いつでも実機ROM本来のデフォルト地形にワンクリック復元。
 
 ## ライセンス
 
