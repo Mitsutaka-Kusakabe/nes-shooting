@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOJAxMOJA WARS - ステージエディタ 操作説明書</title>
+<style>
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+  }
+  .manual-container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 30px 24px 80px 24px;
+  }
+  .manual-header {
+    border-bottom: 2px solid #30363d;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .manual-header h1 {
+    margin: 0;
+    font-size: 26px;
+    color: #ffd700;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .manual-header h1 span {
+    font-size: 14px;
+    color: #8b949e;
+    font-weight: normal;
+  }
+  .section-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .section-card h2 {
+    margin-top: 0;
+    color: #58a6ff;
+    font-size: 20px;
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-card h3 {
+    color: #ff9800;
+    font-size: 16px;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+  table.manual-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  table.manual-table th, table.manual-table td {
+    border: 1px solid #30363d;
+    padding: 10px 14px;
+    text-align: left;
+  }
+  table.manual-table th {
+    background: #21262d;
+    color: #79c0ff;
+  }
+  table.manual-table tr:nth-child(even) {
+    background: rgba(255,255,255,0.02);
+  }
+  .kbd {
+    display: inline-block;
+    padding: 2px 7px;
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: #f0f6fc;
+    background-color: #21262d;
+    border: 1px solid #6e7681;
+    border-radius: 4px;
+    box-shadow: inset 0 -1px 0 #6e7681;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
+  .badge-blue { background: rgba(0, 229, 255, 0.25); color: #00e5ff; border: 1px solid #00e5ff; }
+  .badge-red { background: rgba(255, 50, 50, 0.25); color: #ff5555; border: 1px solid #ff4444; }
+  .badge-gold { background: rgba(255, 215, 0, 0.25); color: #ffd700; border: 1px solid #ffd700; }
+  .note-box {
+    background: #0d1117;
+    border-left: 4px solid #58a6ff;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 14px;
+  }
+  .tip-box {
+    background: rgba(76, 175, 80, 0.1);
+    border-left: 4px solid #4caf50;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 14px;
+  }
+  .btn-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1f6feb;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background 0.2s;
+  }
+  .btn-nav:hover {
+    background: #388bfd;
+  }
+  ul, ol {
+    padding-left: 24px;
+  }
+  li {
+    margin-bottom: 6px;
+  }
+  .visual-timeline {
+    display: flex;
+    background: #000;
+    border: 2px solid #30363d;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 16px 0;
+    overflow-x: auto;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    gap: 8px;
+    align-items: center;
+  }
+  .timeline-block {
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 120px;
+  }
+</style>
+</head>
+<body>
+
+<div class="manual-container">
+
+  <div class="manual-header">
+    <div>
+      <h1>🚀 MOJAxMOJA WARS <span>ステージエディタ 操作説明書</span></h1>
+      <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 13px;">
+        全4ステージのマップ地形・敵編隊・拡張難易度パラメータを実機ROMへ反映する総合ガイド
+      </p>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="../audio-editor/index.html" target="_blank" class="btn-nav" style="background:#8957e5;">🎵 楽曲エディタ</a>
+      <a href="index.html" class="btn-nav">🚀 ステージエディタに戻る</a>
+    </div>
+  </div>
+
+  <!-- 1. 概要 -->
+  <div class="section-card">
+    <h2>1. ステージエディタとは？</h2>
+    <p>
+      このエディタは、ファミコン用シューティングゲーム『MOJAxMOJA WARS』の全4面（月・火星・木星・地球付近）の
+      <strong>背景地形・敵出現パターン・味方支援機補給・中ボス・大ボス</strong>、および
+      <strong>実機ROM用動作パラメータ（敵弾速度、編隊出現頻度、ボス狂乱HP閾値など）</strong> をWeb上で自由にデザインし、
+      ファミコン実機やエミュレータで即座に遊べる <code>.nes</code> ROMファイルを書き出すことができる開発ツールです。
+    </p>
+    <div class="tip-box">
+      <strong>✨ 本エディタの主な機能:</strong>
+      <ul>
+        <li><strong>タイムライン型マップ編集:</strong> ゲーム全体の進行（全64列 = 約2分34秒）をパノラマ状に俯瞰して編集可能</li>
+        <li><strong>実機速度完全同期 BGM プレビュー:</strong> 実機と全く同じ速度（1列 = 2.4秒）でカーソルが進行し、中ボス（COL 32）や大ボス（COL 59〜63）でボスBGMへ自動切替</li>
+        <li><strong>実機拡張パラメータ設定:</strong> 敵弾の速さやボスの近接突進タイミングをスライダー/プルダウンで微調整</li>
+        <li><strong>ワンクリック ROM 書き出し:</strong> 編集内容が埋め込まれた <code>mojaxmoja-wars-custom.nes</code> をその場で生成・ダウンロード</li>
+        <li><strong>URLハッシュ保存:</strong> 編集データがURLに自動保存されるため、URLをブックマーク・共有するだけで誰でも同じ配置を再現可能</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2. 画面とタイムラインの見方 -->
+  <div class="section-card">
+    <h2>2. キャンバス（タイムライン）の見方</h2>
+    <p>
+      ファミコン実機では「下から上へスクロール」する縦型シューティングですが、
+      本エディタではステージ開始から大ボス到達までの時間の流れを直感的に把握できるよう、
+      <strong>「左端（スタート）から右端（大ボス）へと流れる横長のタイムライン（全64列）」</strong> として展開されています。
+    </p>
+
+    <div class="visual-timeline">
+      <div class="timeline-block" style="background:#1c2433; border:1px solid #3a6ea5;">
+        <strong>COL 00〜26</strong><br>
+        道中前半<br>
+        <span style="color:#8b949e;">LUNAR CATACOMB</span>
+      </div>
+      <div style="color:#58a6ff;">➔</div>
+      <div class="timeline-block" style="background:rgba(0,229,255,0.15); border:1px solid #00e5ff; color:#00e5ff;">
+        <strong>COL 27 (青帯)</strong><br>
+        SUPPLY<br>
+        <span>脚部パーツ支援機</span>
+      </div>
+      <div style="color:#58a6ff;">➔</div>
+      <div class="timeline-block" style="background:rgba(255,50,50,0.2); border:1px solid #ff4444; color:#ff5555;">
+        <strong>COL 32 (赤帯)</strong><br>
+        MIDBOSS<br>
+        <span>中ボス交戦 (約10秒)</span>
+      </div>
+      <div style="color:#58a6ff;">➔</div>
+      <div class="timeline-block" style="background:#1c2433; border:1px solid #3a6ea5;">
+        <strong>COL 33〜57</strong><br>
+        道中後半<br>
+        <span style="color:#8b949e;">撃破後スクロール再開</span>
+      </div>
+      <div style="color:#58a6ff;">➔</div>
+      <div class="timeline-block" style="background:rgba(0,229,255,0.15); border:1px solid #00e5ff; color:#00e5ff;">
+        <strong>COL 58 (青帯)</strong><br>
+        SUPPLY<br>
+        <span>決戦前 最終再補給</span>
+      </div>
+      <div style="color:#58a6ff;">➔</div>
+      <div class="timeline-block" style="background:rgba(255,50,50,0.3); border:1px solid #ff3355; color:#ff3355;">
+        <strong>COL 59〜63</strong><br>
+        WARNING: BOSS<br>
+        <span>大ボス出現 ＆ 決戦</span>
+      </div>
+    </div>
+
+    <h3>📏 実機タイムラインの仕様</h3>
+    <ul>
+      <li><strong>1列（メタ行）＝ 18タイル行 ＝ 144px ＝ 144フレーム（約2.4秒）</strong></li>
+      <li><strong>全64列 ＝ 9,216フレーム ＝ 約153.6秒（2分33.6秒）</strong></li>
+      <li>ゲーム中、自機が縦スクロールを進むと、1列（2.4秒）ごとに新しい地形や敵編隊が画面上端から生成されます。</li>
+    </ul>
+
+    <h3>🏷️ 特殊イベント列のカラーガイド</h3>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th style="width: 22%;">列番号</th>
+          <th style="width: 22%;">表示</th>
+          <th>実機ゲーム内での動作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>COL 00</strong></td>
+          <td>左端（自機アイコン）</td>
+          <td>ステージ開始地点。コアファイター出撃！</td>
+        </tr>
+        <tr>
+          <td><strong>COL 27</strong></td>
+          <td><span class="badge badge-blue">SUPPLY (青帯)</span></td>
+          <td><strong>脚部パーツ運搬支援機</strong> が飛来！ドッキングして下半身を合体強化できます。</td>
+        </tr>
+        <tr>
+          <td><strong>COL 32</strong></td>
+          <td><span class="badge badge-red">MIDBOSS (赤帯)</span></td>
+          <td>
+            <strong>量産型ロボット中ボス（MOJA-01〜04）</strong> が出現！<br>
+            スクロールが一時停止し、ボスBGM（180 BPM）で交戦モード突入。撃破するとホワイトアウトして COL 33 から道中後半へ復帰します。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>COL 58</strong></td>
+          <td><span class="badge badge-blue">SUPPLY (青帯)</span></td>
+          <td><strong>大ボス直前 再補給支援機</strong> が飛来！被弾してコアファイターに戻っていても、ここで再び合体完全体になれます。</td>
+        </tr>
+        <tr>
+          <td><strong>COL 59〜63</strong></td>
+          <td><span class="badge badge-red">WARNING: BOSS</span></td>
+          <td>
+            赤帯警告とともにボスBGMへ切替！<br>
+            右端（COL 61〜63）に鎮座する <strong>大ボス（宿敵・赤いMS）</strong> が滑り込み出現し、最終決戦へ突入します。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. マップ編集の手順 -->
+  <div class="section-card">
+    <h2>3. ステージマップの編集方法</h2>
+
+    <h3>🎨 地形ブラシの種類と特徴</h3>
+    <p>画面上部のツールバーからブラシ（0〜5）を選び、キャンバス上の列をクリックまたはドラッグすると、その列の地形フィーチャーを変更できます:</p>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">ブラシ</th>
+          <th style="width: 25%;">地形名称</th>
+          <th>グラフィックとゲーム性への影響</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>0: 星空</strong></td>
+          <td>🌌 宇宙空間 (星空のみ)</td>
+          <td>地形障害物がなく、広々と動き回れる星空エリア。偵察モジャが出現。</td>
+        </tr>
+        <tr>
+          <td><strong>1: クレーター</strong></td>
+          <td>⚪ 月面クレーター / 岩石</td>
+          <td>画面左右に丸いクレーター地形を配置（単発オブジェクト）。</td>
+        </tr>
+        <tr>
+          <td><strong>2: 小惑星帯</strong></td>
+          <td>🪨 浮遊小惑星帯 (岩礁)</td>
+          <td>左右両サイドから大きくせり出す岩礁地形。中央の飛行可能エリアが狭まります。</td>
+        </tr>
+        <tr>
+          <td><strong>3: ガス雲</strong></td>
+          <td>☁ 木星ガス雲 / 星雲帯</td>
+          <td>幻想的なガス雲が左右にたなびくエリア。</td>
+        </tr>
+        <tr>
+          <td><strong>4: 要塞壁</strong></td>
+          <td>🏰 モジャ宇宙要塞壁</td>
+          <td>左右が強固な要塞壁で塞がれた狭小通路！敵編隊との激戦エリアに適しています。</td>
+        </tr>
+        <tr>
+          <td><strong>5: 軌道リング</strong></td>
+          <td>💫 軌道リング・防衛線</td>
+          <td>画面を横断する破線状のリング状防衛ライン。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>👾 敵編隊の出現パターンの仕組み</h3>
+    <p>
+      実機 ROM では、各列の <strong>地形フィーチャー番号（下位2ビット: <code>feature & 3</code>）</strong> が、
+      その列でスポーンする敵の飛行パターンと連動しています:
+    </p>
+    <ul>
+      <li><code>feature % 4 == 0</code>: <strong>V字編隊降下</strong>（標準的な敵編隊）</li>
+      <li><code>feature % 4 == 1</code>: <strong>サイン波スヌープ降下</strong>（波打ちながら接近）</li>
+      <li><code>feature % 4 == 2</code>: <strong>縦一列強襲</strong>（真っ直ぐ突撃）</li>
+      <li><code>feature % 4 == 3</code>: <strong>左右挟み撃ち強襲</strong></li>
+    </ul>
+    <div class="note-box">
+      キャンバス上の赤や黄色の四角いドットは、その列で出現する敵の目安位置を示しています。
+    </div>
+  </div>
+
+  <!-- 4. 全4ステージの切り替え -->
+  <div class="section-card">
+    <h2>4. 全4ステージの切り替え</h2>
+    <p>ステージバーのボタンを押すと、エディタで編集するステージを即座に切り替えることができます:</p>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">ステージ</th>
+          <th>テーマと配色</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>STAGE 1: 月 (MOON)</strong></td>
+          <td>暗灰・シルバー・白星（ボス: 紫）。クレーター主体の宇宙ステーション近傍。</td>
+        </tr>
+        <tr>
+          <td><strong>STAGE 2: 火星 (MARS)</strong></td>
+          <td>濃赤・オレンジ・朱色星（ボス: 深紅）。火星重力圏と激しい小惑星帯。</td>
+        </tr>
+        <tr>
+          <td><strong>STAGE 3: 木星 (JUPITER)</strong></td>
+          <td>黄土・深緑・緑星（ボス: 蛍光緑）。巨大ガス惑星の大赤斑近傍。</td>
+        </tr>
+        <tr>
+          <td><strong>STAGE 4: 地球付近 (EARTH)</strong></td>
+          <td>深青・シアン・青白星（ボス: マゼンタ）。地球周回軌道の最終要塞。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. 実機拡張パラメータ -->
+  <div class="section-card">
+    <h2>5. 実機拡張パラメータの調整（難易度カスタマイズ）</h2>
+    <p>
+      画面中央の <strong>拡張設定バー</strong> では、ROM内に埋め込まれるゲームバランス（難易度パラメータ）を各ステージごとに独立して調整できます:
+    </p>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th style="width: 30%;">パラメータ項目</th>
+          <th>選択肢とゲーム性への影響</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>3機編隊スポナー間隔</strong></td>
+          <td>
+            <code>6f (超ラッシュ)</code> 〜 <code>16f (ゆったり)</code><br>
+            敵編隊が画面外から出現する頻度です。値を小さくするほど敵が次から次へと絶え間なく押し寄せる激戦になります（標準: 12f）。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>敵弾速度</strong></td>
+          <td>
+            <code>1 px/f (通常・迎撃容易)</code><br>
+            <code>2 px/f (高速弾)</code><br>
+            <code>3 px/f (激速スナイプ弾)</code><br>
+            敵雑魚機・中ボスが撃ってくる弾のスピードです。3 px/f にすると超高速で狙い撃たれるため難易度が跳ね上がります。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>ボス狂乱近接突進</strong></td>
+          <td>
+            <code>HP 20%</code> / <code>HP 25%</code> / <code>HP 33%</code> / <code>HP 40% 以下</code><br>
+            大ボス（宿敵・赤いMS）がビームサーベルを抜刀し、自機に向かって超高速で近接斬撃を仕掛けてくる残りHPの閾値です。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>ボス画面端待機・撤退</strong></td>
+          <td>
+            <code>15f (0.25秒・即反撃)</code> 〜 <code>60f (1.0秒・じっくり)</code><br>
+            ボスが画面端に後退したあと、次の攻撃へ移るまでのインターバル時間です。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 6. BGM 同期プレビュー -->
+  <div class="section-card">
+    <h2>6. BGM 同期プレビュー</h2>
+    <p>
+      「<strong>▶ BGM同期プレビュー</strong>」ボタンを押すと、BGMを鳴らしながら自機のスキャンラインが実機と同じ速度（2.4秒/列）で進行します。
+    </p>
+    <ul>
+      <li><strong>🎮 実機連動モード:</strong>
+        <ul>
+          <li>通常道中（COL 00〜26、COL 33〜57）は道中曲（STAGE 1）を再生。</li>
+          <li><strong>COL 32（中ボス戦）</strong> 到達で自動的にボスBGM（180 BPM）に切り替わり、約10秒の交戦カウントダウン後、自動で撃破して道中後半へ復帰。</li>
+          <li><strong>COL 59（大ボス決戦）</strong> 到達で再び大迫力のボスBGMへ切り替わり、決戦プレビューへ突入。</li>
+        </ul>
+      </li>
+      <li><strong>キャンバスクリックによるシーク:</strong>
+        キャンバス上の任意の列（例えば中ボスの COL 32 や大ボスの COL 59）をクリックすると、その地点へ自機位置とBGMが瞬時に同期シークします。
+      </li>
+    </ul>
+  </div>
+
+  <!-- 7. 保存・共有・ROM書き出し -->
+  <div class="section-card">
+    <h2>7. 保存・共有・ROM書き出し</h2>
+
+    <h3>💾 拡張設定入り .nes を書き出す（ROM生成）</h3>
+    <ol>
+      <li>ステージバーの <strong>「💾 拡張設定入り .nes を書き出す」</strong> をクリックします。</li>
+      <li>編集した全4ステージのマップデータと拡張パラメータが直接埋め込まれた <code>mojaxmoja-wars-custom.nes</code> がダウンロードされます。</li>
+      <li>FCEUX、Mesen、RetroArch 等のファミコンエミュレータにドラッグ＆ドロップするか、実機カセットに書き込むことで、<strong>あなたが作ったステージと難易度で今すぐ遊べます！</strong></li>
+    </ol>
+
+    <h3>📤 ca65 ASM 出力（ソースコード化 ＆ オリジナルへの恒久適用）</h3>
+    <p>
+      「自分が作ったステージをプロジェクトの標準仕様として永久保存したい」「Gitで管理して正規のゲームROMとしてビルドしたい」という場合は、ヘッダーの <strong>「📤 ca65 ASM 出力」</strong> を使用します:
+    </p>
+    <ol>
+      <li>画面右上の <strong>「📤 ca65 ASM 出力」</strong> ボタンをクリックします。</li>
+      <li>専用ダイアログが開き、ca65アセンブラ完全互換形式（<code>LVLMAP01</code> マジックヘッダ、全4ステージ×64列のマップ配列、拡張パラメータ）のアセンブリソースコードが自動生成されます。</li>
+      <li>ダイアログ内のボタンから適用します:
+        <ul>
+          <li><strong>📋 クリップボードにコピー:</strong> コード全体をコピーして、プロジェクト内の <code>assets/stages.s</code> を開いて丸ごと上書き貼り付けします。</li>
+          <li><strong>💾 stages.s ファイル保存:</strong> <code>stages.s</code> を直接ダウンロードし、プロジェクトの <code>assets/stages.s</code> に上書き配置します。</li>
+        </ul>
+      </li>
+      <li>プロジェクトルートで <code>ninja</code> またはビルドコマンドを実行すると、新しくビルドされる <code>famicon-shooting.nes</code> の標準マップがあなたの作ったステージに永久適用されます！</li>
+    </ol>
+
+    <h3>🔗 URLをコピー（Web共有・バックアップ）</h3>
+    <ul>
+      <li>マップを編集すると、ブラウザの URL ハッシュ（<code>#...</code>）に全データが自動的に英数字としてエンコードされます。</li>
+      <li>「<strong>🔗 URLをコピー</strong>」を押すと共有用URLがクリップボードにコピーされます。このURLをブックマークしたり友人に送るだけで、いつでも全く同じ配置を再現できます。</li>
+    </ul>
+
+    <h3>📂 base.nes を指定（手元ROMの読み込み）</h3>
+    <ul>
+      <li>手元で新しくビルドした <code>game.nes</code> や別バージョンのROMをベースにしたい場合は、このボタンから直接 <code>.nes</code> を読み込んでマップを再抽出できます。</li>
+    </ul>
+
+    <h3>↺ 標準配置に戻す ＆ 🗑 宇宙空間に初期化</h3>
+    <ul>
+      <li><strong>↺ 標準配置に戻す:</strong> 現在選択中のステージを、ファミコン実機ROM本来の標準マップ配置（クレーター・岩礁・要塞壁などが配置されたデフォルト状態）へいつでも復元できます。</li>
+      <li><strong>🗑 宇宙空間に初期化:</strong> 現在選択中のステージの全列を 0（何もない星空）にクリアし、ゼロから自由に作戦地形を敷設したいときに使用します。</li>
+    </ul>
+  </div>
+
+  <!-- フッター戻るボタン -->
+  <div style="text-align: center; margin-top: 40px;">
+    <a href="index.html" class="btn-nav" style="font-size: 16px; padding: 12px 28px;">🚀 ステージエディタに戻って編集する</a>
+  </div>
+
+</div>
+
+</body>
+</html>

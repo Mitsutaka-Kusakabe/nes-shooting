@@ -361,7 +361,7 @@
     // =========================================================================
     playSong(songData, startOrderIdx = 0, startStep = 0) {
       this.initAudio();
-      this.stop();
+      this.stop(false);
 
       this.currentSong = songData;
       this.orderIdx = startOrderIdx;
@@ -392,15 +392,16 @@
       this.timerId = setInterval(() => this._scheduler(), this.lookaheadMs);
     }
 
-    stop() {
+    stop(triggerCallback = true) {
       if (this.timerId) {
         clearInterval(this.timerId);
         this.timerId = null;
       }
+      if (!this.isPlaying && !this.isPaused) return;
       this.isPlaying = false;
       this.isPaused = false;
       this._cutAllAudio();
-      if (this.onStop) this.onStop();
+      if (triggerCallback && this.onStop) this.onStop();
     }
 
     seek(orderIdx, barStep = 0) {

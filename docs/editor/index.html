@@ -53,6 +53,32 @@
   #status { padding:4px 16px 8px; font-size:12px; color:#9ab; font-family:ui-monospace, monospace; word-break:break-all; }
   .note { padding:4px 16px 16px; font-size:12px; color:#9ab; line-height:1.5; }
   a { color:#7fc4ff; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    display: none; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: #161b26; border: 2px solid var(--border); border-radius: 8px;
+    width: 90%; max-width: 720px; max-height: 85vh; display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+  }
+  .modal-hdr {
+    padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex;
+    justify-content: space-between; align-items: center; font-weight: bold; color: #ffd700; font-size: 14px;
+  }
+  .modal-bdy { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; overflow: hidden; }
+  .modal-bdy textarea {
+    width: 100%; height: 340px; background: #0a0d14; border: 1px solid var(--border);
+    color: #a8d1ff; font-family: ui-monospace, monospace; font-size: 11px; padding: 10px;
+    border-radius: 4px; resize: none; white-space: pre; line-height: 1.4;
+  }
+  .modal-ftr {
+    padding: 12px 16px; border-top: 1px solid var(--border); display: flex;
+    justify-content: flex-end; gap: 8px;
+  }
 </style>
 </head>
 <body>
@@ -60,7 +86,8 @@
 <header>
   <h1>🚀 MOJAxMOJA WARS ステージエディタ</h1>
   <span class="sub">自機 KBX-026 SAMURAI / 全4面 ＆ BGM同期プレビュー</span>
-  <a class="nav-link" href="../audio-editor/index.html" target="_blank">🎵 Web 楽曲エディタを開く ↗</a>
+  <a class="nav-link" href="manual.html" target="_blank" style="margin-left:auto; background:#1f6feb; border-color:#388bfd; color:#fff;">📖 操作説明書 ↗</a>
+  <a class="nav-link" href="../audio-editor/index.html" target="_blank" style="margin-left:8px;">🎵 Web 楽曲エディタ ↗</a>
 </header>
 
 <div id="stagebar">
@@ -70,8 +97,12 @@
   <button class="stage" data-s="3">STAGE 4: 地球付近 (EARTH)</button>
   <span style="flex:1"></span>
   <button class="btn" id="copy">🔗 URLをコピー</button>
+  <button class="btn" id="btn-load-nes" title="手元の .nes ファイルをベースとして読み込みます">📂 base.nes を指定</button>
+  <input type="file" id="inp-load-nes" accept=".nes" style="display:none">
+  <button class="btn" id="btn-export-asm" style="background:#8957e5;" title="assets/stages.s 用の ca65 アセンブラソースを出力します">📤 ca65 ASM 出力</button>
   <button class="btn green" id="rom">💾 拡張設定入り .nes を書き出す</button>
   <button class="btn" id="clear">🗑 宇宙空間に初期化</button>
+  <button class="btn" id="reset-default" style="background:#2a3b5c;" title="現在のステージをファミコンROM本来の標準配置に戻します">↺ 標準配置に戻す</button>
 </div>
 
 <div id="toolbar">
@@ -130,9 +161,10 @@
   <div style="display:flex; align-items:center; gap:6px;">
     <label for="bgm-track-sel">BGM:</label>
     <select id="bgm-track-sel">
-      <option value="stage1">STAGE 1: LUNAR CATACOMB DRIVE (150 BPM)</option>
-      <option value="boss">BOSS: CRIMSON BATTLE GROUND (180 BPM)</option>
-      <option value="title">TITLE: SPACE MERCHANT (130 BPM)</option>
+      <option value="auto" selected>🎮 実機連動 (道中 ⇄ 中ボス ⇄ 大ボス自動切替)</option>
+      <option value="stage1">STAGE 1: LUNAR CATACOMB DRIVE (固定)</option>
+      <option value="boss">BOSS: CRIMSON BATTLE GROUND (固定)</option>
+      <option value="title">TITLE: SPACE MERCHANT (固定)</option>
       <option value="custom">📂 外部 .nesbgm.json を読み込む...</option>
     </select>
     <input type="file" id="bgm-file-inp" accept=".json,.nesbgm.json" style="display:none">
@@ -153,6 +185,7 @@
   ・書き出した <code>.nes</code> は「3機編隊スポナー間隔」「敵弾速度」「ボス狂乱突進HP閾値」などの拡張設定が埋め込まれ、ファミコン実機やエミュレータで即座に反映されます。
 </div>
 
+<script src="base-nes-data.js"></script>
 <script src="nes-audio-player.js"></script>
 <script>
 'use strict';
@@ -176,6 +209,7 @@ let levelParams = new Uint8Array([
 // Audio Player & Sequencer
 const player = new NesAudioPlayer();
 let activeBgmSong = NesAudioPlayer.PRESETS.stage1;
+let currentBgmZone = 'stage'; // 'stage' | 'midboss' | 'bigboss'
 let previewCol = -1;
 let isPreviewing = false;
 
@@ -189,22 +223,43 @@ const STAGE_PAL = [
 
 async function loadBase() {
   try {
-    romBuf = new Uint8Array(await (await fetch('base.nes')).arrayBuffer());
-    const magic = [...'LVLMAP01'].map(c => c.charCodeAt(0));
-    outer: for (let i = 0; i < romBuf.length - 8; i++) {
-      for (let j = 0; j < 8; j++) if (romBuf[i+j] !== magic[j]) continue outer;
-      romOff = i + 8; break;
-    }
-    if (romOff < 0) throw new Error('LVLMAP01 マーカーが見つかりません');
-    defaults = romBuf.slice(romOff, romOff + COLS * STAGES);
-
-    // Read 16 bytes level params if available
-    if (romBuf.length >= romOff + COLS * STAGES + 16) {
-      levelParams.set(romBuf.slice(romOff + COLS * STAGES, romOff + COLS * STAGES + 16));
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      romBuf = new Uint8Array(await (await fetch('base.nes')).arrayBuffer());
+    } else {
+      throw new Error('file:// プロトコルのため内蔵 ROM フォールバックを使用します');
     }
   } catch (e) {
+    if (window.BASE_NES_BASE64) {
+      const binStr = atob(window.BASE_NES_BASE64);
+      romBuf = new Uint8Array(binStr.length);
+      for (let i = 0; i < binStr.length; i++) romBuf[i] = binStr.charCodeAt(i);
+    } else {
+      defaults = new Uint8Array(COLS * STAGES);
+      statusEl.textContent = 'base.nes を読めませんでした: ' + e;
+      return;
+    }
+  }
+  parseRom();
+}
+
+function parseRom() {
+  if (!romBuf) return;
+  const magic = [...'LVLMAP01'].map(c => c.charCodeAt(0));
+  outer: for (let i = 0; i < romBuf.length - 8; i++) {
+    for (let j = 0; j < 8; j++) if (romBuf[i+j] !== magic[j]) continue outer;
+    romOff = i + 8; break;
+  }
+  if (romOff < 0) {
     defaults = new Uint8Array(COLS * STAGES);
-    statusEl.textContent = 'base.nes を読めませんでした: ' + e;
+    statusEl.textContent = 'LVLMAP01 マーカーが見つかりません';
+    return;
+  }
+  defaults = romBuf.slice(romOff, romOff + COLS * STAGES);
+  statusEl.textContent = 'base.nes 読み込み完了 (オフセット 0x' + romOff.toString(16) + ')';
+
+  // Read 16 bytes level params if available
+  if (romBuf.length >= romOff + COLS * STAGES + 16) {
+    levelParams.set(romBuf.slice(romOff + COLS * STAGES, romOff + COLS * STAGES + 16));
   }
 }
 
@@ -283,6 +338,13 @@ function draw() {
       cx.fillStyle = '#00e5ff';
       cx.font = '9px monospace';
       cx.fillText('SUPPLY', x - 4, 12);
+    } else if (c === 59) {
+      // 大ボス WARNING ＆ 決戦エリア (COL 59..63)
+      cx.fillStyle = 'rgba(255, 50, 50, 0.25)';
+      cx.fillRect(x, 0, CELL * 5, 256);
+      cx.fillStyle = '#ff4444';
+      cx.font = 'bold 9px monospace';
+      cx.fillText('WARNING: BOSS', x - 4, 12);
     }
 
     if (f === 1) {
@@ -392,6 +454,13 @@ document.getElementById('clear').onclick = () => {
   saveHash();
   draw();
 };
+document.getElementById('reset-default').onclick = () => {
+  if (confirm(`STAGE ${st + 1} のマップ配置を、ファミコン実機ROMの標準配置に戻しますか？`)) {
+    maps.set(defaults.subarray(st * COLS, st * COLS + COLS), st * COLS);
+    saveHash();
+    draw();
+  }
+};
 document.getElementById('copy').onclick = async () => {
   await navigator.clipboard.writeText(location.href);
   statusEl.textContent = '✅ URLをクリップボードにコピーしました！';
@@ -424,6 +493,12 @@ bgmTrackSel.addEventListener('change', (e) => {
   const v = e.target.value;
   if (v === 'custom') {
     document.getElementById('bgm-file-inp').click();
+  } else if (v === 'auto') {
+    currentBgmZone = (previewCol === 32 || previewCol >= 59) ? ((previewCol === 32) ? 'midboss' : 'bigboss') : 'stage';
+    activeBgmSong = (currentBgmZone === 'stage') ? NesAudioPlayer.PRESETS.stage1 : NesAudioPlayer.PRESETS.boss;
+    if (isPreviewing) {
+      player.playSong(activeBgmSong, 0, 0);
+    }
   } else if (NesAudioPlayer.PRESETS[v]) {
     activeBgmSong = NesAudioPlayer.PRESETS[v];
     if (isPreviewing) {
@@ -461,6 +536,10 @@ document.getElementById('bgm-play').addEventListener('click', () => {
   } else {
     isPreviewing = true;
     previewCol = 0;
+    previewElapsedFrames = 0;
+    const isAuto = bgmTrackSel.value === 'auto';
+    currentBgmZone = 'stage';
+    activeBgmSong = isAuto ? NesAudioPlayer.PRESETS.stage1 : (NesAudioPlayer.PRESETS[bgmTrackSel.value] || activeBgmSong);
     player.playSong(activeBgmSong, 0, 0);
     document.getElementById('bgm-play').textContent = '⏸ 一時停止';
   }
@@ -471,38 +550,198 @@ document.getElementById('bgm-stop').addEventListener('click', () => {
 });
 
 function stopPreview() {
-  player.stop();
+  if (!isPreviewing && previewCol === -1) return;
   isPreviewing = false;
   previewCol = -1;
+  previewElapsedFrames = 0;
+  midbossFightSteps = 0;
+  currentBgmZone = 'stage';
+  player.stop();
   document.getElementById('bgm-play').textContent = '▶ BGM同期プレビュー';
   bgmPosEl.textContent = 'COL 00 / 64 (0%)';
   draw();
 }
 
-player.onStep = (orderIdx, step, totalStep) => {
-  if (!isPreviewing) return;
-  // 64メタ行を BGM の小節進行にマップ
-  // 1小節あたり約 2.5 メタ行進行 (全26小節でちょうど64メタ行＝大ボス到達！)
-  const totalBars = (activeBgmSong.order && activeBgmSong.order.length) || 26;
-  const progressRatio = (orderIdx * 16 + step) / (totalBars * 16);
-  previewCol = Math.min(63, Math.floor(progressRatio * 64));
-
-  bgmPosEl.textContent = `COL ${String(previewCol).padStart(2, '0')} / 64 (${Math.round(progressRatio * 100)}%) | BAR ${orderIdx + 1}:${step + 1}`;
-  draw();
+player.onStop = () => {
+  stopPreview();
 };
 
-player.onStop = () => {
-  if (isPreviewing) stopPreview();
+document.getElementById('btn-load-nes').addEventListener('click', () => {
+  document.getElementById('inp-load-nes').click();
+});
+document.getElementById('inp-load-nes').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    romBuf = new Uint8Array(evt.target.result);
+    parseRom();
+    loadHash();
+    syncParamUI();
+    draw();
+    alert(`ROM "${f.name}" を読み込みました！`);
+  };
+  reader.readAsArrayBuffer(f);
+});
+
+// 経過フレーム数のトラッキング用 (テンポが異なる曲間で位置がズレないよう直接フレームで累積)
+let previewElapsedFrames = 0;
+let midbossFightSteps = 0;
+const MIDBOSS_MAX_STEPS = 128; // 8小節 = 約10.6秒 (中ボスHP30交戦想定時間)
+
+player.onStep = (orderIdx, step, totalStep) => {
+  if (!isPreviewing) return;
+
+  const isAuto = bgmTrackSel.value === 'auto';
+  const framesPerMetaRow = 144;
+
+  // 1. 中ボス交戦中モードの処理 (COL 32: MIDBOSS)
+  if (isAuto && currentBgmZone === 'midboss') {
+    midbossFightSteps++;
+    previewCol = 32;
+
+    const hp = Math.max(0, Math.round(30 * (1 - midbossFightSteps / MIDBOSS_MAX_STEPS)));
+    const remainSec = Math.max(0, Math.ceil((MIDBOSS_MAX_STEPS - midbossFightSteps) * 5 / 60));
+    bgmPosEl.innerHTML = `COL 32 / 64 (50%) | <span style="color:#ff3355; font-weight:bold;">⚔️ 【中ボス交戦中】 HP: ${hp}/30 | BOSS BGM (残り ${remainSec}秒)</span>`;
+    draw();
+
+    if (midbossFightSteps >= MIDBOSS_MAX_STEPS) {
+      // 中ボス撃破！道中後半へシームレス復帰 (COL 33)
+      midbossFightSteps = 0;
+      currentBgmZone = 'stage';
+      previewCol = 33;
+      previewElapsedFrames = 33 * framesPerMetaRow; // COL 33 開始フレーム
+      activeBgmSong = NesAudioPlayer.PRESETS.stage1;
+
+      // 道中BGMを COL 33 の小節・ステップへマップして再開
+      const stageSteps = Math.floor(previewElapsedFrames / (activeBgmSong.tempoFrames || 6));
+      const order = activeBgmSong.order || [];
+      const loopIdx = activeBgmSong.loopOrderIndex || 0;
+      const introSteps = loopIdx * 16;
+      const loopSteps = Math.max(16, (order.length - loopIdx) * 16);
+      let targetOrder = 0, targetStep = 0;
+      if (stageSteps < introSteps) {
+        targetOrder = Math.floor(stageSteps / 16);
+        targetStep = stageSteps % 16;
+      } else {
+        const loopOffset = (stageSteps - introSteps) % loopSteps;
+        targetOrder = loopIdx + Math.floor(loopOffset / 16);
+        targetStep = loopOffset % 16;
+      }
+      player.playSong(activeBgmSong, targetOrder, targetStep);
+    }
+    return;
+  }
+
+  // 2. 通常の道中または大ボス進行 (1ステップごとにその曲のテンポフレームを加算)
+  const tempoFrames = (activeBgmSong && activeBgmSong.tempoFrames) || 6;
+  previewElapsedFrames += tempoFrames;
+  const newCol = Math.min(63, Math.floor(previewElapsedFrames / framesPerMetaRow));
+  const colChanged = (newCol !== previewCol);
+  previewCol = newCol;
+
+  if (isAuto && colChanged) {
+    if (previewCol === 32 && currentBgmZone !== 'midboss') {
+      currentBgmZone = 'midboss';
+      midbossFightSteps = 0;
+      activeBgmSong = NesAudioPlayer.PRESETS.boss;
+      player.playSong(activeBgmSong, 0, 0);
+      draw();
+      return;
+    } else if (previewCol >= 59 && currentBgmZone !== 'bigboss') {
+      currentBgmZone = 'bigboss';
+      activeBgmSong = NesAudioPlayer.PRESETS.boss;
+      player.playSong(activeBgmSong, 0, 0);
+      draw();
+      return;
+    }
+  }
+
+  // ループ周回数の計算
+  const currentTotalBars = Math.floor(previewElapsedFrames / (16 * tempoFrames));
+  const order = activeBgmSong.order || [];
+  const loopIdx = activeBgmSong.loopOrderIndex || 0;
+  const introBars = loopIdx;
+  const loopBars = Math.max(1, order.length - loopIdx);
+  let loopNum = 1;
+  if (currentTotalBars >= introBars) {
+    loopNum = 1 + Math.floor((currentTotalBars - introBars) / loopBars);
+  }
+
+  const progressPct = Math.round((previewCol / 63) * 100);
+  let statusBadge = `BAR ${String(orderIdx + 1).padStart(2, '0')}:${String(step + 1).padStart(2, '0')} (${loopNum}周目)`;
+  if (isAuto && currentBgmZone === 'bigboss') {
+    statusBadge = `<span style="color:#ff3355; font-weight:bold;">🚨 【大ボス決戦】 BOSS BGM (180 BPM)</span>`;
+  }
+  bgmPosEl.innerHTML = `COL ${String(previewCol).padStart(2, '0')} / 64 (${progressPct}%) | ${statusBadge}`;
+  draw();
+
+  // ステージ終端 (COL 63: ボス到達) に達したらプレビュー自動終了
+  if (previewCol >= 63) {
+    setTimeout(() => {
+      if (isPreviewing) {
+        stopPreview();
+        alert('🎉 ステージ終端（大ボス到達）まで同期再生しました！');
+      }
+    }, 2400);
+  }
 };
 
 function seekPreviewCol(c) {
   previewCol = Math.max(0, Math.min(63, c));
-  const totalBars = (activeBgmSong.order && activeBgmSong.order.length) || 26;
-  const targetStepTotal = Math.floor((c / 64.0) * (totalBars * 16));
-  const targetOrder = Math.floor(targetStepTotal / 16);
-  const targetStep = targetStepTotal % 16;
+  const framesPerMetaRow = 144;
+  previewElapsedFrames = previewCol * framesPerMetaRow;
+  
+  const isAuto = bgmTrackSel.value === 'auto';
+  if (isAuto) {
+    if (previewCol === 32) {
+      currentBgmZone = 'midboss';
+      midbossFightSteps = 0;
+      activeBgmSong = NesAudioPlayer.PRESETS.boss;
+      player.playSong(activeBgmSong, 0, 0);
+      draw();
+      return;
+    } else if (previewCol >= 59) {
+      currentBgmZone = 'bigboss';
+      midbossFightSteps = 0;
+      activeBgmSong = NesAudioPlayer.PRESETS.boss;
+      player.playSong(activeBgmSong, 0, 0);
+      draw();
+      return;
+    } else {
+      currentBgmZone = 'stage';
+      midbossFightSteps = 0;
+      activeBgmSong = NesAudioPlayer.PRESETS.stage1;
+    }
+  }
+
+  const tempoFrames = (activeBgmSong && activeBgmSong.tempoFrames) || 6;
+  const targetSteps = Math.floor(previewElapsedFrames / tempoFrames);
+
+  // 曲のオーダー配列にマッピング
+  const order = activeBgmSong.order || [];
+  if (order.length === 0) return;
+
+  const loopIdx = activeBgmSong.loopOrderIndex || 0;
+  const introSteps = loopIdx * 16;
+  const loopSteps = Math.max(16, (order.length - loopIdx) * 16);
+
+  let targetOrder = 0;
+  let targetStep = 0;
+
+  if (targetSteps < introSteps) {
+    targetOrder = Math.floor(targetSteps / 16);
+    targetStep = targetSteps % 16;
+  } else {
+    const loopOffset = (targetSteps - introSteps) % loopSteps;
+    targetOrder = loopIdx + Math.floor(loopOffset / 16);
+    targetStep = loopOffset % 16;
+  }
 
   player.seek(targetOrder, targetStep);
+  if (!player.isPlaying && isPreviewing) {
+    player.playSong(activeBgmSong, targetOrder, targetStep);
+  }
   draw();
 }
 
@@ -513,6 +752,109 @@ loadBase().then(() => {
   draw();
 });
 window.addEventListener('hashchange', () => { loadHash(); draw(); });
+
+// =============================================================================
+// ca65 ASM Export (assets/stages.s 形式)
+// =============================================================================
+function generateAsmSource() {
+  updateParamsFromUI();
+  const stageHeaders = [
+    '; --- STAGE 1: MOON (月面クレーターと前哨基地) ---',
+    '; --- STAGE 2: MARS (火星の赤き渓谷とモジャ前線基地) ---',
+    '; --- STAGE 3: JUPITER (木星の嵐・大赤斑ガス帯と衛星軌道要塞) ---',
+    '; --- STAGE 4: EARTH ORBIT (地球軌道・侵略軍マザーシップ中枢) ---'
+  ];
+
+  let asm = `; ステージ 1〜4 (MOON / MARS / JUPITER / EARTH ORBIT) のマップデータ
+; 直前の LVLMAP01 マーカーはステージエディタ (docs/editor/index.html) 用
+; 各ステージ 64 メタ行 (1メタ行 = 縦16px = 2タイル行) × 4面 = 256バイト
+; 値の意味:
+;   0 = 星空 (Deep Space)
+;   1 = クレーター群 (Craters)
+;   2 = 岩礁・山脈帯 (Rocky Ridges)
+;   3 = ガス雲・星雲帯 (Nebula / Gas Band)
+;   4 = モジャ要塞壁 (MOJA Fortress)
+;   5 = 軌道リング・防衛ライン (Orbital Ring + Item Carrier)
+
+.segment "RODATA"
+level_magic:
+    .byte "LVLMAP01"
+level_maps:
+`;
+
+  for (let s = 0; s < STAGES; s++) {
+    asm += `${stageHeaders[s]}\n`;
+    for (let r = 0; r < 4; r++) {
+      const start = s * COLS + r * 16;
+      const row = Array.from(maps.slice(start, start + 16));
+      asm += `    .byte ${row.join(',')}\n`;
+    }
+    asm += '\n';
+  }
+
+  asm += `; =============================================================================
+; 拡張ステージパラメータテーブル (docs/editor 連携用 16バイト: ROMオフセット LVLMAP01+264)
+; 各ステージ 4 バイト × 4 面 = 16 バイト
+; =============================================================================
+level_spawner_timer:
+    .byte ${Array.from(levelParams.slice(0, 4)).join(', ')}
+level_bullet_speed:
+    .byte ${Array.from(levelParams.slice(4, 8)).join(', ')}
+level_frenzy_threshold:
+    .byte ${Array.from(levelParams.slice(8, 12)).join(', ')}
+level_corner_retreat_limit:
+    .byte ${Array.from(levelParams.slice(12, 16)).join(', ')}
+`;
+
+  return asm;
+}
+
+document.getElementById('btn-export-asm').addEventListener('click', () => {
+  const asm = generateAsmSource();
+  document.getElementById('asm-export-text').value = asm;
+  document.getElementById('modal-export-asm').classList.add('open');
+});
+
+document.getElementById('btn-copy-asm').addEventListener('click', () => {
+  const txt = document.getElementById('asm-export-text');
+  txt.select();
+  navigator.clipboard.writeText(txt.value);
+  alert('クリップボードにコピーしました！\nassets/stages.s に貼り付けてビルドできます。');
+});
+
+document.getElementById('btn-download-asm').addEventListener('click', () => {
+  const asm = document.getElementById('asm-export-text').value;
+  const blob = new Blob([asm], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'stages.s';
+  a.click();
+});
+
+const closeAsmModal = () => document.getElementById('modal-export-asm').classList.remove('open');
+document.getElementById('btn-close-asm').addEventListener('click', closeAsmModal);
+document.getElementById('btn-close-asm-modal').addEventListener('click', closeAsmModal);
 </script>
+
+<!-- ASM Export Modal -->
+<div class="modal-overlay" id="modal-export-asm">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span>📤 ca65 ASM ソースコード出力 (assets/stages.s 形式)</span>
+      <span style="cursor:pointer; font-size:16px;" id="btn-close-asm-modal">✕</span>
+    </div>
+    <div class="modal-bdy">
+      <div style="font-size:11px; color:#8b949e;">
+        このコードをコピーして <code>assets/stages.s</code> に貼り付けるか、「💾 stages.s ファイル保存」を押して <code>assets/</code> フォルダに上書き保存することで、ファミコン実機ROMの公式仕様として本採用できます。
+      </div>
+      <textarea id="asm-export-text" readonly spellcheck="false"></textarea>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn blue" id="btn-copy-asm">📋 クリップボードにコピー</button>
+      <button class="btn green" id="btn-download-asm">💾 stages.s ファイル保存</button>
+      <button class="btn" id="btn-close-asm" style="background:#445;">閉じる</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
