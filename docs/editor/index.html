@@ -3,33 +3,66 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MOJAxMOJA WARS ステージエディタ</title>
+<title>MOJAxMOJA WARS ステージエディタ & BGMプレビュー</title>
 <style>
-  :root { --accent:#1b4f9c; --crimson:#a82020; --cream:#eef4ff; }
+  :root { --accent:#1b4f9c; --crimson:#a82020; --cream:#eef4ff; --border:#3a4a66; --surface:#151b26; --gold:#ffd700; --green:#28a745; }
   * { box-sizing: border-box; }
-  body { margin:0; background:#0d1117; color:var(--cream); font-family:'Hiragino Kaku Gothic ProN', ui-sans-serif, sans-serif; }
+  body { margin:0; background:#0d1117; color:var(--cream); font-family:'Hiragino Kaku Gothic ProN', ui-sans-serif, sans-serif; user-select:none; }
   header { background:linear-gradient(90deg, #122a5c, #6e1423); padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; border-bottom:2px solid #3a6ea5; }
-  header h1 { font-size:18px; margin:0; letter-spacing:1px; }
+  header h1 { font-size:18px; margin:0; letter-spacing:1px; display:flex; align-items:center; gap:8px; }
   header .sub { font-size:12px; opacity:.85; }
-  #toolbar, #stagebar { display:flex; gap:8px; padding:10px 16px 0; flex-wrap:wrap; align-items:center; }
-  #toolbar { padding-bottom:10px; }
-  .tool, .stage { border:2px solid #445; background:#1c2433; color:var(--cream); padding:8px 12px;
-          border-radius:6px; cursor:pointer; font-size:13px; }
-  .tool.sel, .stage.sel { border-color:#ffd700; background:#2f3b52; }
-  .btn { background:var(--crimson); border:none; color:var(--cream); padding:8px 14px; border-radius:6px;
-         cursor:pointer; font-size:13px; font-weight:bold; box-shadow:0 2px 0 #5d0f0f; }
+  header a.nav-link { color:#7fc4ff; font-size:12px; font-weight:bold; text-decoration:none; margin-left:auto; background:#1c2433; padding:4px 10px; border-radius:4px; border:1px solid #3a6ea5; }
+  header a.nav-link:hover { background:#2a364d; color:#fff; }
+
+  #stagebar, #toolbar, #params-bar, #bgm-bar { display:flex; gap:8px; padding:8px 16px 0; flex-wrap:wrap; align-items:center; }
+  #toolbar { padding-bottom:8px; }
+
+  .tool, .stage { border:2px solid #445; background:#1c2433; color:var(--cream); padding:6px 12px;
+          border-radius:6px; cursor:pointer; font-size:12px; font-weight:bold; }
+  .tool.sel, .stage.sel { border-color:#ffd700; background:#2f3b52; color:#fff; }
+
+  .btn { background:var(--crimson); border:none; color:var(--cream); padding:6px 12px; border-radius:6px;
+         cursor:pointer; font-size:12px; font-weight:bold; box-shadow:0 2px 0 #5d0f0f; display:inline-flex; align-items:center; gap:4px; }
   .btn:active { transform:translateY(2px); box-shadow:none; }
-  #wrap { overflow-x:auto; margin:0 16px 8px; border:3px solid #3a4a66; border-radius:4px; background:#000; }
+  .btn.green { background:#1e7e34; box-shadow:0 2px 0 #114e20; }
+  .btn.blue { background:#1e60c4; box-shadow:0 2px 0 #123d80; }
+
+  #params-bar {
+    background: #111622;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    gap: 16px;
+  }
+  .param-item { display:flex; align-items:center; gap:6px; }
+  .param-item select, .param-item input {
+    background:#1c2433; border:1px solid var(--border); color:#fff; padding:3px 6px; border-radius:4px; font-size:11px;
+  }
+
+  #bgm-bar {
+    background: #161d2b;
+    padding: 8px 16px;
+    border-bottom: 2px solid var(--border);
+    font-size: 12px;
+    gap: 12px;
+  }
+
+  #wrap { overflow-x:auto; margin:8px 16px 6px; border:3px solid var(--border); border-radius:4px; background:#000; position:relative; }
   canvas { display:block; image-rendering:pixelated; cursor:crosshair; }
-  #status { padding:4px 16px 12px; font-size:12px; color:#9ab; font-family:ui-monospace, monospace; word-break:break-all; }
+  #status { padding:4px 16px 8px; font-size:12px; color:#9ab; font-family:ui-monospace, monospace; word-break:break-all; }
+  .note { padding:4px 16px 16px; font-size:12px; color:#9ab; line-height:1.5; }
   a { color:#7fc4ff; }
 </style>
 </head>
 <body>
+
 <header>
   <h1>🚀 MOJAxMOJA WARS ステージエディタ</h1>
-  <span class="sub">自機 KBX-026 SAMURAI / 全4面 (月・火星・木星・地球付近) を編集 — URLがそのままセーブデータ</span>
+  <span class="sub">自機 KBX-026 SAMURAI / 全4面 ＆ BGM同期プレビュー</span>
+  <a class="nav-link" href="../audio-editor/index.html" target="_blank">🎵 Web 楽曲エディタを開く ↗</a>
 </header>
+
 <div id="stagebar">
   <button class="stage sel" data-s="0">STAGE 1: 月 (MOON)</button>
   <button class="stage" data-s="1">STAGE 2: 火星 (MARS)</button>
@@ -37,9 +70,10 @@
   <button class="stage" data-s="3">STAGE 4: 地球付近 (EARTH)</button>
   <span style="flex:1"></span>
   <button class="btn" id="copy">🔗 URLをコピー</button>
-  <button class="btn" id="rom">💾 .nes を書き出す</button>
-  <button class="btn" id="clear">🗑 このステージを宇宙空間に初期化</button>
+  <button class="btn green" id="rom">💾 拡張設定入り .nes を書き出す</button>
+  <button class="btn" id="clear">🗑 宇宙空間に初期化</button>
 </div>
+
 <div id="toolbar">
   <button class="tool" data-f="0">🌌 0: 星空 (偵察モジャ)</button>
   <button class="tool sel" data-f="1">🌑 1: クレーター (スウープ編隊)</button>
@@ -48,13 +82,78 @@
   <button class="tool" data-f="4">🏰 4: モジャ要塞壁 (重装砲台)</button>
   <button class="tool" data-f="5">🛰 5: 軌道リング (アイテムキャリア確実出現)</button>
 </div>
-<div id="wrap"><canvas id="cv" width="1024" height="256" style="width:1536px;height:384px"></canvas></div>
-<div id="status"></div>
-<div class="note" style="padding:4px 16px 16px; font-size:12px; color:#9ab">
-  左端 (メタ行0 = ステージ開始) から 右端 (メタ行63 = MOJAxMOJA BOSS出現) へと縦スクロール進行します。<br>
-  遊び方: 書き出した <code>.nes</code> を <a href="https://goroman.github.io/cluade-famicom-emu/" target="_blank">cluade-famicom-emu</a> の「ROMを開く」で読み込んでプレイできます。
-  ベースROM: <a href="base.nes">base.nes</a>
+
+<!-- Level Parameters (Embedded into ROM at romOff + 256) -->
+<div id="params-bar">
+  <strong style="color:var(--gold);">⚙️ 拡張ステージ仕様 (ROM反映):</strong>
+  <div class="param-item">
+    <label for="p-spawner">3機編隊スポナー間隔:</label>
+    <select id="p-spawner">
+      <option value="6">6f (超ラッシュ)</option>
+      <option value="8">8f (高速)</option>
+      <option value="10">10f (やや速い)</option>
+      <option value="12" selected>12f (標準)</option>
+      <option value="16">16f (ゆったり)</option>
+    </select>
+  </div>
+  <div class="param-item">
+    <label for="p-bullet">敵弾速度:</label>
+    <select id="p-bullet">
+      <option value="1">1 px/f (通常・迎撃容易)</option>
+      <option value="2" selected>2 px/f (高速弾)</option>
+      <option value="3">3 px/f (激速スナイプ)</option>
+    </select>
+  </div>
+  <div class="param-item">
+    <label for="p-frenzy">ボス狂乱近接突進:</label>
+    <select id="p-frenzy">
+      <option value="1">HP 20% (1/5) 以下</option>
+      <option value="2" selected>HP 40% (2/5) 以下 (標準)</option>
+      <option value="3">HP 60% (3/5) 以下 (早期突進)</option>
+    </select>
+  </div>
+  <div class="param-item">
+    <label for="p-retreat">コーナー離脱制限:</label>
+    <select id="p-retreat">
+      <option value="15">15f (0.25秒で即離脱)</option>
+      <option value="30" selected>30f (0.5秒 - 標準)</option>
+      <option value="45">45f (0.75秒)</option>
+      <option value="60">60f (1.0秒じっくり)</option>
+    </select>
+  </div>
 </div>
+
+<!-- BGM Synchronized Preview Control -->
+<div id="bgm-bar">
+  <button class="btn blue" id="bgm-play">▶ BGM同期プレビュー</button>
+  <button class="btn" id="bgm-stop">⏹ プレビュー停止</button>
+  <div style="display:flex; align-items:center; gap:6px;">
+    <label for="bgm-track-sel">BGM:</label>
+    <select id="bgm-track-sel">
+      <option value="stage1">STAGE 1: LUNAR CATACOMB DRIVE (150 BPM)</option>
+      <option value="boss">BOSS: CRIMSON BATTLE GROUND (180 BPM)</option>
+      <option value="title">TITLE: SPACE MERCHANT (130 BPM)</option>
+      <option value="custom">📂 外部 .nesbgm.json を読み込む...</option>
+    </select>
+    <input type="file" id="bgm-file-inp" accept=".json,.nesbgm.json" style="display:none">
+  </div>
+  <span id="bgm-pos" style="font-family:monospace; color:var(--gold);">COL 00 / 64 (0%)</span>
+</div>
+
+<div id="wrap">
+  <canvas id="cv" width="1024" height="256" style="width:1536px;height:384px"></canvas>
+</div>
+<div id="status"></div>
+
+<div class="note">
+  <strong>操作方法:</strong><br>
+  ・左端 (メタ行0 = ステージ開始) から 右端 (メタ行63 = MOJAxMOJA BOSS出現) へと縦スクロール進行します。<br>
+  ・「<strong>▶ BGM同期プレビュー</strong>」を押すと、BGMを鳴らしながら自機カーソルがメタ行をスクロール進行し、敵出現タイミングを音楽と同期してプレビューできます。<br>
+  ・キャンバス上をクリックすると、そのメタ行位置へBGMと進行位置をシークします。<br>
+  ・書き出した <code>.nes</code> は「3機編隊スポナー間隔」「敵弾速度」「ボス狂乱突進HP閾値」などの拡張設定が埋め込まれ、ファミコン実機やエミュレータで即座に反映されます。
+</div>
+
+<script src="nes-audio-player.js"></script>
 <script>
 'use strict';
 const COLS = 64, CELL = 16, STAGES = 4;
@@ -64,6 +163,21 @@ let maps = new Uint8Array(COLS * STAGES);
 let defaults = null;
 let romBuf = null, romOff = -1;
 let st = 0, brush = 1;
+
+// 16 bytes level params: 4 bytes per stage
+// [spawner_timer(4), bullet_speed(4), frenzy_ratio(4), corner_retreat(4)]
+let levelParams = new Uint8Array([
+  12, 12, 10, 8,   // spawner_timer
+  1, 2, 2, 3,      // bullet_speed
+  2, 2, 2, 3,      // frenzy_threshold
+  30, 30, 30, 30   // corner_retreat
+]);
+
+// Audio Player & Sequencer
+const player = new NesAudioPlayer();
+let activeBgmSong = NesAudioPlayer.PRESETS.stage1;
+let previewCol = -1;
+let isPreviewing = false;
 
 const STAGE_NAMES = ['STAGE 1: MOON (月)', 'STAGE 2: MARS (火星)', 'STAGE 3: JUPITER (木星)', 'STAGE 4: EARTH ORBIT (地球付近)'];
 const STAGE_PAL = [
@@ -83,11 +197,34 @@ async function loadBase() {
     }
     if (romOff < 0) throw new Error('LVLMAP01 マーカーが見つかりません');
     defaults = romBuf.slice(romOff, romOff + COLS * STAGES);
+
+    // Read 16 bytes level params if available
+    if (romBuf.length >= romOff + COLS * STAGES + 16) {
+      levelParams.set(romBuf.slice(romOff + COLS * STAGES, romOff + COLS * STAGES + 16));
+    }
   } catch (e) {
     defaults = new Uint8Array(COLS * STAGES);
     statusEl.textContent = 'base.nes を読めませんでした: ' + e;
   }
 }
+
+function syncParamUI() {
+  document.getElementById('p-spawner').value = levelParams[st];
+  document.getElementById('p-bullet').value = levelParams[4 + st];
+  document.getElementById('p-frenzy').value = levelParams[8 + st];
+  document.getElementById('p-retreat').value = levelParams[12 + st];
+}
+
+function updateParamsFromUI() {
+  levelParams[st] = parseInt(document.getElementById('p-spawner').value, 10);
+  levelParams[4 + st] = parseInt(document.getElementById('p-bullet').value, 10);
+  levelParams[8 + st] = parseInt(document.getElementById('p-frenzy').value, 10);
+  levelParams[12 + st] = parseInt(document.getElementById('p-retreat').value, 10);
+}
+
+['p-spawner', 'p-bullet', 'p-frenzy', 'p-retreat'].forEach(id => {
+  document.getElementById(id).addEventListener('change', updateParamsFromUI);
+});
 
 function loadHash() {
   maps.set(defaults);
@@ -119,40 +256,59 @@ function draw() {
   for (let c = 0; c < COLS; c++) {
     const x = c * CELL;
     const f = m[c];
+
     // グリッド線
-    cx.fillStyle = 'rgba(255,255,255,0.06)';
+    cx.fillStyle = (c % 4 === 0) ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)';
     cx.fillRect(x, 0, 1, 256);
 
+    // イベントマーカー
+    if (c === 27) {
+      // 味方輸送機 (脚部パーツ)
+      cx.fillStyle = 'rgba(0, 229, 255, 0.25)';
+      cx.fillRect(x, 0, CELL, 256);
+      cx.fillStyle = '#00e5ff';
+      cx.font = '9px monospace';
+      cx.fillText('SUPPLY', x - 4, 12);
+    } else if (c === 32) {
+      // 中ボス WARNING
+      cx.fillStyle = 'rgba(255, 50, 50, 0.25)';
+      cx.fillRect(x, 0, CELL, 256);
+      cx.fillStyle = '#ff4444';
+      cx.font = 'bold 9px monospace';
+      cx.fillText('MIDBOSS', x - 6, 12);
+    } else if (c === 58) {
+      // 大ボス直前 再補給
+      cx.fillStyle = 'rgba(0, 229, 255, 0.25)';
+      cx.fillRect(x, 0, CELL, 256);
+      cx.fillStyle = '#00e5ff';
+      cx.font = '9px monospace';
+      cx.fillText('SUPPLY', x - 4, 12);
+    }
+
     if (f === 1) {
-      // クレーター (上下端付近)
       cx.fillStyle = pal.dark; cx.fillRect(x+2, 16, 12, 24); cx.fillRect(x+2, 216, 12, 24);
       cx.fillStyle = pal.mid;  cx.fillRect(x+4, 18, 8, 20);  cx.fillRect(x+4, 218, 8, 20);
       cx.fillStyle = '#05070d';cx.fillRect(x+6, 22, 4, 12);  cx.fillRect(x+6, 222, 4, 12);
     } else if (f === 2) {
-      // 岩礁帯
       cx.fillStyle = pal.dark; cx.fillRect(x, 0, 16, 36); cx.fillRect(x, 220, 16, 36);
       cx.fillStyle = pal.mid;  cx.fillRect(x+2, 4, 12, 26); cx.fillRect(x+2, 226, 12, 26);
       cx.fillStyle = pal.hi;   cx.fillRect(x+4, 8, 6, 6);   cx.fillRect(x+4, 230, 6, 6);
     } else if (f === 3) {
-      // ガス星雲帯
       cx.fillStyle = pal.dark; cx.fillRect(x, 40, 16, 48); cx.fillRect(x, 168, 16, 48);
       cx.fillStyle = pal.mid;  cx.fillRect(x, 52, 16, 24); cx.fillRect(x, 180, 16, 24);
       cx.fillStyle = pal.hi;   cx.fillRect(x+4, 60, 8, 8); cx.fillRect(x+4, 188, 8, 8);
     } else if (f === 4) {
-      // モジャ要塞壁
       cx.fillStyle = pal.dark; cx.fillRect(x, 0, 16, 56); cx.fillRect(x, 200, 16, 56);
       cx.fillStyle = pal.mid;  cx.fillRect(x+1, 2, 14, 50); cx.fillRect(x+1, 204, 14, 50);
       cx.fillStyle = pal.hi;   cx.fillRect(x+4, 12, 8, 8); cx.fillRect(x+4, 236, 8, 8);
     } else if (f === 5) {
-      // 軌道リング + アイテムキャリア
       cx.fillStyle = pal.mid;  cx.fillRect(x+2, 8, 12, 240);
       cx.fillStyle = pal.hi;   cx.fillRect(x+6, 8, 4, 240);
-      // アイテムカプセル [P] マーカー
       cx.fillStyle = '#00e5ff'; cx.fillRect(x+3, 120, 10, 14);
       cx.fillStyle = '#000';    cx.fillRect(x+5, 122, 6, 10);
     }
 
-    // MOJAxMOJA 敵マーカー描画
+    // 敵マーカー描画
     if (f === 5 || (c & 1)) {
       const ey = 64 + ((c * 37) % 120);
       cx.fillStyle = f === 5 ? '#ffdd00' : '#ff5533';
@@ -163,7 +319,7 @@ function draw() {
     }
   }
 
-  // 左端: KBX-026 SAMURAI スタート位置
+  // 左端: KBX-026 スタート位置
   cx.fillStyle = '#ffffff'; cx.fillRect(10, 120, 14, 16);
   cx.fillStyle = '#2266ff'; cx.fillRect(12, 124, 10, 8);
   cx.fillStyle = '#ff2222'; cx.fillRect(6, 122, 4, 12);
@@ -174,6 +330,25 @@ function draw() {
   cx.fillStyle = '#ffffff';
   cx.fillRect(61*CELL+8, 110, 8, 10);
   cx.fillRect(61*CELL+8, 136, 8, 10);
+
+  // BGM同期プレビュー スキャンライン & 自機位置
+  if (previewCol >= 0 && previewCol < COLS) {
+    const px = previewCol * CELL;
+    cx.fillStyle = 'rgba(255, 215, 0, 0.35)';
+    cx.fillRect(px, 0, CELL, 256);
+
+    cx.strokeStyle = '#ffd700';
+    cx.lineWidth = 2;
+    cx.beginPath();
+    cx.moveTo(px, 0);
+    cx.lineTo(px, 256);
+    cx.stroke();
+    cx.lineWidth = 1;
+
+    // 飛行中の自機
+    cx.fillStyle = '#00ffff';
+    cx.fillRect(px + 2, 120, 12, 14);
+  }
 }
 
 let dragging = false;
@@ -186,8 +361,17 @@ function paint(e) {
     draw();
   }
 }
-cv.addEventListener('pointerdown', e => { dragging = true; paint(e); });
-window.addEventListener('pointermove', e => { if (dragging) paint(e); });
+cv.addEventListener('pointerdown', e => {
+  if (isPreviewing) {
+    // クリックした位置へシーク
+    const r = cv.getBoundingClientRect();
+    const c = Math.floor((e.clientX - r.left) / r.width * COLS);
+    seekPreviewCol(c);
+  } else {
+    dragging = true; paint(e);
+  }
+});
+window.addEventListener('pointermove', e => { if (dragging && !isPreviewing) paint(e); });
 window.addEventListener('pointerup', () => { dragging = false; });
 
 document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
@@ -199,6 +383,7 @@ document.querySelectorAll('.stage').forEach(b => b.onclick = () => {
   document.querySelectorAll('.stage').forEach(x => x.classList.remove('sel'));
   b.classList.add('sel');
   st = +b.dataset.s;
+  syncParamUI();
   saveHash();
   draw();
 });
@@ -211,17 +396,122 @@ document.getElementById('copy').onclick = async () => {
   await navigator.clipboard.writeText(location.href);
   statusEl.textContent = '✅ URLをクリップボードにコピーしました！';
 };
+
+// 拡張パラメータを埋め込んで .nes を書き出し
 document.getElementById('rom').onclick = () => {
   if (!romBuf || romOff < 0) { alert('base.nes が読み込まれていません'); return; }
   const out = new Uint8Array(romBuf);
+  // 1. マップデータ (256バイト) 書き込み
   out.set(maps, romOff);
+  // 2. 拡張パラメータ (16バイト) 書き込み
+  updateParamsFromUI();
+  out.set(levelParams, romOff + COLS * STAGES);
+
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([out], { type: 'application/octet-stream' }));
-  a.download = 'mojaxmoja-wars.nes';
+  a.download = 'mojaxmoja-wars-custom.nes';
   a.click();
+  alert('拡張設定（スポナー・弾速・ボス狂乱）入りの .nes を書き出しました！');
 };
 
-loadBase().then(() => { loadHash(); saveHash(); draw(); });
+// =============================================================================
+// BGM Synchronized Preview Implementation
+// =============================================================================
+const bgmTrackSel = document.getElementById('bgm-track-sel');
+const bgmPosEl = document.getElementById('bgm-pos');
+
+bgmTrackSel.addEventListener('change', (e) => {
+  const v = e.target.value;
+  if (v === 'custom') {
+    document.getElementById('bgm-file-inp').click();
+  } else if (NesAudioPlayer.PRESETS[v]) {
+    activeBgmSong = NesAudioPlayer.PRESETS[v];
+    if (isPreviewing) {
+      player.playSong(activeBgmSong, 0, 0);
+    }
+  }
+});
+
+document.getElementById('bgm-file-inp').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      activeBgmSong = player.parseJson(evt.target.result);
+      alert(`BGM "${activeBgmSong.title || file.name}" を読み込みました！`);
+      if (isPreviewing) player.playSong(activeBgmSong, 0, 0);
+    } catch (err) {
+      alert('BGM JSON の読み込みに失敗しました: ' + err);
+    }
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('bgm-play').addEventListener('click', () => {
+  player.initAudio();
+  if (isPreviewing) {
+    if (player.isPaused) {
+      player.resume();
+      document.getElementById('bgm-play').textContent = '⏸ 一時停止';
+    } else {
+      player.pause();
+      document.getElementById('bgm-play').textContent = '▶ 再開';
+    }
+  } else {
+    isPreviewing = true;
+    previewCol = 0;
+    player.playSong(activeBgmSong, 0, 0);
+    document.getElementById('bgm-play').textContent = '⏸ 一時停止';
+  }
+});
+
+document.getElementById('bgm-stop').addEventListener('click', () => {
+  stopPreview();
+});
+
+function stopPreview() {
+  player.stop();
+  isPreviewing = false;
+  previewCol = -1;
+  document.getElementById('bgm-play').textContent = '▶ BGM同期プレビュー';
+  bgmPosEl.textContent = 'COL 00 / 64 (0%)';
+  draw();
+}
+
+player.onStep = (orderIdx, step, totalStep) => {
+  if (!isPreviewing) return;
+  // 64メタ行を BGM の小節進行にマップ
+  // 1小節あたり約 2.5 メタ行進行 (全26小節でちょうど64メタ行＝大ボス到達！)
+  const totalBars = (activeBgmSong.order && activeBgmSong.order.length) || 26;
+  const progressRatio = (orderIdx * 16 + step) / (totalBars * 16);
+  previewCol = Math.min(63, Math.floor(progressRatio * 64));
+
+  bgmPosEl.textContent = `COL ${String(previewCol).padStart(2, '0')} / 64 (${Math.round(progressRatio * 100)}%) | BAR ${orderIdx + 1}:${step + 1}`;
+  draw();
+};
+
+player.onStop = () => {
+  if (isPreviewing) stopPreview();
+};
+
+function seekPreviewCol(c) {
+  previewCol = Math.max(0, Math.min(63, c));
+  const totalBars = (activeBgmSong.order && activeBgmSong.order.length) || 26;
+  const targetStepTotal = Math.floor((c / 64.0) * (totalBars * 16));
+  const targetOrder = Math.floor(targetStepTotal / 16);
+  const targetStep = targetStepTotal % 16;
+
+  player.seek(targetOrder, targetStep);
+  draw();
+}
+
+loadBase().then(() => {
+  loadHash();
+  saveHash();
+  syncParamUI();
+  draw();
+});
 window.addEventListener('hashchange', () => { loadHash(); draw(); });
 </script>
 </body>

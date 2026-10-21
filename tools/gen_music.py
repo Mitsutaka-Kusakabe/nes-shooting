@@ -112,7 +112,7 @@ BARS_STAGE = {
     "A5": ("F5 - - - - - G5 - A5 - - - F5 - D5 -", bass_drive("D3"), D_STD),
     "A6": ("Bb5 - - - A5 - G5 - F5 - - - G5 - A5 -", bass_drive("Bb2"), D_STD),
     "A7": ("G5 - F5 - E5 - D5 - E5 - - - C#5 - - -", bass_drive("G2", "A2"), D_STD),
-    "A8": ("A4 - - - - - - - . . . . E5 - F5 -", bass_drive("A2"), D_FILL),
+    "A8": ("D5 - - - - - - - . . . . E5 - F5 -", bass_drive("A2"), D_FILL),
     "B1": ("G5 - - - - - - - Bb5 - A5 - G5 - F5 -", bass_gallop("G2"), D_B),
     "B2": ("E5 - - - - - - - C#5 - D5 - E5 - - -", bass_gallop("A2"), D_B),
     "B3": ("F5 - - - - - E5 - D5 - - - F5 - A5 -", bass_gallop("D3"), D_B),
@@ -120,7 +120,7 @@ BARS_STAGE = {
     "B5": ("Bb5 - - - A5 - G5 - A5 - - - Bb5 - - -", bass_gallop("G2"), D_B),
     "B6": ("A5 - - - G5 - F5 - E5 - - - C#5 - E5 -", bass_gallop("A2"), D_B),
     "B7": ("F5 - - - E5 - D5 - E5 - - - G5 - - -", bass_drive("Bb2", "C3"), D_STD),
-    "B8": ("A5 G5 F5 E5 D5 C#5 D5 E5 F5 E5 D5 C#5 A4 - - -", bass_drive("A2"), D_FILL),
+    "B8": ("A5 G5 F5 E5 D5 C#5 D5 E5 F5 E5 D5 C#5 C#5 - D5 -", bass_drive("A2"), D_FILL),
 }
 
 ORDER_STAGE = (

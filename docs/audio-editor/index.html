@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOJAxMOJA WARS - NES APU Web 楽曲エディタ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>🎵 MOJAxMOJA WARS <span>Web 楽曲エディタ</span></h1>
+  <div class="top-actions">
+    <select id="preset-select">
+      <option value="" disabled selected>🎼 プリセット楽曲を読み込む...</option>
+      <option value="stage1">STAGE 1: LUNAR CATACOMB DRIVE (150 BPM)</option>
+      <option value="boss">BOSS: CRIMSON BATTLE GROUND (180 BPM)</option>
+      <option value="title">TITLE: SPACE MERCHANT - THE SYONIN (130 BPM)</option>
+      <option value="gameover">GAME OVER: REST IN PEACE (75 BPM)</option>
+    </select>
+    <button class="btn" id="btn-save-json">💾 JSON 保存</button>
+    <button class="btn" id="btn-load-json">📂 JSON 開く</button>
+    <input type="file" id="file-input-json" accept=".json,.nesbgm.json" style="display:none">
+    <button class="btn accent" id="btn-export-asm">📤 ca65 ASM 出力</button>
+    <button class="btn" id="btn-import-asm">📥 ca65 ASM 読込</button>
+  </div>
+</header>
+
+<div id="control-bar">
+  <div class="transport-group">
+    <button class="btn primary" id="btn-play">▶ 再生</button>
+    <button class="btn" id="btn-pause">⏸ 一時停止</button>
+    <button class="btn" id="btn-stop">⏹ 停止</button>
+    <button class="btn" id="btn-rewind">⏮ 先頭へ</button>
+  </div>
+
+  <div id="position-display">BAR 01 : STEP 01</div>
+
+  <div class="tempo-group">
+    <label for="tempo-input">テンポ:</label>
+    <select id="tempo-select">
+      <option value="4">225 BPM (4 f/step)</option>
+      <option value="5">180 BPM (5 f/step - ボス)</option>
+      <option value="6" selected>150 BPM (6 f/step - 通常)</option>
+      <option value="7">130 BPM (7 f/step - タイトル)</option>
+      <option value="8">112 BPM (8 f/step)</option>
+      <option value="12">75 BPM (12 f/step - レクイエム)</option>
+    </select>
+  </div>
+
+  <div class="volume-group">
+    <label for="master-vol">音量:</label>
+    <input type="range" id="master-vol" min="0" max="100" value="80" style="width:80px">
+  </div>
+
+  <div style="flex:1"></div>
+
+  <button class="btn" id="btn-set-loop">🔁 現在の小節をループ先に指定</button>
+</div>
+
+<div id="order-bar">
+  <span class="label" id="order-label">小節オーダー:</span>
+  <div id="order-slots-container" style="display:inline-flex; gap:6px;"></div>
+  <button class="btn" id="btn-add-order-slot" style="padding:2px 8px; font-size:11px;">+ 小節追加</button>
+</div>
+
+<div id="workspace">
+  <!-- Left Sidebar: Channels & Patterns -->
+  <div id="sidebar">
+    <div class="channel-tab selected" data-ch="pulse1">
+      <div class="channel-tab-head">
+        <span class="channel-title"><span class="ch-dot dot-p1"></span>Pulse 1 (主旋律)</span>
+        <span class="toggle-chip" id="mute-p1">MUTE</span>
+      </div>
+      <div class="channel-tab-controls">
+        <span>Duty:</span>
+        <select class="duty-sel" data-ch="pulse1" style="font-size:10px; padding:1px 4px;">
+          <option value="0">12.5%</option>
+          <option value="1">25.0%</option>
+          <option value="2" selected>50.0%</option>
+          <option value="3">75.0%</option>
+        </select>
+        <span>Vol:</span>
+        <input type="number" class="vol-inp" data-ch="pulse1" min="0" max="15" value="12" style="width:38px;">
+      </div>
+    </div>
+
+    <div class="channel-tab" data-ch="pulse2">
+      <div class="channel-tab-head">
+        <span class="channel-title"><span class="ch-dot dot-p2"></span>Pulse 2 (和音/SE)</span>
+        <span class="toggle-chip" id="mute-p2">MUTE</span>
+      </div>
+      <div class="channel-tab-controls">
+        <span>Duty:</span>
+        <select class="duty-sel" data-ch="pulse2" style="font-size:10px; padding:1px 4px;">
+          <option value="0">12.5%</option>
+          <option value="1">25.0%</option>
+          <option value="2" selected>50.0%</option>
+          <option value="3">75.0%</option>
+        </select>
+        <span>Vol:</span>
+        <input type="number" class="vol-inp" data-ch="pulse2" min="0" max="15" value="10" style="width:38px;">
+      </div>
+    </div>
+
+    <div class="channel-tab" data-ch="triangle">
+      <div class="channel-tab-head">
+        <span class="channel-title"><span class="ch-dot dot-tri"></span>Triangle (ベース)</span>
+        <span class="toggle-chip" id="mute-tri">MUTE</span>
+      </div>
+      <div class="channel-tab-controls">
+        <span>16階調階段波 (1 Oct Lower)</span>
+      </div>
+    </div>
+
+    <div class="channel-tab" data-ch="dmc">
+      <div class="channel-tab-head">
+        <span class="channel-title"><span class="ch-dot dot-dmc"></span>DMC / Noise (ドラム)</span>
+        <span class="toggle-chip" id="mute-dmc">MUTE</span>
+      </div>
+      <div class="channel-tab-controls">
+        <span>808 Kick / Snare + Hat</span>
+      </div>
+    </div>
+
+    <div class="pattern-manager">
+      <h3>
+        <span>編集中の小節</span>
+        <span id="cur-pat-name-badge" style="color:var(--gold); font-family:monospace;">A1</span>
+      </h3>
+      <select id="pattern-select"></select>
+      <div style="display:flex; gap:4px; margin-bottom:8px;">
+        <button class="btn" id="btn-new-pattern" style="flex:1; font-size:11px;">+ 新規</button>
+        <button class="btn" id="btn-dup-pattern" style="flex:1; font-size:11px;">複製</button>
+      </div>
+      <div style="display:flex; gap:4px;">
+        <button class="btn" id="btn-rename-pattern" style="flex:1; font-size:11px;">名前変更</button>
+        <button class="btn" id="btn-del-pattern" style="flex:1; font-size:11px; color:#ff8888;">削除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Editor Area -->
+  <div id="editor-area">
+    <!-- Pitch Roll View (Pulse 1, Pulse 2, Triangle) -->
+    <div id="roll-container">
+      <div id="piano-keys"></div>
+      <canvas id="grid-canvas"></canvas>
+    </div>
+
+    <!-- Drum Step View (DMC / Noise) -->
+    <div id="drum-view">
+      <h3 style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">
+        DMC ドラム & ノイズステップシーケンサー (16ステップ)
+      </h3>
+      <div class="drum-row">
+        <div class="drum-label">🥁 キック ($C000)</div>
+        <div class="drum-steps" id="kick-steps"></div>
+      </div>
+      <div class="drum-row">
+        <div class="drum-label">💥 スネア ($C3C0)</div>
+        <div class="drum-steps" id="snare-steps"></div>
+      </div>
+      <div style="margin-top:20px; font-size:12px; color:#8899aa;">
+        ※ クリックで発音指定（オレンジ: キック, シアン: スネア）。自動ハイハットは毎16分音符で刻まれます。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: ASM Export -->
+<div class="modal" id="modal-export-asm">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>📤 ca65 アセンブラ用 BGM データ出力 (.s)</h3>
+      <button class="btn close-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">
+        ゲーム本体の <code>src/sound.s</code> でそのまま <code>.include</code> できる ca65 互換データです。
+      </p>
+      <textarea class="code-area" id="asm-export-text" readonly></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn primary" id="btn-copy-asm">📋 クリップボードにコピー</button>
+      <button class="btn success" id="btn-download-asm">💾 .s ファイルとして保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: ASM Import -->
+<div class="modal" id="modal-import-asm">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>📥 ca65 アセンブラ BGM データのインポート</h3>
+      <button class="btn close-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">
+        <code>assets/music_stage.s</code> などの ca65 ソースコードを貼り付けてインポートできます。
+      </p>
+      <textarea class="code-area" id="asm-import-text" placeholder="ここに .byte データを貼り付けてください..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn primary" id="btn-do-import-asm">読み込んで反映</button>
+    </div>
+  </div>
+</div>
+
+<script src="nes-audio-player.js"></script>
+<script src="audio-editor.js"></script>
+</body>
+</html>

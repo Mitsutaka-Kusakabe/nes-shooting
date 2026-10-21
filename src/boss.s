@@ -495,7 +495,8 @@ update_boss_melee_charge:
     ; 到達！追い詰め・至近戦闘フェーズ (Phase 1) へ移行！
     lda #1
     sta boss_charge_phase
-    lda #30                 ; ★ 30フレーム = 0.5秒の追い詰め制限時間！
+    ldx current_stage
+    lda level_corner_retreat_limit,x
     sta boss_charge_timer
 @p0_done:
     jmp check_boss_cols
@@ -787,10 +788,15 @@ damage_boss_by_a:
     cmp #1
     bne @dmg_done
 
-    ; HP <= boss_max_hp * 2 / 5 かチェック
-    ; 計算: (boss_max_hp * 2) / 5
-    lda boss_max_hp
-    asl
+    ; HP <= (boss_max_hp * level_frenzy_threshold) / 5 かチェック
+    ldy current_stage
+    lda level_frenzy_threshold,y
+    tax
+    lda #0
+    clc
+:   adc boss_max_hp
+    dex
+    bne :-
     ; 5で割る (簡易除算)
     ldx #0
     sec

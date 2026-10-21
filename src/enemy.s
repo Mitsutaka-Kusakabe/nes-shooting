@@ -154,8 +154,9 @@ update_formation_spawner:
     dec spawner_timer
     bne @f_ret
 
-    ; 12フレームタイマーをリセット
-    lda #12
+    ; 編隊タイマーをステージ設定値でリセット
+    ldx current_stage
+    lda level_spawner_timer,x
     sta spawner_timer
 
     ; 空きスロットがあるかチェック
@@ -715,9 +716,9 @@ enemy_fire_bullet:
     lda #<(-1)
     sta tmp_vx
 @set_vy:
-    ; 敵弾速度の底上げ (A案: 従来の1.5〜2倍速)
-    ; 縦方向 vy = 2 px/frame (高速化)
-    lda #2
+    ; 縦方向 vy (level_bullet_speed: 1..3 px/f)
+    ldx current_stage
+    lda level_bullet_speed,x
     sta tmp_vy
     lda #$0E
     sta tmp_tile
