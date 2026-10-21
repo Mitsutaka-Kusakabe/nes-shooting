@@ -294,7 +294,16 @@
     updatePositionDisplay();
 
     // 5. Tempo & Controls
-    tempoSelect.value = song.tempoFrames || 6;
+    const tf = song.tempoFrames || 6;
+    let opt = Array.from(tempoSelect.options).find(o => parseInt(o.value, 10) === tf);
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = tf;
+      const bpm = Math.round((3600 / tf) / 4);
+      opt.textContent = `${bpm} BPM (${tf} f/step)`;
+      tempoSelect.appendChild(opt);
+    }
+    tempoSelect.value = String(tf);
 
     // 6. Auto scroll to active note range if not in drum view
     if (curChannel !== 'dmc') {
@@ -743,15 +752,9 @@
         player.resume();
         document.getElementById('btn-play').textContent = '⏸ 一時停止';
       } else {
-        song.tempoFrames = parseInt(tempoSelect.value, 10);
         player.playSong(song, curOrderIdx, 0);
         document.getElementById('btn-play').textContent = '⏸ 一時停止';
       }
-    });
-
-    document.getElementById('btn-pause').addEventListener('click', () => {
-      player.pause();
-      document.getElementById('btn-play').textContent = '▶ 再開';
     });
 
     document.getElementById('btn-stop').addEventListener('click', () => {
@@ -778,11 +781,13 @@
     presetSelect.addEventListener('change', (e) => {
       const key = e.target.value;
       if (NesAudioPlayer.PRESETS[key]) {
-        pushUndo();
         player.stop();
         song = JSON.parse(JSON.stringify(NesAudioPlayer.PRESETS[key]));
         curOrderIdx = 0;
         curPattern = (song.order && song.order[0]) || Object.keys(song.patterns)[0];
+        undoStack.length = 0;
+        redoStack.length = 0;
+        updateUndoRedoButtons();
         resetBaseline();
       }
     });
