@@ -23,6 +23,7 @@
     <input type="file" id="file-input-json" accept=".json,.nesbgm.json" style="display:none">
     <button class="btn accent" id="btn-export-asm">📤 ca65 ASM 出力</button>
     <button class="btn" id="btn-import-asm">📥 ca65 ASM 読込</button>
+    <a href="manual.html" target="_blank" class="btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;" title="操作説明書を新しいタブで開く">📖 説明書</a>
   </div>
 </header>
 
@@ -32,6 +33,8 @@
     <button class="btn" id="btn-pause">⏸ 一時停止</button>
     <button class="btn" id="btn-stop">⏹ 停止</button>
     <button class="btn" id="btn-rewind">⏮ 先頭へ</button>
+    <button class="btn" id="btn-undo" title="元に戻す (Ctrl+Z)" disabled>↩ 元に戻す</button>
+    <button class="btn" id="btn-redo" title="やり直す (Ctrl+Y)" disabled>↪ やり直す</button>
   </div>
 
   <div id="position-display">BAR 01 : STEP 01</div>

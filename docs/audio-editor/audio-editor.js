@@ -42,6 +42,113 @@
   const tempoSelect = document.getElementById('tempo-select');
   const masterVol = document.getElementById('master-vol');
 
+  // Baseline Song Project (tracks saved/unmodified reference for dirty marks)
+  let baselineSong = JSON.parse(JSON.stringify(song));
+
+  function resetBaseline() {
+    baselineSong = JSON.parse(JSON.stringify(song));
+    syncUI();
+  }
+
+  function isPatternDirty(patKey) {
+    if (!baselineSong || !baselineSong.patterns) return false;
+    const basePat = baselineSong.patterns[patKey];
+    const curPat = song.patterns[patKey];
+    if (!basePat && curPat) return true;
+    if (basePat && !curPat) return true;
+    if (!basePat && !curPat) return false;
+    return JSON.stringify(basePat) !== JSON.stringify(curPat);
+  }
+
+  function isStepDirty(patKey, chKey, step) {
+    if (!baselineSong || !baselineSong.patterns) return false;
+    const basePat = baselineSong.patterns[patKey];
+    const curPat = song.patterns[patKey];
+    if (!basePat || !curPat) return true;
+    let baseRow = null;
+    let curRow = null;
+    if (chKey === 'pulse1') { baseRow = basePat.mel; curRow = curPat.mel; }
+    else if (chKey === 'pulse2') { baseRow = basePat.harm; curRow = curPat.harm; }
+    else if (chKey === 'triangle') { baseRow = basePat.bass; curRow = curPat.bass; }
+    else if (chKey === 'dmc') { baseRow = basePat.drums; curRow = curPat.drums; }
+    const baseVal = (baseRow && baseRow[step]) || 0;
+    const curVal = (curRow && curRow[step]) || 0;
+    return baseVal !== curVal;
+  }
+
+  function isSongDirty() {
+    return JSON.stringify(song) !== JSON.stringify(baselineSong);
+  }
+
+  function updatePositionDisplay(oIdx = curOrderIdx, step = activePlayheadStep) {
+    const isCurDirty = isPatternDirty(curPattern) || (song.order && isPatternDirty(song.order[oIdx]));
+    const barNum = (oIdx >= 0 ? oIdx : 0) + 1;
+    const stepNum = (step >= 0 ? step : 0) + 1;
+    const barStr = `BAR ${String(barNum).padStart(2, '0')}${isCurDirty ? '*' : ''}`;
+    const stepStr = `STEP ${String(stepNum).padStart(2, '0')}`;
+    const dirtyBadge = isSongDirty() ? ' <span class="dirty-badge" title="未保存の変更があります">● [変更あり]</span>' : '';
+    posDisplay.innerHTML = `${barStr} : ${stepStr}${dirtyBadge}`;
+
+    const patDirty = isPatternDirty(curPattern);
+    curPatBadge.innerHTML = `${curPattern}${patDirty ? ' <span style="color:#ff9800;font-size:11px;">● 未保存</span>' : ''}`;
+  }
+
+  // ===========================================================================
+  // History Management (Undo / Redo)
+  // ===========================================================================
+  const MAX_HISTORY = 60;
+  const undoStack = [];
+  const redoStack = [];
+
+  function recordSnapshot() {
+    return {
+      song: JSON.parse(JSON.stringify(song)),
+      curPattern,
+      curChannel,
+      curOrderIdx
+    };
+  }
+
+  function pushUndo() {
+    undoStack.push(recordSnapshot());
+    if (undoStack.length > MAX_HISTORY) {
+      undoStack.shift();
+    }
+    redoStack.length = 0;
+    updateUndoRedoButtons();
+  }
+
+  function undo() {
+    if (undoStack.length === 0) return;
+    redoStack.push(recordSnapshot());
+    const prev = undoStack.pop();
+    applySnapshot(prev);
+    updateUndoRedoButtons();
+  }
+
+  function redo() {
+    if (redoStack.length === 0) return;
+    undoStack.push(recordSnapshot());
+    const next = redoStack.pop();
+    applySnapshot(next);
+    updateUndoRedoButtons();
+  }
+
+  function applySnapshot(snap) {
+    song = snap.song;
+    curPattern = snap.curPattern;
+    curChannel = snap.curChannel;
+    curOrderIdx = snap.curOrderIdx;
+    syncUI();
+  }
+
+  function updateUndoRedoButtons() {
+    const uBtn = document.getElementById('btn-undo');
+    const rBtn = document.getElementById('btn-redo');
+    if (uBtn) uBtn.disabled = undoStack.length === 0;
+    if (rBtn) rBtn.disabled = redoStack.length === 0;
+  }
+
   // ===========================================================================
   // Initialization
   // ===========================================================================
@@ -169,12 +276,13 @@
     if (!song.patterns[curPattern] && patKeys.length > 0) {
       curPattern = patKeys[0];
     }
-    curPatBadge.textContent = curPattern;
+    const patDirty = isPatternDirty(curPattern);
+    curPatBadge.innerHTML = `${curPattern}${patDirty ? ' <span style="color:#ff9800;font-size:11px;">● 未保存</span>' : ''}`;
 
     patKeys.forEach(k => {
       const opt = document.createElement('option');
       opt.value = k;
-      opt.textContent = `小節 ${k}`;
+      opt.textContent = `小節 ${k}${isPatternDirty(k) ? ' ●' : ''}`;
       if (k === curPattern) opt.selected = true;
       patternSelect.appendChild(opt);
     });
@@ -182,10 +290,13 @@
     // 3. Song Order Bar
     renderOrderBar();
 
-    // 4. Tempo & Controls
+    // 4. Update Header Position Display
+    updatePositionDisplay();
+
+    // 5. Tempo & Controls
     tempoSelect.value = song.tempoFrames || 6;
 
-    // 5. Auto scroll to active note range if not in drum view
+    // 6. Auto scroll to active note range if not in drum view
     if (curChannel !== 'dmc') {
       setTimeout(() => scrollToNotes(), 10);
     }
@@ -232,6 +343,10 @@
     order.forEach((k, oIdx) => {
       const slot = document.createElement('div');
       slot.className = `order-slot ${oIdx === curOrderIdx ? 'active' : ''}`;
+      const isDirty = isPatternDirty(k);
+      if (isDirty) {
+        slot.classList.add('dirty');
+      }
       
       if (oIdx === loopIdx) {
         slot.classList.add('loop-start');
@@ -245,6 +360,14 @@
       const txt = document.createElement('span');
       txt.textContent = `${oIdx + 1}:${k}`;
       slot.appendChild(txt);
+
+      if (isDirty) {
+        const dot = document.createElement('span');
+        dot.className = 'dirty-dot';
+        dot.textContent = ' ●';
+        dot.title = `小節パターン ${k} は保存後に編集されています`;
+        slot.appendChild(dot);
+      }
 
       slot.addEventListener('click', () => {
         curOrderIdx = oIdx;
@@ -260,6 +383,7 @@
         delBtn.title = 'この小節を削除';
         delBtn.addEventListener('click', (e) => {
           e.stopPropagation();
+          pushUndo();
           order.splice(oIdx, 1);
           if (curOrderIdx >= order.length) curOrderIdx = order.length - 1;
           curPattern = order[curOrderIdx];
@@ -326,12 +450,13 @@
 
       for (let s = 0; s < 16; s++) {
         const val = rowData[s];
+        const stepDirty = isStepDirty(curPattern, curChannel, s);
         if (val && val !== NesAudioPlayer.HOLD && val !== NesAudioPlayer.REST) {
           activeNoteIdx = val;
           noteStartStep = s;
-          drawNoteBlock(noteStartStep, activeNoteIdx, 1, trackColor, false);
+          drawNoteBlock(noteStartStep, activeNoteIdx, 1, trackColor, false, stepDirty);
         } else if (val === NesAudioPlayer.HOLD && activeNoteIdx) {
-          drawNoteBlock(s, activeNoteIdx, 1, trackColor, true);
+          drawNoteBlock(s, activeNoteIdx, 1, trackColor, true, stepDirty);
         } else {
           activeNoteIdx = 0;
         }
@@ -359,7 +484,7 @@
     return order[curOrderIdx] === curPattern;
   }
 
-  function drawNoteBlock(step, noteIdx, lenSteps, color, isExtension) {
+  function drawNoteBlock(step, noteIdx, lenSteps, color, isExtension, isDirty) {
     if (noteIdx < MIN_NOTE_IDX || noteIdx > MAX_NOTE_IDX) return;
     const y = (MAX_NOTE_IDX - noteIdx) * KEY_HEIGHT + 2;
     const x = step * STEP_WIDTH + (isExtension ? 0 : 2);
@@ -374,6 +499,17 @@
       cx.font = 'bold 10px monospace';
       cx.fillText(NesAudioPlayer.noteIdxToName(noteIdx), x + 4, y + 12);
     }
+
+    if (isDirty) {
+      // Draw dirty indicator dot (orange circle) on note block
+      cx.fillStyle = '#ff9800';
+      cx.beginPath();
+      cx.arc(x + w - 5, y + 5, 3, 0, Math.PI * 2);
+      cx.fill();
+      cx.strokeStyle = '#221100';
+      cx.lineWidth = 1;
+      cx.stroke();
+    }
   }
 
   function renderDrumView() {
@@ -387,6 +523,9 @@
     drums.forEach((v, s) => {
       kickSteps[s].classList.toggle('active-kick', v === 1);
       snareSteps[s].classList.toggle('active-snare', v === 2);
+      const isDirty = isStepDirty(curPattern, 'dmc', s);
+      kickSteps[s].classList.toggle('step-dirty', isDirty);
+      snareSteps[s].classList.toggle('step-dirty', isDirty);
     });
   }
 
@@ -396,6 +535,7 @@
     const drums = pat.drums || (pat.drums = new Array(16).fill(0));
 
     player.initAudio();
+    pushUndo();
     if (drums[step] === drumType) {
       drums[step] = 0;
     } else {
@@ -403,6 +543,8 @@
       player.previewNote('dmc', drumType, 0.25);
     }
     renderDrumView();
+    renderOrderBar();
+    updatePositionDisplay();
   }
 
   // ===========================================================================
@@ -427,9 +569,14 @@
     if (e.button === 2) {
       // Right click: Erase note
       e.preventDefault();
-      rowData[step] = NesAudioPlayer.REST;
-      setActivePianoKey(null);
-      renderGrid();
+      if (rowData[step] !== NesAudioPlayer.REST) {
+        pushUndo();
+        rowData[step] = NesAudioPlayer.REST;
+        setActivePianoKey(null);
+        renderGrid();
+        renderOrderBar();
+        updatePositionDisplay();
+      }
       return;
     }
 
@@ -441,10 +588,13 @@
       // Clicking same note auditions it; double click or right click erases
       // Keep note active
     } else {
+      pushUndo();
       rowData[step] = noteIdx;
       isDragging = true;
       dragStartStep = step;
       dragNoteIdx = noteIdx;
+      renderOrderBar();
+      updatePositionDisplay();
     }
     renderGrid();
   });
@@ -468,6 +618,8 @@
   window.addEventListener('pointerup', () => {
     if (isDragging) {
       isDragging = false;
+      renderOrderBar();
+      updatePositionDisplay();
     }
     player.stopNote(curChannel);
     setActivePianoKey(null);
@@ -510,6 +662,23 @@
 
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+      // Undo / Redo Shortcuts: Ctrl+Z / Cmd+Z, Ctrl+Y / Cmd+Y / Ctrl+Shift+Z
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
       const noteIdx = KEY_NOTE_MAP[e.code];
       if (noteIdx && !e.repeat) {
         player.initAudio();
@@ -533,14 +702,14 @@
   player.onStep = (oIdx, step, totalStep, audioTime) => {
     curOrderIdx = oIdx;
     activePlayheadStep = step;
-    posDisplay.textContent = `BAR ${String(oIdx + 1).padStart(2, '0')} : STEP ${String(step + 1).padStart(2, '0')}`;
+    updatePositionDisplay(oIdx, step);
 
     const order = song.order || [];
     if (order[oIdx] && order[oIdx] !== curPattern) {
       curPattern = order[oIdx];
-      curPatBadge.textContent = curPattern;
       patternSelect.value = curPattern;
       renderOrderBar();
+      updatePositionDisplay(oIdx, step);
     }
 
     if (curChannel === 'dmc') {
@@ -557,6 +726,7 @@
     activePlayheadStep = -1;
     document.getElementById('btn-play').textContent = '▶ 再生';
     renderGrid();
+    updatePositionDisplay();
   };
 
   // ===========================================================================
@@ -595,21 +765,33 @@
       syncUI();
     });
 
+    // Undo / Redo buttons
+    document.getElementById('btn-undo').addEventListener('click', () => {
+      undo();
+    });
+
+    document.getElementById('btn-redo').addEventListener('click', () => {
+      redo();
+    });
+
     // Preset selection
     presetSelect.addEventListener('change', (e) => {
       const key = e.target.value;
       if (NesAudioPlayer.PRESETS[key]) {
+        pushUndo();
         player.stop();
         song = JSON.parse(JSON.stringify(NesAudioPlayer.PRESETS[key]));
         curOrderIdx = 0;
         curPattern = (song.order && song.order[0]) || Object.keys(song.patterns)[0];
-        syncUI();
+        resetBaseline();
       }
     });
 
     // Tempo & Volume
     tempoSelect.addEventListener('change', (e) => {
+      pushUndo();
       song.tempoFrames = parseInt(e.target.value, 10);
+      updatePositionDisplay();
     });
 
     masterVol.addEventListener('input', (e) => {
@@ -618,15 +800,19 @@
 
     // Loop point
     document.getElementById('btn-set-loop').addEventListener('click', () => {
+      pushUndo();
       song.loopOrderIndex = curOrderIdx;
       alert(`小節 ${curOrderIdx + 1} (${curPattern}) をループ再開ポイントに設定しました！`);
       renderOrderBar();
+      updatePositionDisplay();
     });
 
     // Add Order Slot
     document.getElementById('btn-add-order-slot').addEventListener('click', () => {
+      pushUndo();
       song.order.push(curPattern);
       renderOrderBar();
+      updatePositionDisplay();
     });
 
     // Channel selection tabs
@@ -675,6 +861,7 @@
     document.getElementById('btn-new-pattern').addEventListener('click', () => {
       const name = prompt('新しい小節パターン名 (例: B1, C1):', 'C1');
       if (name && !song.patterns[name]) {
+        pushUndo();
         song.patterns[name] = {
           mel: new Array(16).fill(0),
           harm: new Array(16).fill(0),
@@ -689,6 +876,7 @@
     document.getElementById('btn-dup-pattern').addEventListener('click', () => {
       const name = prompt('複製先の小節パターン名:', `${curPattern}_copy`);
       if (name && !song.patterns[name]) {
+        pushUndo();
         song.patterns[name] = JSON.parse(JSON.stringify(song.patterns[curPattern]));
         curPattern = name;
         syncUI();
@@ -698,6 +886,7 @@
     document.getElementById('btn-rename-pattern').addEventListener('click', () => {
       const newName = prompt('新しい小節パターン名:', curPattern);
       if (newName && newName !== curPattern && !song.patterns[newName]) {
+        pushUndo();
         song.patterns[newName] = song.patterns[curPattern];
         delete song.patterns[curPattern];
         song.order = song.order.map(k => (k === curPattern ? newName : k));
@@ -713,6 +902,7 @@
         return;
       }
       if (confirm(`小節パターン "${curPattern}" を削除しますか？`)) {
+        pushUndo();
         delete song.patterns[curPattern];
         song.order = song.order.filter(k => k !== curPattern);
         if (song.order.length === 0) song.order = [Object.keys(song.patterns)[0]];
@@ -729,6 +919,7 @@
       a.href = URL.createObjectURL(blob);
       a.download = `${(song.title || 'song').toLowerCase().replace(/[^a-z0-9]+/g, '_')}.nesbgm.json`;
       a.click();
+      resetBaseline();
     });
 
     document.getElementById('btn-load-json').addEventListener('click', () => {
@@ -741,10 +932,12 @@
       const reader = new FileReader();
       reader.onload = (evt) => {
         try {
-          song = player.parseJson(evt.target.result);
+          const loaded = player.parseJson(evt.target.result);
+          pushUndo();
+          song = loaded;
           curOrderIdx = 0;
           curPattern = (song.order && song.order[0]) || Object.keys(song.patterns)[0];
-          syncUI();
+          resetBaseline();
           alert(`楽曲 "${song.title || file.name}" を読み込みました！`);
         } catch (err) {
           alert('JSONの読み込みに失敗しました: ' + err);
@@ -774,6 +967,7 @@
       a.href = URL.createObjectURL(blob);
       a.download = `music_${(song.title || 'track').toLowerCase().replace(/[^a-z0-9]+/g, '_')}.s`;
       a.click();
+      resetBaseline();
     });
 
     // ASM Import Modal
@@ -789,10 +983,11 @@
           throw new Error('小節パターンが見つかりませんでした');
         }
         player.stop();
+        pushUndo();
         song = loaded;
         curOrderIdx = 0;
         curPattern = song.order[0] || Object.keys(song.patterns)[0];
-        syncUI();
+        resetBaseline();
         document.getElementById('modal-import-asm').classList.remove('open');
         alert('ASM データのインポートに成功しました！');
       } catch (err) {

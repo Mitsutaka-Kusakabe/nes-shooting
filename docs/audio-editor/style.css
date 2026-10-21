@@ -81,6 +81,13 @@ header .sub {
   transform: translateY(1px);
 }
 
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+}
+
 .btn.primary {
   background: var(--crimson);
   border-color: #e03144;
@@ -171,6 +178,42 @@ select, input[type="text"], input[type="number"] {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.order-slot.dirty {
+  border-bottom: 2px solid #ff9800;
+  background: rgba(255, 152, 0, 0.12);
+}
+
+.order-slot .dirty-dot {
+  color: #ff9800;
+  font-size: 10px;
+  font-weight: bold;
+  animation: pulse-dirty 1.8s infinite ease-in-out;
+}
+
+@keyframes pulse-dirty {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1.0; transform: scale(1.15); }
+}
+
+.dirty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 152, 0, 0.2);
+  color: #ffb74d;
+  border: 1px solid #ff9800;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.drum-step.step-dirty {
+  box-shadow: 0 0 6px rgba(255, 152, 0, 0.7);
+  border-color: #ff9800 !important;
 }
 
 .order-slot.active {

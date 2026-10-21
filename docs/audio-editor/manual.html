@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOJAxMOJA WARS - 2A03 Web 楽曲エディタ 操作説明書</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body {
+    overflow-y: auto !important;
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+  }
+  .manual-container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 30px 24px 80px 24px;
+  }
+  .manual-header {
+    border-bottom: 2px solid #30363d;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .manual-header h1 {
+    margin: 0;
+    font-size: 26px;
+    color: #ffd700;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .manual-header h1 span {
+    font-size: 14px;
+    color: #8b949e;
+    font-weight: normal;
+  }
+  .section-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .section-card h2 {
+    margin-top: 0;
+    color: #58a6ff;
+    font-size: 20px;
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-card h3 {
+    color: #ff9800;
+    font-size: 16px;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+  table.manual-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  table.manual-table th, table.manual-table td {
+    border: 1px solid #30363d;
+    padding: 10px 14px;
+    text-align: left;
+  }
+  table.manual-table th {
+    background: #21262d;
+    color: #79c0ff;
+  }
+  table.manual-table tr:nth-child(even) {
+    background: rgba(255,255,255,0.02);
+  }
+  .kbd {
+    display: inline-block;
+    padding: 2px 7px;
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: #f0f6fc;
+    background-color: #21262d;
+    border: 1px solid #6e7681;
+    border-radius: 4px;
+    box-shadow: inset 0 -1px 0 #6e7681;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
+  .badge-p1 { background: #ff5722; color: #fff; }
+  .badge-p2 { background: #ff9800; color: #000; }
+  .badge-tri { background: #4caf50; color: #fff; }
+  .badge-dmc { background: #00bcd4; color: #000; }
+  .badge-dirty { background: rgba(255,152,0,0.2); color: #ffb74d; border: 1px solid #ff9800; }
+  .note-box {
+    background: #0d1117;
+    border-left: 4px solid #58a6ff;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 14px;
+  }
+  .tip-box {
+    background: rgba(76, 175, 80, 0.1);
+    border-left: 4px solid #4caf50;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 14px;
+  }
+  .btn-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #238636;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background 0.2s;
+  }
+  .btn-nav:hover {
+    background: #2ea043;
+  }
+  ul, ol {
+    padding-left: 24px;
+  }
+  li {
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="manual-container">
+
+  <div class="manual-header">
+    <div>
+      <h1>📖 MOJAxMOJA WARS <span>Web 楽曲エディタ 操作説明書</span></h1>
+      <p style="margin: 4px 0 0 0; color: #8b949e; font-size: 13px;">
+        ファミリーコンピュータ 2A03 APU 音源仕様に完全準拠したチップチューン制作マニュアル
+      </p>
+    </div>
+    <a href="index.html" class="btn-nav">🎵 楽曲エディタへ戻る</a>
+  </div>
+
+  <!-- 1. はじめに -->
+  <div class="section-card">
+    <h2>1. 概要・特徴</h2>
+    <p>
+      このエディタは、ファミコン用シューティングゲーム『MOJAxMOJA WARS』のゲーム内 BGM を Web ブラウザ上で直感的に作曲・試聴し、
+      実機 ROM 構築用のアセンブラコード（<code>.s</code>）およびプロジェクトファイル（<code>.nesbgm.json</code>）へ直接出力できるシーケンサーツールです。
+    </p>
+    <div class="tip-box">
+      <strong>✨ 本エディタの主な機能:</strong>
+      <ul>
+        <li><strong>実機準拠のサウンドエンジン:</strong> パルス波2ch（方形波デューティ比 12.5%, 25%, 50%, 75% 再現）、三角波1ch（ベースライン）、DMC音源（実機デルタ変調バッファ $C000 キック / $C3C0 スネア）</li>
+        <li><strong>全64音階対応（A1〜C7）:</strong> 低音ベースから超高音（ボス曲の F#6 や D6 等）までカバー</li>
+        <li><strong>アンドゥ・リドゥ履歴管理（最大60件）:</strong> ご操作時も <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> で即座に復元</li>
+        <li><strong>更新マーク（未保存インジケーター）:</strong> 保存状態から変更された小節やノートに自動で <span class="badge badge-dirty">● 未保存</span> が点灯し、元に戻すと自動消灯</li>
+        <li><strong>ca65 アセンブラ双方向変換:</strong> 作曲したデータを即座に <code>.byte</code> 配列として出力・既存コードの逆読み込みが可能</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2. 画面構成 -->
+  <div class="section-card">
+    <h2>2. 画面構成</h2>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th style="width: 28%;">エリア</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ヘッダー (上部)</strong></td>
+          <td>プリセット読み込み、JSON 保存/開く、ca65 ASM 出力/読込、説明書リンク。</td>
+        </tr>
+        <tr>
+          <td><strong>コントロールバー</strong></td>
+          <td>再生・一時停止・停止・先頭へ巻き戻し、アンドゥ（↩）・リドゥ（↪）、現在演奏位置表示（BAR/STEP）、テンポ選択（BPM）、マスター音量。</td>
+        </tr>
+        <tr>
+          <td><strong>小節オーダーバー</strong></td>
+          <td>楽曲全体の小節の流れを並び替えるバー。<br>各小節スロットをクリックして移動、<code>✕</code> で小節削除、<code>+ 小節追加</code> で末尾に追加。<br>ループ開始点（<code>|:</code>）と終端点（<code>:|</code>）を視覚的に表示。</td>
+        </tr>
+        <tr>
+          <td><strong>左サイドバー</strong></td>
+          <td>
+            <strong>チャンネル選択:</strong><br>
+            <span class="badge badge-p1">Pulse 1</span> 主旋律（リード）<br>
+            <span class="badge badge-p2">Pulse 2</span> 副旋律（ハーモニー）<br>
+            <span class="badge badge-tri">Triangle</span> 低音（ベース）<br>
+            <span class="badge badge-dmc">DMC</span> リズム（ドラム）<br>
+            各チャンネルの音量・デューティ比変更や [Mute] 切替、および小節パターンの新規作成・複製・名前変更・削除。
+          </td>
+        </tr>
+        <tr>
+          <td><strong>メイン作業エリア</strong></td>
+          <td>
+            <strong>ピアノロール（Pulse 1/2, Triangle 選択時）:</strong> 縦軸に64音階（A1〜C7）、横軸に16ステップ（1小節=16分音符16個）。<br>
+            <strong>ドラムシーケンサー（DMC 選択時）:</strong> キック（Bass Drum）とスネア（Snare Drum）の16ステップグリッド。
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. ノートの入力と編集 -->
+  <div class="section-card">
+    <h2>3. 音符（ノート）の入力と編集</h2>
+
+    <h3>🖱️ マウスによる操作</h3>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">操作</th>
+          <th>効果</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>左クリック（空きマス）</strong></td>
+          <td>そのステップ・音階に音符を配置し、同時にプレビュー音を鳴らします。</td>
+        </tr>
+        <tr>
+          <td><strong>右クリック（音符上）</strong></td>
+          <td>配置済みの音符を消去（休符化）します。</td>
+        </tr>
+        <tr>
+          <td><strong>クリック＆右へドラッグ</strong></td>
+          <td>音符の長さを伸ばします（タイ / ホールド）。次ステップ以降に連続してホールドブロックが配置されます。</td>
+        </tr>
+        <tr>
+          <td><strong>左端の鍵盤をクリック</strong></td>
+          <td>その音階の音色を試聴できます。クリックしたまま上下にドラッグ（グリッサンド）して音階を確認できます。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>🎹 PC キーボードによるリアルタイム試聴演奏</h3>
+    <p>ピアノロールにフォーカスしている際、PC のキーボードを使って鍵盤楽器のようにリアルタイム試聴演奏が可能です（C3〜C5 付近）:</p>
+    <div class="note-box">
+      <strong>白鍵:</strong> <span class="kbd">Z</span> (C3), <span class="kbd">X</span> (D3), <span class="kbd">C</span> (E3), <span class="kbd">V</span> (F3), <span class="kbd">B</span> (G3), <span class="kbd">N</span> (A3), <span class="kbd">M</span> (B3), <span class="kbd">Q</span> (C4), <span class="kbd">W</span> (D4), <span class="kbd">E</span> (E4), <span class="kbd">R</span> (F4), <span class="kbd">T</span> (G4), <span class="kbd">Y</span> (A4), <span class="kbd">U</span> (B4), <span class="kbd">I</span> (C5)<br>
+      <strong>黒鍵:</strong> <span class="kbd">S</span> (C#3), <span class="kbd">D</span> (D#3), <span class="kbd">G</span> (F#3), <span class="kbd">H</span> (G#3), <span class="kbd">J</span> (A#3), <span class="kbd">2</span> (C#4), <span class="kbd">3</span> (D#4), <span class="kbd">5</span> (F#4), <span class="kbd">6</span> (G#4), <span class="kbd">7</span> (A#4)
+    </div>
+
+    <h3>🥁 ドラム（DMC）の打ち込み</h3>
+    <p>
+      左サイドバーで <span class="badge badge-dmc">DMC</span> タブを選択すると、下部に 16ステップのドラムシーケンサーが表示されます。<br>
+      各ステップの <strong>Kick（キック）</strong> または <strong>Snare（スネア）</strong> ボタンをクリックするとオン/オフが切り替わり、実機 DPCM サンプル音でプレビューされます。
+    </p>
+  </div>
+
+  <!-- 4. 小節構成・ループ・更新マーク -->
+  <div class="section-card">
+    <h2>4. 小節構成・ループ・更新マーク</h2>
+
+    <h3>🎼 小節パターンとオーダースロットの仕組み</h3>
+    <p>
+      ファミコンの楽曲データは容量削減のため、<strong>「小節パターン（A1, A2, B1 など）」</strong> を定義し、
+      それを <strong>「小節オーダー」</strong> に沿って再生する構造になっています。
+    </p>
+    <ul>
+      <li><strong>パターンの作成・管理:</strong> 左サイドバーの「+ 新規」「複製」「改名」「削除」ボタンで行います。</li>
+      <li><strong>オーダーへの追加:</strong> 画面上部の <code>+ 小節追加</code> ボタンを押すと、現在選択中のパターンがオーダー末尾に追加されます。</li>
+      <li><strong>オーダーの並び替え・削除:</strong> スロット右上の <code>✕</code> でオーダーから除外できます（パターン定義自体は削除されません）。</li>
+    </ul>
+
+    <h3>🔁 ループ設定</h3>
+    <ul>
+      <li>コントロールバーの <strong>「🔄 ループ指定」</strong> ボタンを押すと、現在選択している小節が <strong>ループ開始地点（<code>|:</code>）</strong> に指定されます。</li>
+      <li>楽曲がオーダーの末尾（<code>:|</code>）まで演奏されると、自動的に指定したループ開始小節へシームレスにジャンプして演奏が継続します。</li>
+    </ul>
+
+    <h3>🟠 更新マーク（未保存インジケーター）</h3>
+    <p>
+      保存時やプリセット読込時からの差分変更がある場合、直感的に分かるマークが表示されます:
+    </p>
+    <ul>
+      <li><strong>音階ブロック:</strong> 変更・追加された音符の右上に小さな <span style="color:#ff9800; font-weight:bold;">オレンジ色のドット（●）</span> が描画されます。</li>
+      <li><strong>小節オーダースロット:</strong> 変更が加わった小節スロットに <span class="badge badge-dirty">●</span> が付き、下線がオレンジ色にハイライトされます（例: <code>3:A1 ●</code>）。</li>
+      <li><strong>ヘッダー表示:</strong> 現在の小節番号に <code>*</code> が付き（例: <code>BAR 01* : STEP 01</code>）、右横に <span class="badge badge-dirty">● [変更あり]</span> が表示されます。</li>
+      <li><strong>自動消灯:</strong> <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> で元の状態まで戻すか、「JSON 保存」「ca65 ASM 出力（.s 保存）」を実行すると自動的に消灯します。</li>
+    </ul>
+  </div>
+
+  <!-- 5. やり直し (Undo / Redo) -->
+  <div class="section-card">
+    <h2>5. やり直し・元に戻す（Undo / Redo）</h2>
+    <table class="manual-table">
+      <thead>
+        <tr>
+          <th style="width: 30%;">ショートカット / ボタン</th>
+          <th>動作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="kbd">Ctrl</span> + <span class="kbd">Z</span><br>または <code>↩ 元に戻す</code> ボタン</td>
+          <td>直前の編集操作（音符配置、消去、ドラム切替、小節追加/削除、テンポ変更など）を取り消します（最大60件保持）。</td>
+        </tr>
+        <tr>
+          <td><span class="kbd">Ctrl</span> + <span class="kbd">Y</span><br><span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">Z</span><br>または <code>↪ やり直す</code> ボタン</td>
+          <td>取り消した操作をやり直します。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 6. 保存・エクスポート・ROM連携 -->
+  <div class="section-card">
+    <h2>6. 保存・エクスポート・実機 ROM 反映手順</h2>
+
+    <h3>💾 プロジェクトの保存と読み込み</h3>
+    <ul>
+      <li><strong>JSON 保存:</strong> <code>💾 JSON 保存</code> をクリックすると、楽曲全体の構成情報（各パターンの音階配列、オーダー順、ループ位置、テンポ、デューティ比）が <code>.nesbgm.json</code> 形式でPCにダウンロードされます。</li>
+      <li><strong>JSON 開く:</strong> <code>📂 JSON 開く</code> から保存済みの <code>.nesbgm.json</code> を選ぶと、いつでも編集を再開できます。</li>
+    </ul>
+
+    <h3>📤 ca65 ASM 出力と ROM 反映フロー</h3>
+    <ol>
+      <li>右上の <strong><code>📤 ca65 ASM 出力</code></strong> ボタンを押します。</li>
+      <li>モーダルウィンドウに、NES サウンドエンジン仕様に準拠した ca65 アセンブラソース（<code>.byte</code> 配列形式）が自動生成されます。</li>
+      <li><strong>「💾 .s ファイル保存」</strong> を押すと <code>music_stage_1.s</code> などのファイル名でダウンロードできます。<br>
+          または <strong>「📋 コピー」</strong> でクリップボードにコピーして直接エディタに貼り付けられます。</li>
+      <li>プロジェクトのリポジトリ内の <code>assets/music_stage.s</code> または <code>assets/music_boss.s</code> をこの内容で更新し、ROM をビルドすることで、ファミコン実機やエミュレータ上で自作 BGM が完全再生されます！</li>
+    </ol>
+
+    <h3>📥 既存 ASM ファイルの読み込み</h3>
+    <p>
+      <code>📥 ca65 ASM 読込</code> ボタンを押し、テキストエリアに既存の <code>music_stage.s</code> 等の <code>.byte</code> 配列データを貼り付けて「インポート実行」を押すと、エディタ上に音階・ドラムパターンが自動解析されて復元されます。
+    </p>
+  </div>
+
+  <!-- フッター戻るボタン -->
+  <div style="text-align: center; margin-top: 40px;">
+    <a href="index.html" class="btn-nav" style="font-size: 16px; padding: 12px 28px;">🎵 楽曲エディタに戻って作曲する</a>
+  </div>
+
+</div>
+
+</body>
+</html>
