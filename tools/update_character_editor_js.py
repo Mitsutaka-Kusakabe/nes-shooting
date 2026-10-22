@@ -10,7 +10,7 @@ with open(js_path, "r", encoding="utf-8") as f:
 # Generate Row constants and DEFAULT_CHARACTERS
 lines = []
 lines.append("  // =============================================================================")
-lines.append("  // Full MOJAxMOJA WARS Character Roster (All 22 In-Game Assets)")
+lines.append("  // Full MOJAxMOJA WARS Character Roster (All 18 Active In-Game Assets)")
 lines.append("  // =============================================================================")
 lines.append("")
 
@@ -77,15 +77,23 @@ lines.append("  ];")
 
 new_presets_section = "\n".join(lines)
 
-start_marker = "  // 1. CORE FIGHTER"
+start_marker_1 = "  // 1. CORE FIGHTER"
+start_marker_2 = "  // Full MOJAxMOJA WARS Character Roster"
 end_marker = "// Editor State"
 
-if start_marker in content and end_marker in content:
-    prefix = content.split(start_marker)[0]
+if start_marker_2 in content and end_marker in content:
+    prefix = content.split("  // =============================================================================\n  // Full MOJAxMOJA WARS Character Roster")[0]
     suffix = "// Editor State" + content.split(end_marker)[1]
     updated = prefix + new_presets_section + "\n\n// =============================================================================\n" + suffix
     with open(js_path, "w", encoding="utf-8") as f:
         f.write(updated)
-    print(f"Successfully updated {js_path} with all 22 characters!")
+    print(f"Successfully updated {js_path} with all 18 characters!")
+elif start_marker_1 in content and end_marker in content:
+    prefix = content.split(start_marker_1)[0]
+    suffix = "// Editor State" + content.split(end_marker)[1]
+    updated = prefix + new_presets_section + "\n\n// =============================================================================\n" + suffix
+    with open(js_path, "w", encoding="utf-8") as f:
+        f.write(updated)
+    print(f"Successfully updated {js_path} with all 18 characters!")
 else:
     print(f"ERROR: markers not found in {js_path}")

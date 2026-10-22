@@ -425,46 +425,6 @@ CHAR_DEFS = [
         "frames": [patterns["RIVAL_RED_MS_24x32"]]
     },
     {
-        "id": "BOSS_BIGCORE",
-        "name": "LUNAR BIG-CORE (Stage 1 月面要塞ボス)",
-        "category": "boss",
-        "pal_idx": 3,
-        "pal": PAL_CARRIER_GOLD,
-        "width": 48,
-        "height": 32,
-        "frames": [make_boss_48x32(patterns["BOSS1_LEFT24"])]
-    },
-    {
-        "id": "BOSS_VALKYRIE",
-        "name": "CRIMSON VALKYRIE (Stage 2 火星要塞ボス)",
-        "category": "boss",
-        "pal_idx": 1,
-        "pal": PAL_RIVAL,
-        "width": 48,
-        "height": 32,
-        "frames": [make_boss_48x32(patterns["BOSS2_LEFT24"])]
-    },
-    {
-        "id": "BOSS_UFO_CARRIER",
-        "name": "JUPITER UFO CARRIER (Stage 3 木星超巨大母艦)",
-        "category": "boss",
-        "pal_idx": 2,
-        "pal": PAL_ENEMY_BLUE,
-        "width": 48,
-        "height": 32,
-        "frames": [make_boss_48x32(patterns["BOSS3_LEFT24"])]
-    },
-    {
-        "id": "BOSS_DREADNOUGHT",
-        "name": "EMPEROR DREADNOUGHT (Stage 4 最終皇帝要塞艦)",
-        "category": "boss",
-        "pal_idx": 3,
-        "pal": PAL_CARRIER_GOLD,
-        "width": 48,
-        "height": 32,
-        "frames": [make_boss_48x32(patterns["BOSS4_LEFT24"])]
-    },
-    {
         "id": "PLAYER_SABER",
         "name": "ビームサーベル大一閃 (抜刀・一閃・残心)",
         "category": "player",
