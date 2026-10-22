@@ -48,6 +48,7 @@ set_bgm_track:
     sta bgm_bar_step
     lda #$30
     sta $4000
+    sta $4004
     lda #$00
     sta $4008
     rts
@@ -377,7 +378,7 @@ update_bgm:
     jmp @cmp_tempo
 :   cpx #TRACK_GAMEOVER
     bne :+
-    lda #12                 ; 75 BPM: YS2 Rest in Peace 厳かなレクイエムテンポ
+    lda #13                 ; 69.3 BPM: Tears of Sylph (Ys風 13フレーム/step 哀愁バラード)
     jmp @cmp_tempo
 :   cpx #TRACK_STAGE1
     beq :+
@@ -551,7 +552,7 @@ update_bgm:
     tay
     lda (text_ptr),y
     cmp #$FF                ; 伸ばし
-    beq @stg_drums
+    beq @stg_harm
     cmp #0                  ; 休符
     beq @stg_rest_bass
     tax
@@ -561,10 +562,38 @@ update_bgm:
     sta $400A
     lda stg_period_hi,x
     sta $400B
-    jmp @stg_drums
+    jmp @stg_harm
 @stg_rest_bass:
     lda #$00
     sta $4008
+
+@stg_harm:
+    ; 2.5 ハーモニー (SQ2: offset +48, ゲームオーバー時のみ)
+    lda bgm_track
+    cmp #TRACK_GAMEOVER
+    bne @stg_drums
+    lda bgm_bar_step
+    clc
+    adc #48
+    tay
+    lda (text_ptr),y
+    cmp #$FF
+    beq @stg_drums
+    cmp #0
+    beq @stg_rest_harm
+    tax
+    lda #%10111001          ; Duty 50%, Vol 9 (メロディより少し控えめなアルペジオハーモニー)
+    sta $4004
+    lda #$08
+    sta $4005
+    lda stg_period_lo,x
+    sta $4006
+    lda stg_period_hi,x
+    sta $4007
+    jmp @stg_drums
+@stg_rest_harm:
+    lda #$30
+    sta $4004
 
 @stg_drums:
     ; 3. DPCM ドラム (offset +32: 0=なし, 1=キック, 2=スネア)

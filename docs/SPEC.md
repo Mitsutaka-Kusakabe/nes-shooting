@@ -298,7 +298,7 @@ Stage 4 の宿敵・赤いMS戦でのみ発動する大技。
 | 3 | `TRACK_STAGE2` | 火星動乱 (Mars Red Dust) | 重厚なベースラインと緊迫感のある展開 |
 | 4 | `TRACK_BOSS` | 宿敵との死闘 (Duel of Crimson) | 激しいパルスリードとスネア連打 |
 | 5 | `TRACK_CLEAR` | ステージクリア ジングル | ファンファーレ |
-| 6 | `TRACK_GAMEOVER`| Rest in Peace (哀惜の詩) | テンポ落とした荘厳なレクイエム旋律 |
+| 6 | `TRACK_GAMEOVER`| Tears of Sylph (哀惜の詩) | 69.3 BPM (13 f/step) Ys風 哀愁バラード旋律（Pulse 1 主旋律＋Pulse 2 和音アルペジオ＋Triangle 下行ベース） |
 
 ### 8.3 効果音 (SFX) 優先度テーブル
 SFX は Pulse 2 および Noise チャンネルを一時的に占有して再生される。効果音タイマー満了で自動的に BGM 出力へ復帰する。

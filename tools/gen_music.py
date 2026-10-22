@@ -215,44 +215,106 @@ LOOP_TITLE = 2  # イントロ後は TA1 からループ
 
 
 # =============================================================================
-# 4. ゲームオーバー曲: REST IN PEACE (YS2 Game Over Arrange, F minor, 75 BPM)
+# 4. ゲームオーバー曲: TEARS OF SYLPH (Ys風 Game Over Arrange, D minor, 69.3 BPM)
 # =============================================================================
 D_SILENT = ". . . . . . . . . . . . . . . ."
 
 BARS_GAMEOVER = {
-    # イントロ前奏＆アウフタクト (Fm: ドーソ・ド・ソ... ソ#・シb)
-    "GO1": (". . . . . . . . G#4 - - - A#4 - - -", "F2 - - - C3 - - - F2 - - - C3 - - -", D_SILENT),
-    # フレーズA1: ドーーーー レーーー (Fm -> Bb/D)
-    "GO2": ("C5 - - - - - - - D5 - - - - - - -", "F2 - - - C3 - - - F2 - - - C3 - - -", D_SILENT),
-    # フレーズA2: ドーシbー ラbーファー (Fm)
-    "GO3": ("C5 - - - A#4 - - - G#4 - - - F4 - - -", "F2 - - - C3 - - - F2 - - - C3 - - -", D_SILENT),
-    # フレーズA3: ミbーーーー ファーソー (Eb7)
-    "GO4": ("D#4 - - - - - - - F4 - - - G4 - - -", "D#2 - - - A#2 - - - D#2 - - - A#2 - - -", D_SILENT),
-    # フレーズA4: ラbーーーーーーー (Ab)
-    "GO5": ("G#4 - - - - - - - - - - - - - - -", "G#2 - - - D#3 - - - G#2 - - - D#3 - - -", D_SILENT),
-    # つなぎ: (休符) ドーー ミbーー (C7)
-    "GO6": (". . . . . . . . C5 - - - D#5 - - -", "C3 - - - G3 - - - C3 - - - G3 - - -", D_SILENT),
-    # フレーズB1: ファーーーー ミbーレー (Db -> Bbm)
-    "GO7": ("F5 - - - - - - - D#5 - - - D5 - - -", "C#3 - - - G#3 - - - A#2 - - - F3 - - -", D_SILENT),
-    # フレーズB2: ドーーシbー シbーーーー (C7 -> Bbm)
-    "GO8": ("C5 - - - A#4 - - - A#4 - - - - - - -", "C3 - - - G3 - - - C3 - - - G3 - - -", D_SILENT),
-    # リフレイン前奏: (休符) ソ#ー シbー
-    "GO9": (". . . . . . . . G#4 - - - A#4 - - -", "F2 - - - C3 - - - F2 - - - C3 - - -", D_SILENT),
-    # フレーズA1再来: ドーーーー レーーー
-    "GO10": ("C5 - - - - - - - D5 - - - - - - -", "F2 - - - C3 - - - F2 - - - C3 - - -", D_SILENT),
-    # フレーズA2再来: ドーシbー ラbーファー
-    "GO11": ("C5 - - - A#4 - - - G#4 - - - F4 - - -", "F2 - - - C3 - - - F2 - - - C3 - - -", D_SILENT),
-    # フレーズA3結び: ミbーーーー ファーソー
-    "GO12": ("D#4 - - - - - - - F4 - - - G4 - - -", "D#2 - - - A#2 - - - D#2 - - - A#2 - - -", D_SILENT),
-    # 哀愁の主音終止: ファーーーーーーー (Fm)
-    "GO13": ("F4 - - - - - - - - - - - - - - -", "F2 - - - C3 - - - F3 - - - C3 - - -", D_SILENT),
-    # 余韻と静寂: (完全休符)
-    "GO14": (". . . . . . . . . . . . . . . .", "F2 - - - - - - - . . . . . . . .", D_SILENT),
+    "Y1": (
+        "A4 - - - D5 - - - F5 - - - E5 - - -",
+        "D2 - - - A2 - - - D3 - - - F3 - - -",
+        D_SILENT,
+        "D4 - - - F4 - - - A4 - - - D5 - - -",
+    ),
+    "Y2": (
+        "D5 - - - - - - - C#5 - - - D5 - - -",
+        "C#2 - - - A2 - - - E3 - - - A3 - - -",
+        D_SILENT,
+        "F4 - - - A4 - - - E4 - - - F4 - - -",
+    ),
+    "Y3": (
+        "E5 - - - - - F5 - D5 - - - - - - -",
+        "A#2 - - - F3 - - - A#3 - - - D4 - - -",
+        D_SILENT,
+        "G4 - - - - - A4 - F4 - - - A4 - - -",
+    ),
+    "Y4": (
+        "C#5 - - - - - - - - - - - - - - -",
+        "A2 - - - E3 - - - A3 - - - C#4 - - -",
+        D_SILENT,
+        "E4 - - - - - - - A4 - - - C#5 - - -",
+    ),
+    "Y5": (
+        "A4 - - - D5 - - - F5 - - - G5 - - -",
+        "D2 - - - A2 - - - D3 - - - F3 - - -",
+        D_SILENT,
+        "D4 - - - F4 - - - A4 - - - B4 - - -",
+    ),
+    "Y6": (
+        "A5 - - - - - - - G5 - - - F5 - - -",
+        "G2 - - - D3 - - - G3 - - - A#3 - - -",
+        D_SILENT,
+        "C#5 - - - - - - - E5 - - - D5 - - -",
+    ),
+    "Y7": (
+        "E5 - - - - - F5 - E5 - - - D5 - - -",
+        "A2 - - - E3 - - - G3 - - - A3 - - -",
+        D_SILENT,
+        "C#5 - - - - - D5 - C#5 - - - A4 - - -",
+    ),
+    "Y8": (
+        "D5 - - - - - - - - - - - - - - -",
+        "D2 - - - A2 - - - D3 - - - - - - -",
+        D_SILENT,
+        "F4 - - - A4 - - - D5 - - - F5 - - -",
+    ),
+    "Y9": (
+        "F5 - - - G5 - - - A5 - - - - - - -",
+        "F2 - - - C3 - - - F3 - - - A3 - - -",
+        D_SILENT,
+        "D5 - - - E5 - - - F5 - - - - - - -",
+    ),
+    "Y10": (
+        "A#5 - - - - - - - A5 - - - G5 - - -",
+        "G2 - - - D3 - - - G3 - - - A#3 - - -",
+        D_SILENT,
+        "G5 - - - - - - - F5 - - - E5 - - -",
+    ),
+    "Y11": (
+        "A5 - - - - - - - F5 - - - D5 - - -",
+        "D2 - - - A2 - - - D3 - - - F3 - - -",
+        D_SILENT,
+        "F5 - - - - - - - D5 - - - A4 - - -",
+    ),
+    "Y12": (
+        "E5 - - - - - - - - - - - - - - -",
+        "A2 - - - E3 - - - A3 - - - C#4 - - -",
+        D_SILENT,
+        "C#5 - - - - - - - - - - - - - - -",
+    ),
+    "Y13": (
+        "F5 - - - E5 - - - D5 - - - C#5 - - -",
+        "A#2 - - - F3 - - - A2 - - - E3 - - -",
+        D_SILENT,
+        "D5 - - - C#5 - - - A#4 - - - A4 - - -",
+    ),
+    "Y14": (
+        "D5 - - - - - - - - - - - - - - -",
+        "D2 - - - A2 - - - D3 - - - - - - -",
+        D_SILENT,
+        "F4 - - - A4 - - - D5 - - - - - - -",
+    ),
+    "Y15": (
+        ". . . . . . . . . . . . . . . .",
+        "D2 - - - - - - - . . . . . . . .",
+        D_SILENT,
+        ". . . . . . . . . . . . . . . .",
+    ),
 }
 
 ORDER_GAMEOVER = [
-    "GO1", "GO2", "GO3", "GO4", "GO5", "GO6", "GO7", "GO8",
-    "GO9", "GO10", "GO11", "GO12", "GO13", "GO14"
+    "Y1", "Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8",
+    "Y9", "Y10", "Y11", "Y12", "Y13", "Y14", "Y15"
 ]
 LOOP_GAMEOVER = 0
 
@@ -282,12 +344,16 @@ def generate_music_file(filename, title, prefix, bars, order, loop_pos):
     out.append(f"{prefix}_pat_hi:")
     out.append("    .byte " + ", ".join(f">{prefix}_pat_{n}" for n in names) + "\n")
     for n in names:
-        mel, bass, drum = bars[n]
+        bar_data = bars[n]
+        mel, bass, drum = bar_data[0], bar_data[1], bar_data[2]
         m = parse_line(mel)
         b = bass if isinstance(bass, list) else parse_line(bass)
         d = parse_drum(drum)
+        rows = [m, b, d]
+        if len(bar_data) > 3 and bar_data[3]:
+            rows.append(parse_line(bar_data[3]))
         out.append(f"{prefix}_pat_{n}:")
-        for row in (m, b, d):
+        for row in rows:
             out.append("    .byte " + ", ".join(f"${v:02X}" for v in row))
 
     if prefix == "stg":
@@ -332,7 +398,7 @@ def main():
     )
     generate_music_file(
         "assets/music_gameover.s",
-        "ゲームオーバーBGM「REST IN PEACE」(YS2 Game Over Arrange)",
+        "ゲームオーバーBGM「TEARS OF SYLPH」(Ys風アレンジ)",
         "gov",
         BARS_GAMEOVER,
         ORDER_GAMEOVER,
