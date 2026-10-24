@@ -429,7 +429,15 @@ check_pbullets_vs_enemy:
     lda pbul_flag,y
     beq @bnext
 
-    ; |pbul_x + 4 - (enemy_x + 8)| < 11
+    ; 横判定幅 (tmp2): 極細ニードル弾 (dmg=1) なら 8px (幅2pxに比例したタイトな判定), 強化ミサイル (dmg>=2) なら 11px
+    lda pbul_dmg,y
+    cmp #2
+    lda #8
+    bcc :+
+    lda #11
+:   sta tmp2
+
+    ; |pbul_x + 4 - (enemy_x + 8)| < tmp2 (横幅判定)
     lda pbul_x,y
     clc
     adc #4
@@ -442,10 +450,10 @@ check_pbullets_vs_enemy:
     bcs :+
     eor #$FF
     adc #1
-:   cmp #11
+:   cmp tmp2
     bcs @bnext
 
-    ; |pbul_y + 4 - (enemy_y + 8)| < 11
+    ; |pbul_y + 4 - (enemy_y + 8)| < 11 (縦判定)
     lda pbul_y,y
     clc
     adc #4

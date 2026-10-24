@@ -361,7 +361,7 @@ fire_main_weapon:
     lda weapon_type
     cmp #FORM_LEGS
     bne :+
-    jmp @fire_legs_3way
+    jmp @fire_legs_heavy
 :   cmp #FORM_CHEST
     beq @fire_chest_2way
 
@@ -459,18 +459,20 @@ fire_main_weapon:
     jsr spawn_pbullet
     rts
 
-@fire_legs_3way:
-    ; ---- 第2形態 (1: コアファイター＋脚部): 3WAY ミサイル ----
+@fire_legs_heavy:
+    ; ---- 第2形態 (1: コアファイター＋脚部): 強化ミサイル (直進単発・2dmg・旧通常ミサイルサイズ) ----
     lda #SFX_SHOT
     jsr play_sfx
-    lda #1
+    lda #2                  ; 強化ミサイル: 2ダメージ
     sta tmp_dmg
     lda #0
     sta tmp_pierce
+    lda #$0A                ; 強化ミサイルタイル ($0A: 従来の通常ミサイルサイズ)
+    sta tmp_tile
     lda side_mode
     bne @legs_side
 
-    ; 中央ミサイル
+    ; 縦画面: 中央強化ミサイル直進単発
     lda player_x
     clc
     adc #4
@@ -483,39 +485,11 @@ fire_main_weapon:
     sta tmp_vx
     lda #<(-7)
     sta tmp_vy
-    lda #$07                ; 直進ミサイル
-    sta tmp_tile
-    jsr spawn_pbullet
-
-    ; 左斜めミサイル
-    lda player_x
-    sta tmp_bx
-    lda player_y
-    sec
-    sbc #2
-    sta tmp_by
-    lda #<(-2)
-    sta tmp_vx
-    lda #<(-6)
-    sta tmp_vy
-    lda #$0B                ; 斜めミサイル
-    sta tmp_tile
-    jsr spawn_pbullet
-
-    ; 右斜めミサイル
-    lda player_x
-    clc
-    adc #8
-    sta tmp_bx
-    lda #2
-    sta tmp_vx
-    lda #$0B
-    sta tmp_tile
     jsr spawn_pbullet
     rts
 
 @legs_side:
-    ; 横表示ロボット戦: 右方向 3WAY ミサイル
+    ; 横表示ロボット戦: 右方向 水平強化ミサイル直進単発
     lda player_x
     clc
     adc #16
@@ -527,18 +501,6 @@ fire_main_weapon:
     lda #7
     sta tmp_vx
     lda #0
-    sta tmp_vy
-    lda #$07
-    sta tmp_tile
-    jsr spawn_pbullet
-    lda #6
-    sta tmp_vx
-    lda #<(-2)
-    sta tmp_vy
-    lda #$0B
-    sta tmp_tile
-    jsr spawn_pbullet
-    lda #2
     sta tmp_vy
     jsr spawn_pbullet
     rts
