@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KBX-026 SAMURAI - Web 開発支援ツール ポータル</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --card-border: #30363d;
+      --text: #c9d1d9;
+      --heading: #58a6ff;
+      --accent: #238636;
+      --accent-hover: #2ea043;
+      --link: #58a6ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 2rem;
+    }
+    h1 {
+      color: #fff;
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: 1px;
+    }
+    .subtitle {
+      color: #8b949e;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .repo-link {
+      display: inline-block;
+      color: var(--link);
+      text-decoration: none;
+      font-weight: 500;
+      border: 1px solid var(--card-border);
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .repo-link:hover {
+      background: var(--card-bg);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #58a6ff;
+    }
+    .card-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .card h2 {
+      color: #fff;
+      font-size: 1.3rem;
+      margin-bottom: 0.8rem;
+    }
+    .card p {
+      color: #8b949e;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      flex-grow: 1;
+    }
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .btn {
+      flex: 1;
+      text-align: center;
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-secondary {
+      background: #21262d;
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover {
+      background: #30363d;
+    }
+    footer {
+      text-align: center;
+      color: #8b949e;
+      font-size: 0.85rem;
+      border-top: 1px solid var(--card-border);
+      padding-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>KBX-026 SAMURAI</h1>
+      <p class="subtitle">ファミコン向け本格シューティング Web開発支援ツール ポータル</p>
+      <a href="https://github.com/Mitsutaka-Kusakabe/nes-shooting" class="repo-link" target="_blank" rel="noopener">GitHub リポジトリを見る</a>
+    </header>
+
+    <div class="grid">
+      <!-- Character Editor -->
+      <div class="card">
+        <div class="card-icon">👾</div>
+        <h2>キャラクターエディタ</h2>
+        <p>画像D&amp;DによるNES減色、スプライトCHR容量メーター、アニメーション・食らい判定/攻撃判定設定、ca65ソース出力に対応した総合スプライト制作ツール。</p>
+        <div class="btn-group">
+          <a href="docs/character-editor/" class="btn btn-primary">ツールを開く</a>
+          <a href="docs/character-editor/manual.html" class="btn btn-secondary">取扱説明書</a>
+        </div>
+      </div>
+
+      <!-- Stage Editor -->
+      <div class="card">
+        <div class="card-icon">🗺️</div>
+        <h2>ステージエディタ</h2>
+        <p>全4面のメタ行地形デザイン、敵編隊スポナー・敵弾速度調整、BGM同期スクロールプレビュー、拡張設定入り.nes書き出し、ca65 ASM出力に対応。</p>
+        <div class="btn-group">
+          <a href="docs/editor/" class="btn btn-primary">ツールを開く</a>
+          <a href="docs/editor/manual.html" class="btn btn-secondary">取扱説明書</a>
+        </div>
+      </div>
+
+      <!-- Audio Editor -->
+      <div class="card">
+        <div class="card-icon">🎵</div>
+        <h2>楽曲エディタ (NES Audio)</h2>
+        <p>2A03 APU (パルス2音+三角波+DPCMドラム) のリアルタイムWeb Audio合成、ピアノロール作曲、ca65アセンブラ.byte出力/読込対応エディタ。</p>
+        <div class="btn-group">
+          <a href="docs/audio-editor/" class="btn btn-primary">ツールを開く</a>
+          <a href="docs/audio-editor/manual.html" class="btn btn-secondary">取扱説明書</a>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; Mitsutaka Kusakabe - KBX-026 SAMURAI (NES Shooting)</p>
+    </footer>
+  </div>
+</body>
+</html>

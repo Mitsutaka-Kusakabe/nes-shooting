@@ -1,10 +1,14 @@
 # MOJAxMOJA WARS (ファミコン向け 縦スクロール＆横画面ロボット戦シューティング)
 
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Web%20Apps%20Online-blue?logo=github)](https://mitsutaka-kusakabe.github.io/nes-shooting/)
+[![Play Web Emu](https://img.shields.io/badge/Play-Web%20Emulator-success?logo=nintendo)](https://mitsutaka-kusakabe.github.io/cluade-famicom-emu/)
+
 ファミリーコンピュータ (NES) 向けの 1人プレイ専用シューティングゲームです。  
 **縦スクロールの宇宙戦 → 味方支援機との合体 → 横画面でのロボット（モビルスーツ）1対1ボス戦** という流れで、全4宙域を突破します。  
 6502 アセンブラ (`cc65` / `ca65` + `ld65`) を用いてフルスクラッチで実装しています。
 
 > 細かい挙動・数値・内部仕様は **[docs/SPEC.md（詳細仕様書）](docs/SPEC.md)** にまとめています。
+> 本リポジトリのWebツールは **[GitHub Pages](https://mitsutaka-kusakabe.github.io/nes-shooting/)** でブラウザから直接ご利用いただけます。
 
 ## ▶ プレイ方法 (Webエミュレータ)
 
@@ -62,7 +66,8 @@
 
 ## 自機：KBX-026 SAMURAI（4形態ドッキング合体システム）
 
-ステージ中、味方支援輸送機が **脚部パーツ** と **胸部パーツ** を運んできます（**各ボス戦の直前** に連続して登場）。パーツを受け取る（接触する）と合体音とともに機体が進化します。  
+ステージ中、味方支援輸送機（ガンペリー）が **脚部パーツ（第1陣）** と **胸部パーツ（第2陣）** を各ボス戦の手前で自律的に順次運んできます。  
+脚部パーツの取得成否に関わらず胸部パーツが出撃するため、脚部を取り逃がした場合でも胸部を取得して「第2.5形態」に変形可能。ボス戦突入前に十分なドッキング時間が確保されています。パーツを受け取る（接触する）と合体音（「ガッ・シャン！！」）とともに機体が進化します。  
 被弾してもすぐには撃墜されず、**装甲（合体パーツ）がパージされて一段階ダウン** します（初期形態で被弾すると1機ミス。自機は3機）。
 
 | 形態 | 見た目 | 合体条件 | Aボタン主兵装 |
@@ -83,8 +88,8 @@
 | 名称 | 見た目 | 役割 |
 | :--- | :---: | :--- |
 | **味方支援輸送機** | <img src="docs/images/ally_carrier.png" width="96"> | 画面上から自機に寄り添って降下し、パーツを投下して帰還する |
-| **脚部パーツ** | <img src="docs/images/part_legs.png" width="64"> | 取得で第2形態へ（ドッキングボーナス +500点） |
-| **胸部パーツ** | <img src="docs/images/part_chest.png" width="64"> | 取得で第2.5形態へ。脚部と揃えば第3形態へ |
+| **脚部パーツ (Bパーツ)** | <img src="docs/images/part_legs.png" width="64"> | 取得で第2形態へ（ドッキングボーナス +500点）。第2形態と完全一致するスリム脚設計 |
+| **胸部パーツ (Aパーツ)** | <img src="docs/images/part_chest.png" width="64"> | 取得で第2.5形態へ。脚部と揃えば第3形態へ（頭部・胸部・両腕ユニット） |
 
 ## 敵キャラクタ紹介
 
@@ -210,25 +215,15 @@ make clean                      # ビルド成果物を削除
     └── font.s                # ASCII フォント元データ
 ```
 
-## Web 開発支援ツール
+## Web 開発支援ツール (GitHub Pages)
 
-ブラウザ上で動作する3つの公式Webツールを提供しています。
+ブラウザ上で直接動作する3つの公式Webツールを **[GitHub Pages](https://mitsutaka-kusakabe.github.io/nes-shooting/)** にて公開しています。  
+インストール不要で、PCのWebブラウザからすぐに利用可能です。
 
-1. **[Web 楽曲エディタ (`docs/audio-editor/index.html`)](docs/audio-editor/index.html)** ｜ **[📖 楽曲エディタ説明書](docs/audio-editor/manual.html)**
-   - ファミコン 2A03 APU (Pulse 1, Pulse 2, Triangle, DMCドラム) のリアルタイム Web Audio 合成エディタ。
-   - ピアノロール＆16ステップドラムグリッドによる直感的な作曲。
-   - `ca65` アセンブラ用 `.byte` 出力/読込、および `.nesbgm.json` プロジェクト保存対応。
-   - 組み込みプリセット（Stage 1, Boss, Title, Game Over）の試聴・編集が可能。
+🌐 **[Web ツール ポータルを開く](https://mitsutaka-kusakabe.github.io/nes-shooting/)**
 
-2. **[Web ステージエディタ (`docs/editor/index.html`)](docs/editor/index.html)** ｜ **[📖 ステージエディタ取扱説明書](docs/editor/manual.html)**
-   - 全4面のメタ行地形デザインおよび 3機編隊スポナー間隔、敵弾速度、ボス狂乱突進HP閾値のカスタマイズ。
-   - **BGM同期プレビュー**: `nes-audio-player.js` と連携し、BGMを再生しながら自機がスクロールして敵・イベントの到達タイミングを視覚的にプレビュー（中ボス・大ボスの自動曲切り替え対応）。
-   - **💾 拡張設定入り .nes の書き出し**: 編集した設定をそのまま埋め込んだ `.nes` ROM のワンクリック書き出し。
-   - **📤 ca65 ASM 出力**: 編集したマップおよびパラメータを `assets/stages.s` 用の ca65 アセンブラソースとして出力し、プロジェクトの標準仕様へ恒久適用可能。
-   - **👾 キャラインポート**: キャラクターエディタで保存した `characters.json` をロードし、タイムライン上に自機・支援機・敵・ボスをリアルタイムアニメーション表示。
-   - **↺ 標準配置に戻す**: いつでも実機ROM本来のデフォルト地形にワンクリック復元。
-
-3. **[Web キャラクターエディタ (`docs/character-editor/index.html`)](docs/character-editor/index.html)** ｜ **[📖 キャラクターエディタ説明書](docs/character-editor/manual.html)**
+1. **[Web キャラクターエディタ](https://mitsutaka-kusakabe.github.io/nes-shooting/docs/character-editor/)** ｜ **[📖 取扱説明書](https://mitsutaka-kusakabe.github.io/nes-shooting/docs/character-editor/manual.html)**
+   - **公開URL**: https://mitsutaka-kusakabe.github.io/nes-shooting/docs/character-editor/
    - **画像ドラッグ＆ドロップ ＆ NES自動減色**: 一般のPNGイラストから最適なNES3色＋透明を抽出し、8x8タイルへ自動分解。
    - **スプライト CHR 容量メーター**: 256タイルのハードウェア上限を常時監視し、容量超過を防止。
    - **8スプライト制限警告**: 水平スキャンライン上のスプライト重なり枚数を解析し、チラつき発生ラインを警告。
@@ -236,6 +231,22 @@ make clean                      # ビルド成果物を削除
    - **AABB当たり判定設定**: 食らい判定 (Hurtbox) / 攻撃判定 (Hitbox) をドラッグ＆リサイズで設定（実機コード互換の半幅・半高を出力）。
    - **ca65 デュアル出力**: `character_data.s` (OAMメタスプライト・判定テーブル) と `character_tiles.s` (CHR-ROM 2bpp ビットマップ) を分離出力。
    - **`characters.json` 完全連携**: プロジェクトの保存・再編集、およびステージエディタへのキャラクターグラフィック供給。
+
+2. **[Web ステージエディタ](https://mitsutaka-kusakabe.github.io/nes-shooting/docs/editor/)** ｜ **[📖 取扱説明書](https://mitsutaka-kusakabe.github.io/nes-shooting/docs/editor/manual.html)**
+   - **公開URL**: https://mitsutaka-kusakabe.github.io/nes-shooting/docs/editor/
+   - 全4面のメタ行地形デザインおよび 3機編隊スポナー間隔、敵弾速度、ボス狂乱突進HP閾値のカスタマイズ。
+   - **BGM同期プレビュー**: `nes-audio-player.js` と連携し、BGMを再生しながら自機がスクロールして敵・イベントの到達タイミングを視覚的にプレビュー（中ボス・大ボスの自動曲切り替え対応）。
+   - **💾 拡張設定入り .nes の書き出し**: 編集した設定をそのまま埋め込んだ `.nes` ROM のワンクリック書き出し。
+   - **📤 ca65 ASM 出力**: 編集したマップおよびパラメータを `assets/stages.s` 用の ca65 アセンブラソースとして出力し、プロジェクトの標準仕様へ恒久適用可能。
+   - **👾 キャラインポート**: キャラクターエディタで保存した `characters.json` をロードし、タイムライン上に自機・支援機・敵・ボスをリアルタイムアニメーション表示。
+   - **↺ 標準配置に戻す**: いつでも実機ROM本来のデフォルト地形にワンクリック復元。
+
+3. **[Web 楽曲エディタ (NES Audio)](https://mitsutaka-kusakabe.github.io/nes-shooting/docs/audio-editor/)** ｜ **[📖 取扱説明書](https://mitsutaka-kusakabe.github.io/nes-shooting/docs/audio-editor/manual.html)**
+   - **公開URL**: https://mitsutaka-kusakabe.github.io/nes-shooting/docs/audio-editor/
+   - ファミコン 2A03 APU (Pulse 1, Pulse 2, Triangle, DMCドラム) のリアルタイム Web Audio 合成エディタ。
+   - ピアノロール＆16ステップドラムグリッドによる直感的な作曲。
+   - `ca65` アセンブラ用 `.byte` 出力/読込、および `.nesbgm.json` プロジェクト保存対応。
+   - 組み込みプリセット（Stage 1, Boss, Title, Game Over）の試聴・編集が可能。
 
 ## ライセンス
 
