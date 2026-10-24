@@ -109,7 +109,7 @@
 | 名称 | 見た目 | 登場 | 特徴 |
 | :--- | :---: | :---: | :--- |
 | **ザク型 MOJA-01** | <img src="docs/images/boss_zaku.png" width="128"> | STAGE 1 | 丸ドーム頭・モノアイ・動力パイプ・左肩スパイクアーマー・ドラムマガジン付きザクマシンガンを備えた量産機。基本パターン（3WAY弾＋自機狙い弾） |
-| **ドム型 MOJA-02** | <img src="docs/images/boss_dom.png" width="128"> | STAGE 2 | 前後ステップ機動が加わる |
+| **ドム型 MOJA-02** | <img src="docs/images/boss_dom.png" width="128"> | STAGE 2 | 十字モノアイ・胸部拡散ビーム砲・ジャイアントバズ・重装ホバースカート＆ホバー脚部を備えた重装甲機。前後ステップ機動が加わる |
 | **ズゴック型 MOJA-03** | <img src="docs/images/boss_zgok.png" width="128"> | STAGE 3 | 護衛突撃機を射出する |
 | **グフ型 MOJA-04** | <img src="docs/images/boss_gouf.png" width="128"> | STAGE 4 | 5WAY弾＋ヒートロッド |
 
