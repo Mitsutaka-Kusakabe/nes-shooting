@@ -161,7 +161,7 @@ update_boss:
     bne @boss_alive
 
     ; =========================================================================
-    ; ---- boss_state = 2: 撃破爆発 / 撤退前ヒットストップ演出 ----
+    ; ---- boss_state = 2: 撃破爆発 / 損害爆発＆逃走演出 ----
     ; =========================================================================
     lda boss_timer
     and #7
@@ -170,6 +170,17 @@ update_boss:
     sta kill_flash
     lda #SFX_EXPLODE
     jsr play_sfx
+:
+    ; 最初の20フレーム (88..68) は大破ヒットストップ、その後 (67..1) は損害爆発を起こしながら画面右端へ逃走後退！
+    lda boss_timer
+    cmp #68
+    bcs :+
+    lda boss_x
+    cmp #244
+    bcs :+
+    clc
+    adc #2                  ; 画面右へ後退・逃走
+    sta boss_x
 :   dec boss_timer
     bne @boss_ret
 

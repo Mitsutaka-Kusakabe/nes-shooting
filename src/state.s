@@ -765,46 +765,74 @@ update_state:
 :   rts
 
 @do_warp:
-    ; ---- ステージクリア後のワープ演出！ ----
-    ; 1. state_timer 150..90: 自機が中央へ移動しながら背景がワープ光線化
-    ; 2. state_timer 89..1:   自機が超高速で画面上方へワープ離脱！
+    ; ---- ステージクリア後のワープ演出＆ボス逃走・自機追撃シーケンス！ ----
+    lda side_mode
+    beq @do_vertical_warp
+
+    ; =========================================================================
+    ; ---- 横画面ボス戦後: 逃げるボスを自機が右方向へ猛追撃！ ----
+    ; =========================================================================
+    ; 1. 逃走するボス: 画面右端へブースト加速退却 (boss_x += 3)
+    lda boss_x
+    cmp #244
+    bcs :+
+    clc
+    adc #3
+    sta boss_x
+:
+    ; 2. 追撃する自機: ボスより速いスピード (player_x += 4) で画面右へ猛烈追撃！
+    lda player_x
+    cmp #228
+    bcs @chase_done
+    clc
+    adc #4
+    sta player_x
+
+    ; 自機のY座標をボスの高さ (boss_y) へスムーズに合わせて背後をロックオン
+    lda player_y
+    cmp boss_y
+    beq @chase_done
+    bcc @chase_down
+    dec player_y
+    jmp @chase_done
+@chase_down:
+    inc player_y
+
+@chase_done:
+    ; 16フレームごとにアフターバーナー加速パルスフラッシュ
+    lda state_timer
+    and #$0F
+    bne @warp_tick
+    lda #2
+    sta kill_flash
+    jmp @warp_tick
+
+@do_vertical_warp:
+    ; ---- 縦画面道中からのワープ演出 ----
     lda state_timer
     cmp #90
-    bcc @warp_fly_up
+    bcc @vwarp_fly_up
 
     ; 中央 (X=120, Y=160) へ寄せる
     lda player_x
     cmp #120
-    beq @wx_ok
-    bcc @wx_inc
+    beq @vwx_ok
+    bcc @vwx_inc
     dec player_x
-    jmp @wx_ok
-@wx_inc:
+    jmp @vwx_ok
+@vwx_inc:
     inc player_x
-@wx_ok:
+@vwx_ok:
     jmp @warp_tick
 
-@warp_fly_up:
-    ; Stage 1〜3 では宿敵・赤いMSが水平ワープ星線の中で画面右端へブースト撤退 (boss_x += 3)！
-    lda current_stage
-    cmp #3
-    bcs @player_warp_move
-    lda boss_x
-    cmp #240
-    bcs @player_warp_move
-    clc
-    adc #3
-    sta boss_x
-
-@player_warp_move:
-    ; 画面上端へ猛スピードで飛び去る！
+@vwarp_fly_up:
+    ; 画面上端へ猛スピードで飛び去る
     lda player_y
     cmp #12
     bcc @warp_tick
     sec
     sbc #4
     sta player_y
-    ; 16フレームごとにワープパルスフラッシュ
     lda state_timer
     and #$0F
     bne @warp_tick
@@ -1896,30 +1924,37 @@ draw_sprite_text:
 
 ; ---- 横表示ロボット戦: 量産型中ボス (MOJA-01..04) & 宿敵・赤いMS (RIVAL RED MS) の OAM 描画 ----
 draw_boss_oam:
-    ; ワープ撤退演出中 (game_state == STATE_WARP かつ Stage 1〜3) なら、画面右へ離脱する赤いMSを描画！
+    ; ワープ撤退・追撃演出中 (game_state == STATE_WARP かつ side_mode != 0) なら、画面右へ逃走するボスを描画！
     lda game_state
     cmp #STATE_WARP
     bne @chk_bstate
-    lda current_stage
-    cmp #3
-    bcs @no_boss_draw
+    lda side_mode
+    beq @no_boss_draw
     lda boss_x
-    cmp #232
+    cmp #244
     bcs @no_boss_draw
-    ; 撤退ブースト噴射炎スプライト ($05) を赤いMSの左側に描画
+
+    ; 逃走中のボスからも時折、破損火花・黒煙スプライト ($1C) を噴出 (boss_x < 228 の時のみ)
+    lda boss_x
+    cmp #228
+    bcs :+
+    lda frame_count
+    and #4
+    beq :+
     lda boss_x
     clc
-    adc #4
+    adc #14
     sta tmp_bx
     lda boss_y
     clc
-    adc #12
+    adc #6
     sta tmp_by
-    lda #$05
+    lda #$1C
     sta tmp_tile
-    lda #$00
+    lda #$03
     sta tmp_attr
     jsr push_one_sprite
+:
     jmp @boss_alive_draw
 
 @no_boss_draw:
@@ -1990,7 +2025,9 @@ draw_boss_oam:
 @chk_bstate4:
     ; boss_state == 4 (ボス飛来突入シーン) または 1 (戦闘中)
     cmp #4
-    bne @boss_alive_draw
+    beq :+
+    jmp @boss_alive_draw
+:
 
     ; 飛来突入シーン中はボスの右後方にジェット噴射炎 ($05) を描画！
     lda boss_x
@@ -2009,16 +2046,61 @@ draw_boss_oam:
     jmp @boss_alive_draw
 
 @do_boss_explode:
-    ; 撃破爆発中は 48x32 領域の左右2箇所に大爆発スプライトを展開
+    ; 撃破大破中: ボス本体を表示したまま (大破点滅)、機体表面に損害大爆発を連続描画！
+    jsr @boss_alive_draw
+
+    ; ボスが画面右端付近 (boss_x >= 224) なら爆発スプライトのラップアラウンド防止のため描画スキップ
+    lda boss_x
+    cmp #224
+    bcc :+
+    rts
+:
+    ; 損害大爆発 (ボス機体 24x32 領域の各所にフレームごとに位置を変えて大爆発を重ねる)
+    lda frame_count
+    and #4
+    bne @exp_pos2
+
+    ; 爆発パターン1: 機体胸部 (boss_x + 8, boss_y + 4) & 機体背部 (boss_x + 24, boss_y + 12)
     lda boss_x
     clc
-    adc #4
+    adc #8
     sta tmp_bx
     lda boss_y
     clc
-    adc #8
+    adc #4
     sta tmp_by
     lda #$1C
+    sta tmp_tile
+    lda #$03                ; オレンジ/黄色パレット
+    sta tmp_attr
+    jsr push_16x16_same_tile
+
+    lda boss_x
+    clc
+    adc #24
+    sta tmp_bx
+    lda boss_y
+    clc
+    adc #12
+    sta tmp_by
+    lda #$1D
+    sta tmp_tile
+    lda #$02                ; 赤色パレット
+    sta tmp_attr
+    jsr push_16x16_same_tile
+    rts
+
+@exp_pos2:
+    ; 爆発パターン2: 機体前部 (boss_x + 16, boss_y + 12) & 機体上部 (boss_x + 6, boss_y - 2)
+    lda boss_x
+    clc
+    adc #16
+    sta tmp_bx
+    lda boss_y
+    clc
+    adc #12
+    sta tmp_by
+    lda #$1D
     sta tmp_tile
     lda #$03
     sta tmp_attr
@@ -2026,13 +2108,13 @@ draw_boss_oam:
 
     lda boss_x
     clc
-    adc #28
+    adc #6
     sta tmp_bx
     lda boss_y
-    clc
-    adc #8
+    sec
+    sbc #2
     sta tmp_by
-    lda #$1D
+    lda #$1C
     sta tmp_tile
     lda #$02
     sta tmp_attr
@@ -2040,9 +2122,17 @@ draw_boss_oam:
     rts
 
 @boss_alive_draw:
-    ; 被弾フラッシュ中はパレット1(シアン白)
-    ; 狂乱突進中 (boss_state == 5) は4フレーム周期でパレット1(赤点滅/警告)と通常色を交互にしてモノアイ赤点滅を表現
+    ; 被弾フラッシュ中または撃破大破中 (boss_state == 2) はパレット1(白点滅)と通常色を交互点滅
     lda #$02
+    ldy boss_state
+    cpy #2
+    bne :+
+    lda frame_count
+    and #2
+    bne @pal_flash
+    lda #$02
+    jmp @set_attr
+:
     ldy boss_flash
     bne @pal_flash
     ldy boss_state
@@ -2069,40 +2159,77 @@ draw_boss_oam:
 
 
     ; 24x32 (3列 x 4行 = 12スプライト) の横向きモビルスーツ本体を (boss_x + 12, boss_y) に描画！
-    ; (横3枚=24px幅のため、自機3枚+サーベル2枚と並んでも横8スプライト制限を超えず欠けゼロ！)
+    ; 画面右端 (X >= 248 またはキャリー発生) のパーツは画面外クリッピングして左端へのラップアラウンド出現を完全防止！
     lda boss_y
     sta tmp_by
     lda #4
     sta tmp2                ; 4行カウンタ
 @ms_row_loop:
+    ; 1列目 (boss_x + 12)
     lda boss_x
     clc
     adc #12
+    bcs @skip_col1_and_rest ; キャリー発生なら右端超え -> 残り列も画面外
+    cmp #248
+    bcs @skip_col1_and_rest
     sta tmp_bx
-
     jsr push_one_sprite
+    jmp :+
+@skip_col1_and_rest:
     inc tmp_tile
-    lda tmp_bx
+    inc tmp_tile
+    inc tmp_tile
+    jmp @next_ms_row
+:
+    inc tmp_tile
+
+    ; 2列目 (boss_x + 20)
+    lda boss_x
     clc
-    adc #8
+    adc #20
+    bcs @skip_col2_and_rest
+    cmp #248
+    bcs @skip_col2_and_rest
     sta tmp_bx
-
     jsr push_one_sprite
+    jmp :+
+@skip_col2_and_rest:
     inc tmp_tile
-    lda tmp_bx
+    inc tmp_tile
+    jmp @next_ms_row
+:
+    inc tmp_tile
+
+    ; 3列目 (boss_x + 28)
+    lda boss_x
     clc
-    adc #8
+    adc #28
+    bcs @skip_col3
+    cmp #248
+    bcs @skip_col3
     sta tmp_bx
-
     jsr push_one_sprite
+@skip_col3:
     inc tmp_tile
 
+@next_ms_row:
     lda tmp_by
     clc
     adc #8
     sta tmp_by
     dec tmp2
     bne @ms_row_loop
+
+    ; 撃破大破中 (boss_state == 2) またはワープ逃走中 (game_state == STATE_WARP) なら特殊武器は描画せず終了！
+    lda boss_state
+    cmp #2
+    beq @ms_draw_ret
+    lda game_state
+    cmp #STATE_WARP
+    bne :+
+@ms_draw_ret:
+    rts
+:
 
     ; 狂乱近接戦闘中 (boss_state == 5) は前方に武器（ヒートホーク / 赤ビームサーベル光刃 $09）を長さ3倍(32px)で常時構えて突撃・戦闘！
     lda boss_state
