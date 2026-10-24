@@ -111,7 +111,7 @@
 | **ザク型 MOJA-01** | <img src="docs/images/boss_zaku.png" width="128"> | STAGE 1 | 丸ドーム頭・モノアイ・動力パイプ・左肩スパイクアーマー・ドラムマガジン付きザクマシンガンを備えた量産機。基本パターン（3WAY弾＋自機狙い弾） |
 | **ドム型 MOJA-02** | <img src="docs/images/boss_dom.png" width="128"> | STAGE 2 | 十字モノアイ・胸部拡散ビーム砲・ジャイアントバズ・重装ホバースカート＆ホバー脚部を備えた重装甲機。前後ステップ機動が加わる |
 | **ズゴック型 MOJA-03** | <img src="docs/images/boss_zgok.png" width="128"> | STAGE 3 | ドーム頭部ロケット弾孔・V字モノアイ・胸部ダクト＆コクピットハッチ・前方3連アイアンネイル爪・尖った膝アーマーを備えた水陸両用機。護衛突撃機を射出する |
-| **グフ型 MOJA-04** | <img src="docs/images/boss_gouf.png" width="128"> | STAGE 4 | 5WAY弾＋ヒートロッド |
+| **グフ型 MOJA-04** | <img src="docs/images/boss_gouf.png" width="128"> | STAGE 4 | ブレードアンテナ・両肩湾曲スパイク・黒胸部・両手構えヒートサーベルを備えた白兵戦機。5WAY弾＋ヒートロッド |
 
 ### 宿敵：赤いモビルスーツ（各ステージのボス）
 
