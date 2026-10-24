@@ -99,6 +99,7 @@ spawner_base_x: .res 1  ; 3機編隊 基準X座標
 
 ; スコア (6桁 10進: score+0=十万 .. score+5=一)
 score:          .res 6
+extend_count:   .res 1  ; 20,000点ごとの1UP達成回数カウンタ
 
 ; 演出・OAM・汎用ワーク
 kill_flash:     .res 1  ; 画面フラッシュ残りフレーム

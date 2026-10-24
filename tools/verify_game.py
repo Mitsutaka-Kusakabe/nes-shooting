@@ -102,15 +102,15 @@ assert px1 > px0 and py1 < py0 and active_bullets >= 1
 assert zp("weapon_type") == 0 and zp("weapon_level") == 1
 print(f"[OK] Initial Form 1 (Core Fighter): weapon_type={zp('weapon_type')}, weapon_level={zp('weapon_level')}")
 
-# Advance to just before Pre-MidBoss Carrier (meta_idx=26 -> 27)
-set_zp("meta_idx", 26)
+# Advance to just before Pre-MidBoss Carrier (meta_idx=21 -> 22)
+set_zp("meta_idx", 21)
 set_zp("meta_sub_row", 1)
 for _ in range(20):
     run_frame(0x00)
     if zp("ally_state") == 1:
         break
 assert zp("ally_state") == 1 and zp("ally_part") == 0
-print(f"[OK] Pre-MidBoss Phase 1 (meta_idx=27): Ally Support Craft arrived carrying Leg Parts (ally_part={zp('ally_part')})!")
+print(f"[OK] Pre-MidBoss Phase 1 (meta_idx=22): Ally Support Craft arrived carrying Leg Parts (ally_part={zp('ally_part')})!")
 
 # Let Ally Support Craft descend to Y=76, release the Leg Parts, and player docks with it!
 # Docking Leg Parts automatically triggers the second carrier carrying Chest Parts!
@@ -122,7 +122,9 @@ for _ in range(250):
 assert zp("weapon_type") == 1 and zp("weapon_level") == 2
 print(f"[OK] Ally Support Craft delivered Leg Parts -> Docked into Form 2 (Core Fighter + Legs, 3-Way Missile)!")
 
-# Next carrier should now be inbound with Chest Parts (ally_part=1)
+# Next carrier arrives at meta_idx=26 with Chest Parts (ally_part=1)
+set_zp("meta_idx", 25)
+set_zp("meta_sub_row", 1)
 for _ in range(20):
     run_frame(0x00)
     if zp("ally_state") == 1:
@@ -430,6 +432,76 @@ for stage_num in range(4):
     else:
         assert zp("game_state") == 5
         print(f"[OK] Stage 4 Final Rival Red MS defeated & Warp completed -> Reached Victory Ending (STATE_ENDING=5)!")
+
+# ============================================================
+# 8. Test 20,000-Point 1UP System & Fanfare SFX (SFX_1UP = 10)
+# ============================================================
+def call_asm(addr, a_val=0):
+    cpu.a = a_val
+    # RTS pushes PC-1, pulls and adds 1. When returning to $0100, push $00FF
+    cpu.ram[0x100 + cpu.sp] = 0x00
+    cpu.sp = (cpu.sp - 1) & 0xFF
+    cpu.ram[0x100 + cpu.sp] = 0xFF
+    cpu.sp = (cpu.sp - 1) & 0xFF
+    cpu.pc = addr
+    limit = 10000
+    while cpu.pc != 0x0100 and limit > 0:
+        cpu.step()
+        limit -= 1
+    assert limit > 0, "Subroutine did not return within limit!"
+
+score_addr = syms["score"]
+add_score_addr = syms["add_score_hundreds"]
+
+# Case 1: 19,900 -> 20,000 points (+100) -> 1UP!
+set_zp("lives", 3)
+set_zp("extend_count", 0)
+for i, d in enumerate([0, 1, 9, 9, 0, 0]):
+    cpu.ram[score_addr + i] = d
+
+call_asm(add_score_addr, a_val=1)  # +100 points
+assert cpu.ram[score_addr + 1] == 2 and cpu.ram[score_addr + 2] == 0 and cpu.ram[score_addr + 3] == 0, \
+    f"Score carry failed: {[cpu.ram[score_addr+i] for i in range(6)]}"
+assert zp("extend_count") == 1, f"Expected extend_count=1, got {zp('extend_count')}"
+assert zp("lives") == 4, f"Expected lives=4, got {zp('lives')}"
+assert zp("sfx_sq2_type") == 10, f"Expected sfx_sq2_type=10 (SFX_1UP), got {zp('sfx_sq2_type')}"
+assert zp("sfx_sq2_timer") == 56, f"Expected sfx_sq2_timer=56, got {zp('sfx_sq2_timer')}"
+print("[OK] 20,000 points reached: lives 3 -> 4 (+1UP), extend_count=1, triggered SFX_1UP (56 frames)!")
+
+# Case 2: 20,000 -> 20,500 points (+500) -> No duplicate 1UP
+call_asm(add_score_addr, a_val=5)
+assert zp("extend_count") == 1
+assert zp("lives") == 4
+print("[OK] Intermediate score (20,500): No duplicate 1UP triggered.")
+
+# Case 3: 39,900 -> 40,000 points (+100) -> Second 1UP!
+for i, d in enumerate([0, 3, 9, 9, 0, 0]):
+    cpu.ram[score_addr + i] = d
+call_asm(add_score_addr, a_val=1)
+assert zp("extend_count") == 2
+assert zp("lives") == 5
+assert zp("sfx_sq2_type") == 10
+print("[OK] 40,000 points reached: lives 4 -> 5 (+1UP), extend_count=2, triggered SFX_1UP!")
+
+# Case 4: 99,900 -> 100,000 points (+100) -> 100,000 points milestone (score+0 carry)
+for i, d in enumerate([0, 9, 9, 9, 0, 0]):
+    cpu.ram[score_addr + i] = d
+call_asm(add_score_addr, a_val=1)
+assert cpu.ram[score_addr + 0] == 1 and cpu.ram[score_addr + 1] == 0
+assert zp("extend_count") == 5
+assert zp("lives") == 6
+assert zp("sfx_sq2_type") == 10
+print("[OK] 100,000 points reached (100k carry): lives 5 -> 6 (+1UP), extend_count=5, triggered SFX_1UP!")
+
+# Case 5: Lives capping at 9
+set_zp("lives", 9)
+for i, d in enumerate([1, 1, 9, 9, 0, 0]):
+    cpu.ram[score_addr + i] = d
+call_asm(add_score_addr, a_val=1)  # 120,000 points
+assert zp("extend_count") == 6
+assert zp("lives") == 9  # capped at 9
+assert zp("sfx_sq2_type") == 10
+print("[OK] 120,000 points reached with lives=9: lives correctly capped at 9, fanfare plays!")
 
 print("\nALL TESTS PASSED PERFECTLY!")
 

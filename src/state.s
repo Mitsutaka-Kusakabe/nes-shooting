@@ -63,7 +63,35 @@ add_score_hundreds:
     bcc :+
     lda #9
     sta score+0
-:   rts
+:   jsr check_1up_extend
+    rts
+
+; ---- 20,000点ごとの1UP判定 ----
+check_1up_extend:
+    ; score+0 (十万の位), score+1 (万の位) から 20,000点区切りのインデックスを計算
+    lda score+0
+    asl
+    asl
+    clc
+    adc score+0
+    asl
+    clc
+    adc score+1             ; A = 十万の位*10 + 万の位 (0..99)
+    lsr                     ; A = 2万点区切りインデックス (0..49)
+    cmp extend_count
+    beq @no_1up
+    bcc @no_1up
+    sta extend_count
+    ; 残機加算 (最大9機まで)
+    lda lives
+    cmp #9
+    bcs :+
+    inc lives
+:
+    lda #SFX_1UP
+    jsr play_sfx
+@no_1up:
+    rts
 
 ; ---- OAM バッファ全クリア ($FF で画面外へ) ----
 clear_oam:
@@ -496,6 +524,7 @@ update_title:
     lda #3
     sta lives
     lda #0
+    sta extend_count
     sta score+0
     sta score+1
     sta score+2
@@ -508,6 +537,7 @@ update_title:
 
 @start_boss_battle_mode:
     lda #0
+    sta extend_count
     sta score+0
     sta score+1
     sta score+2

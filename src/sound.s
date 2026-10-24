@@ -17,6 +17,7 @@ SFX_POWERUP  = 6
 SFX_DEAD     = 7
 SFX_WARP     = 8
 SFX_DOCK     = 9        ; ドッキング合体効果音「ガッ・シャン！！」 (金属クラッチ＋ロック音)
+SFX_1UP      = 10       ; 20,000点達成 1UP ファンファーレ「ぱぱぱぱーん。」
 
 .segment "CODE"
 
@@ -55,6 +56,15 @@ set_bgm_track:
 
 ; ---- 効果音リクエスト (A = SFX_*) ----
 play_sfx:
+    ldy sfx_sq2_type
+    cpy #SFX_1UP
+    bne :+
+    cmp #SFX_DEAD
+    beq :+
+    rts                     ; 1UPファンファーレ再生中は通常ショット・レーザー等の割り込みを防止
+:
+    cmp #SFX_1UP
+    beq @oneup_sfx
     cmp #SFX_DOCK
     beq @dock_sfx
     cmp #SFX_DEAD
@@ -66,6 +76,14 @@ play_sfx:
     beq @bomb_sfx
     sta sfx_sq2_type
     lda #10
+    sta sfx_sq2_timer
+    rts
+
+@oneup_sfx:
+    ; ★ 20,000点 1UP ファンファーレ「ぱぱぱぱーん。」 (56フレーム: 約0.93秒)
+    lda #SFX_1UP
+    sta sfx_sq2_type
+    lda #56
     sta sfx_sq2_timer
     rts
 
@@ -168,6 +186,9 @@ update_sfx_sq2:
 :   cmp #SFX_DEAD
     bne :+
     jmp @do_dead_sq2
+:   cmp #SFX_1UP
+    bne :+
+    jmp @do_1up
 :
 
     ; SFX_SHOT: 高音から急速ピッチダウンするミサイル音
@@ -314,6 +335,62 @@ update_sfx_sq2:
     adc #$40
     sta $4006
     lda #$01                ; 長波長 (重低音)
+    sta $4007
+    rts
+
+@do_1up:
+    ; ★ SFX_1UP: 20,000点達成 1UP ファンファーレ「ぱぱぱぱーん。」 (56..1 フレーム: 約0.93秒)
+    lda #56
+    sec
+    sbc sfx_sq2_timer       ; A = 経過フレーム (0..55)
+    cmp #32
+    bcs @oneup_last_note
+
+    ; 前半4音「パ・パ・パ・パ」(0..31): 8フレームごと
+    tay
+    and #$07
+    cmp #6                  ; 0..5 = 発音, 6..7 = 歯切れのよい無音スタッカート
+    bcs @oneup_silence
+
+    tya
+    lsr
+    lsr
+    lsr
+    tay                     ; Y = 0..3 (G4, C5, E5, G5)
+    lda #%01111111          ; デューティ25% (華やかなトランペット音), 最大音量
+    sta $4004
+    lda #$08
+    sta $4005
+    lda sfx_1up_lo,y
+    sta $4006
+    lda sfx_1up_hi,y
+    sta $4007
+    rts
+
+@oneup_silence:
+    lda #%01110000          ; 無音
+    sta $4004
+    rts
+
+@oneup_last_note:
+    ; 後半長音「パーーーン」(32..55: 24フレーム): C6 + 音量減衰 + 繊細なビブラート
+    tax                     ; X = 経過フレーム (32..55)
+    sec
+    sbc #32                 ; 0..23
+    lsr
+    lsr                     ; 0..5
+    tay
+    lda sfx_1up_decay_vol,y
+    sta $4004
+    lda #$08
+    sta $4005
+    lda #$6A                ; C6 基本周期
+    txa
+    lsr
+    bcc :+
+    lda #$69                ; C6 周期ゆらぎ (ビブラート)
+:   sta $4006
+    lda #$00
     sta $4007
     rts
 
@@ -832,6 +909,13 @@ update_bgm:
 
 pw_arp_lo:
     .byte $AA, $87, $71, $55
+
+sfx_1up_lo:
+    .byte $4A, $D6, $A9, $8B    ; G4, C5, E5, G5
+sfx_1up_hi:
+    .byte $01, $00, $00, $00
+sfx_1up_decay_vol:
+    .byte %01111111, %01111110, %01111101, %01111011, %01111001, %01110111
 
 ; ノート周期テーブル (0=休符, 1..24 = A2..G#4)
 note_table_lo:
