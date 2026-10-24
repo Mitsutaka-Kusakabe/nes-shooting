@@ -188,8 +188,29 @@
   ・書き出した <code>.nes</code> は「3機編隊スポナー間隔」「敵弾速度」「ボス狂乱突進HP閾値」などの拡張設定が埋め込まれ、ファミコン実機やエミュレータで即座に反映されます。
 </div>
 
-<script src="base-nes-data.js"></script>
-<script src="nes-audio-player.js"></script>
+<!-- ASM Export Modal -->
+<div class="modal-overlay" id="modal-export-asm">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span>📤 ca65 ASM ソースコード出力 (assets/stages.s 形式)</span>
+      <span style="cursor:pointer; font-size:16px;" id="btn-close-asm-modal">✕</span>
+    </div>
+    <div class="modal-bdy">
+      <div style="font-size:11px; color:#8b949e;">
+        このコードをコピーして <code>assets/stages.s</code> に貼り付けるか、「💾 stages.s ファイル保存」を押して <code>assets/</code> フォルダに上書き保存することで、ファミコン実機ROMの公式仕様として本採用できます。
+      </div>
+      <textarea id="asm-export-text" readonly spellcheck="false"></textarea>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn blue" id="btn-copy-asm">📋 クリップボードにコピー</button>
+      <button class="btn green" id="btn-download-asm">💾 stages.s ファイル保存</button>
+      <button class="btn" id="btn-close-asm" style="background:#445;">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script src="base-nes-data.js?v=20261024"></script>
+<script src="nes-audio-player.js?v=20261024"></script>
 <script>
 'use strict';
 const COLS = 64, CELL = 16, STAGES = 4;
@@ -943,26 +964,5 @@ if (btnImportChars && inpImportChars) {
   });
 }
 </script>
-
-<!-- ASM Export Modal -->
-<div class="modal-overlay" id="modal-export-asm">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <span>📤 ca65 ASM ソースコード出力 (assets/stages.s 形式)</span>
-      <span style="cursor:pointer; font-size:16px;" id="btn-close-asm-modal">✕</span>
-    </div>
-    <div class="modal-bdy">
-      <div style="font-size:11px; color:#8b949e;">
-        このコードをコピーして <code>assets/stages.s</code> に貼り付けるか、「💾 stages.s ファイル保存」を押して <code>assets/</code> フォルダに上書き保存することで、ファミコン実機ROMの公式仕様として本採用できます。
-      </div>
-      <textarea id="asm-export-text" readonly spellcheck="false"></textarea>
-    </div>
-    <div class="modal-ftr">
-      <button class="btn blue" id="btn-copy-asm">📋 クリップボードにコピー</button>
-      <button class="btn green" id="btn-download-asm">💾 stages.s ファイル保存</button>
-      <button class="btn" id="btn-close-asm" style="background:#445;">閉じる</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
