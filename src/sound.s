@@ -57,6 +57,8 @@ set_bgm_track:
 play_sfx:
     cmp #SFX_DOCK
     beq @dock_sfx
+    cmp #SFX_DEAD
+    beq @dead_sfx
     cmp #SFX_HIT
     bcs @noise_or_jingle
     ; SHOT / LASER / BOMB は SQ2 + NOI で鳴らす
@@ -77,6 +79,16 @@ play_sfx:
     sta sfx_noi_timer
     rts
 
+@dead_sfx:
+    ; ★ 自機撃墜効果音: SQ2 (急降下ピッチダウン) + NOI (大破爆轟) の大迫力複合発音 (48フレーム)
+    lda #SFX_DEAD
+    sta sfx_sq2_type
+    sta sfx_noi_type
+    lda #48
+    sta sfx_sq2_timer
+    sta sfx_noi_timer
+    rts
+
 @bomb_sfx:
     lda #SFX_BOMB
     sta sfx_sq2_type
@@ -93,12 +105,12 @@ play_sfx:
     beq @pw_sfx
     cmp #SFX_WARP
     beq @warp_sfx
-    ; HIT / EXPLODE / DEAD はノイズチャンネルを使用
+    ; HIT / EXPLODE はノイズチャンネルを使用
     sta sfx_noi_type
-    lda #18
+    lda #24                 ; 敵爆発は 24フレーム (約0.4秒)
     cmp #SFX_HIT
     bne :+
-    lda #6
+    lda #6                  ; 被弾は 6フレーム
 :   sta sfx_noi_timer
     rts
 
@@ -139,16 +151,23 @@ update_sfx_sq2:
 @active:
     lda sfx_sq2_type
     cmp #SFX_LASER
-    beq @do_laser
-    cmp #SFX_BOMB
-    beq @do_bomb
-    cmp #SFX_POWERUP
-    beq @do_pw
-    cmp #SFX_WARP
-    beq @do_warp
-    cmp #SFX_DOCK
+    bne :+
+    jmp @do_laser
+:   cmp #SFX_BOMB
+    bne :+
+    jmp @do_bomb
+:   cmp #SFX_POWERUP
+    bne :+
+    jmp @do_pw
+:   cmp #SFX_WARP
+    bne :+
+    jmp @do_warp
+:   cmp #SFX_DOCK
     bne :+
     jmp @do_dock_sq2
+:   cmp #SFX_DEAD
+    bne :+
+    jmp @do_dead_sq2
 :
 
     ; SFX_SHOT: 高音から急速ピッチダウンするミサイル音
@@ -275,6 +294,29 @@ update_sfx_sq2:
     sta $4004
     rts
 
+@do_dead_sq2:
+    ; SFX_DEAD: 自機撃墜時の大破急降下クラッシュ音 (48..1 フレーム)
+    ; 最大音量 (%10111111) から徐々に減衰、音程は高音から地響きのような重低音へ急降下
+    lda sfx_sq2_timer
+    lsr
+    lsr                     ; 48..0 -> 12..0
+    ora #%10110000          ; 固定音量モード
+    sta $4004
+    lda #$08
+    sta $4005
+    ; 周波数レジスタ: タイマーが減るほど波長が長くなる (高音 -> 超重低音)
+    lda #48
+    sec
+    sbc sfx_sq2_timer       ; 0 -> 47
+    asl
+    asl                     ; 0 -> 188
+    clc
+    adc #$40
+    sta $4006
+    lda #$01                ; 長波長 (重低音)
+    sta $4007
+    rts
+
 ; ---- NOI 効果音更新 (被弾ヒット / 敵撃破爆発 / 自機撃墜 / ドッキング金属音) ----
 update_sfx_noi:
     lda sfx_noi_timer
@@ -290,22 +332,90 @@ update_sfx_noi:
 
 @active:
     lda sfx_noi_type
-    cmp #SFX_DOCK
-    beq @do_dock_noi
     cmp #SFX_HIT
-    beq @do_hit
+    bne :+
+    jmp @do_hit
+:   cmp #SFX_DOCK
+    bne :+
+    jmp @do_dock_noi
+:   cmp #SFX_DEAD
+    bne :+
+    jmp @do_dead_noi
+:
 
-    ; 爆発音 (EXPLODE / DEAD)
+    ; ---- 敵機撃破音 (SFX_EXPLODE: タイマー 24..1) ----
+    ; 前半(24..18): 最大音量 $3F + アタック炸裂ピッチ ($07)
+    ; 中盤(17..8):  重低音ピッチ ($0B) + 音量減衰
+    ; 後半(7..1):   余韻ピッチ ($0E) + フェードアウト
+    lda sfx_noi_timer
+    cmp #18
+    bcc @exp_mid
+    lda #$3F                ; 最大音量 15
+    sta $400C
+    lda #$07                ; 激しい中高域炸裂クラッシュ
+    sta $400E
+    lda #$00
+    sta $400F
+    rts
+@exp_mid:
+    cmp #8
+    bcc @exp_tail
     lda sfx_noi_timer
     lsr
-    ora #$34
+    clc
+    adc #$30                ; 音量 12..8
     sta $400C
-    lda #$0E                ; 低音ノイズ
-    ldy sfx_noi_type
-    cpy #SFX_DEAD
-    bne :+
-    lda #$0F                ; 自機撃墜時はさらに重低音
-:   sta $400E
+    lda #$0B                ; 重低音爆発ピッチ
+    sta $400E
+    lda #$00
+    sta $400F
+    rts
+@exp_tail:
+    lda sfx_noi_timer
+    ora #$30                ; 音量 7..1
+    sta $400C
+    lda #$0E                ; 最低音ノイズ余韻
+    sta $400E
+    lda #$00
+    sta $400F
+    rts
+
+@do_dead_noi:
+    ; ---- 自機撃墜音 (SFX_DEAD: タイマー 48..1) ----
+    ; 前半(48..36): 金属クラッシュ ($8A) + 最大音量 $3F で大破衝撃
+    ; 中盤(35..16): 大爆轟 ($0B) + 音量減衰
+    ; 後半(15..1):  地響き ($0F) + フェードアウト
+    lda sfx_noi_timer
+    cmp #36
+    bcc @dead_mid
+    lda #$3F                ; 最大音量 15
+    sta $400C
+    lda #$8A                ; 金属モード激震クラッシュ
+    sta $400E
+    lda #$00
+    sta $400F
+    rts
+@dead_mid:
+    cmp #16
+    bcc @dead_tail
+    lda sfx_noi_timer
+    lsr
+    lsr                     ; 8..4
+    clc
+    adc #$36                ; 音量 14..10
+    sta $400C
+    lda #$0B
+    sta $400E
+    lda #$00
+    sta $400F
+    rts
+@dead_tail:
+    lda sfx_noi_timer
+    lsr                     ; 7..0
+    ora #$30
+    sta $400C
+    lda #$0F                ; 最深重低音
+    sta $400E
     lda #$00
     sta $400F
     rts
