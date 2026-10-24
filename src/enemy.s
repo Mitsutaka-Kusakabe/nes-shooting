@@ -47,12 +47,19 @@ spawn_wave_for_meta:
     beq :+
     rts
 :
-    ; ★ 中ボス (meta_idx == 32) 直前:
-    ; meta_idx == 27: 脚部パーツ運搬支援機 (第1陣) 出撃！
+    ; ★ 中ボス (meta_idx == 32) 直前の合体支援機シーケンス:
+    ; meta_idx == 22: 脚部パーツ運搬支援機 (第1陣) 出撃！
+    ; meta_idx == 26: 胸部パーツ運搬支援機 (第2陣) 出撃！ (脚部の取得成否に関わらず自動出撃)
     ldy meta_idx
-    cpy #27
+    cpy #22
+    bne :+
+    lda #0                  ; 0 = 脚部パーツ
+    sta ally_part
+    jsr spawn_ally_carrier
+    rts
+:   cpy #26
     bne @chk_midboss_stage
-    lda #0                  ; 0 = 脚部パーツ ($18)
+    lda #1                  ; 1 = 胸部パーツ
     sta ally_part
     jsr spawn_ally_carrier
     rts
@@ -65,12 +72,19 @@ spawn_wave_for_meta:
     rts
 
 @chk_boss_parts:
-    ; ★ 大ボス (meta_idx == 63) 直前:
-    ; meta_idx == 58: 脚部パーツ運搬支援機 (第1陣) 出撃！
+    ; ★ 大ボス (meta_idx == 63) 直前の合体支援機シーケンス:
+    ; meta_idx == 52: 脚部パーツ運搬支援機 (第1陣) 出撃！
+    ; meta_idx == 56: 胸部パーツ運搬支援機 (第2陣) 出撃！
     ; （被弾等でコアファイターに戻っていても、大ボス直前に再び完全体へドッキング可能！）
-    cpy #58
+    cpy #52
+    bne :+
+    lda #0                  ; 0 = 脚部パーツ
+    sta ally_part
+    jsr spawn_ally_carrier
+    rts
+:   cpy #56
     bne @normal_wave
-    lda #0                  ; 0 = 脚部パーツ ($18)
+    lda #1                  ; 1 = 胸部パーツ
     sta ally_part
     jsr spawn_ally_carrier
     rts
@@ -579,14 +593,6 @@ update_items:
     lda #5
     jsr add_score_hundreds  ; ドッキングボーナス +500点
 
-    ; 脚部パーツ (item_type == 0) をドッキング完了したら、即座に胸部パーツ運搬支援機 (第2陣) を出撃！
-    ; （ボス直前に脚部合体 -> すぐさま胸部合体と立て続けに変形して完全体へ！）
-    lda item_type,x
-    bne @skip_second_carrier
-    lda #1                  ; 1 = 胸部パーツ
-    sta ally_part
-    jsr spawn_ally_carrier
-@skip_second_carrier:
     ldx tmp_save_x
 
 @next:
