@@ -61,7 +61,7 @@ rapid_level:    .res 1  ; 1..5 (連射強化)
 barrier_hp:     .res 1  ; 0..5 (バリア耐久値)
 shot_timer:     .res 1  ; Aボタン連射間隔 / レーザー照射後0.5秒(30f)クールタイム
 laser_timer:    .res 1  ; 第3形態レーザー照射残りフレーム (48=約2秒照射, 0=停止)
-saber_timer:    .res 1  ; 近接ビームサーベル3コマアニメタイマー (9..7=抜刀, 6..4=一閃+弾消し, 3..1=残心)
+saber_timer:    .res 1  ; 近接プラズマブレード3コマアニメタイマー (9..7=抜刀, 6..4=一閃+弾消し, 3..1=残心)
 difficulty_level: .res 1 ; 難易度設定 (0=Easy, 1=Normal, 2=Hard)
 b_cooldown:     .res 1  ; Bボタン範囲攻撃クールタイム (0=READY, 120=2秒充填)
 b_blast_timer:  .res 1  ; Bボタン範囲攻撃エフェクト残りフレーム
@@ -87,7 +87,7 @@ boss_dir:       .res 1
 boss_timer:     .res 1
 boss_flash:     .res 1
 boss_max_hp:    .res 1  ; ボス最大HP (狂乱近接モード HP <= 2/5 判定用)
-boss_beam_timer:.res 1  ; STAGE 4 大ボス メガ粒子ビームタイマー (45..1=チャージ, 0=未発動, 255..220=照射中)
+boss_beam_timer:.res 1  ; STAGE 4 大ボス 荷電粒子ビームタイマー (45..1=チャージ, 0=未発動, 255..220=照射中)
 boss_charge_phase:.res 1 ; 狂乱近接突撃フェーズ (0=前進突撃, 1=0.5秒追い詰め, 2=後退離脱, 3=仕切り直し待機)
 boss_charge_timer:.res 1 ; 近接戦闘フェーズ管理タイマー
 boss_saber_stance:.res 1 ; ボスサーベル構え (0=上段の構え, 1=振り下ろし一閃)

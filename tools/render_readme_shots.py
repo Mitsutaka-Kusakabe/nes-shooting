@@ -123,7 +123,7 @@ ram("laser_timer", 12)
 ram("shot_timer", 0)
 shot("stage1_gameplay", 3)
 
-# 合体シーン (ガンペリー投下)
+# 合体シーン (支援輸送機投下)
 clear_field()
 ram("weapon_type", 1)
 ram("weapon_level", 2)
@@ -182,7 +182,7 @@ ram("laser_timer", 12)
 shot("boss_stage1_midboss", 3, crop=BOSS_CROP)
 
 # ボス図鑑 (5体) ※ side_mode 横向き描画
-for btype, stage, name in [(0, 0, "boss_zaku"), (0, 1, "boss_dom"), (0, 2, "boss_zgok"), (0, 3, "boss_gouf"), (1, 0, "boss_rival")]:
+for btype, stage, name in [(0, 0, "boss_trooper"), (0, 1, "boss_hover"), (0, 2, "boss_claw"), (0, 3, "boss_whip"), (1, 0, "boss_rival")]:
     setup_boss(btype, stage, 100, 80)
     ram("player_x", 8)
     ram("player_y", 220)  # 画面下端に退避
@@ -203,7 +203,7 @@ ram("player_x", 44)
 ram("player_y", 92)
 shot("boss_saber_slash", 3, crop=BOSS_CROP, btn=BTN_A)
 
-# STAGE 4 ラスボス: 即死メガ粒子ビーム
+# STAGE 4 ラスボス: 即死荷電粒子ビーム
 setup_boss(1, 3, 176, 80)
 ram("boss_beam_timer", 250)
 ram("player_x", 44)

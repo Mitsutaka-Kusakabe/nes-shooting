@@ -65,7 +65,7 @@ def set_16x24(base_idx, rows24):
     for i, p in enumerate(parts):
         tiles[base_idx + i] = p
 
-# $01-$04: FORM 1 - CORE FIGHTER (初期形態: コアファイター 16x16)
+# $01-$04: FORM 1 - CORE FIGHTER (初期形態: コア戦闘機 16x16)
 # 正解アセット: assets/sprites/core_fighter.aseprite (Frame 1 & Frame 2)
 set_16x16(0x01, [
     ".......11.......",
@@ -108,7 +108,7 @@ samurai_f2 = split_16x16([
 tiles[0x05] = samurai_f2[2]
 tiles[0x06] = samurai_f2[3]
 
-# $48-$4D: FORM 2 - CORE FIGHTER + LEGS (第2形態: コアファイター＋脚部パーツ 16x24 = 6 tiles)
+# $48-$4D: FORM 2 - CORE + LEGS (第2形態: コア戦闘機＋脚部パーツ 16x24 = 6 tiles)
 set_16x24(0x48, [
     ".......11.......",
     ".......11.......",
@@ -136,7 +136,7 @@ set_16x24(0x48, [
     "....2......2....",
 ])
 
-# $6A-$6F: FORM 3 - GUNDAM MS (第3形態: ガンダム ロボット形態 16x24 = 6 tiles)
+# $6A-$6F: FORM 3 - WHITE SABER (第3形態: ホワイトセーバー 人型決戦形態 16x24 = 6 tiles)
 # V-fin antenna, twin eyes, blue chest + red cockpit, left shield, right beam rifle, white legs + red boots!
 set_16x24(0x6A, [
     "..2...2332...1..",
@@ -189,7 +189,7 @@ set_tile(0x08, [
     "...33...",
 ])
 
-# $09: Gundam Beam Rifle Shot (Form 3 high-energy mega particle beam: 2px slim needle beam)
+# $09: White Saber Laser Shot (Form 3 high-energy laser beam: 2px slim needle beam)
 set_tile(0x09, [
     "...33...",
     "...33...",
@@ -295,7 +295,7 @@ set_tile(0x18, [
     "222..222",
     "222..222",
 ])
-# $19: 胸部パーツ (A-PARTS: CHEST & GUNDAM HEAD UNIT)
+# $19: 胸部パーツ (A-PARTS: CHEST & HEAD UNIT)
 set_tile(0x19, [
     ".2.33.2.",
     "..3223..",
@@ -730,7 +730,7 @@ set_tile(0x73, [ # Shield / Armor HUD icon
     "...33...",
 ])
 
-# $74-$77: Support Carrier (支援輸送機・ガンペリー風キャリア 16x16)
+# $74-$77: Support Carrier (支援輸送機・キャリア 16x16)
 # Twin-rotor/wing supply craft carrying central docking container
 set_16x16(0x74, [
     "..33..2222..33..",
@@ -751,7 +751,7 @@ set_16x16(0x74, [
     "................",
 ])
 
-# $78-$7B: 2倍サイズ (16x16) 脚部パーツ (B-PARTS: GUNDAM LEG UNIT - スリム改修版)
+# $78-$7B: 2倍サイズ (16x16) 脚部パーツ (B-PARTS: LEG UNIT - スリム改修版)
 set_16x16(0x78, [
     ".....112211.....",
     "....11322311....",
@@ -771,7 +771,7 @@ set_16x16(0x78, [
     "................",
 ])
 
-# $7C-$7F: 2倍サイズ (16x16) 胸部パーツ (A-PARTS: GUNDAM CHEST, HEAD & ARMS UNIT)
+# $7C-$7F: 2倍サイズ (16x16) 胸部パーツ (A-PARTS: CHEST, HEAD & ARMS UNIT)
 set_16x16(0x7C, [
     "..33...22...33..",
     "...33.3223.33...",
@@ -883,8 +883,8 @@ for i, t in enumerate(split_24x32(BOSS3_LEFT24)):
 for i, t in enumerate(split_24x32(BOSS4_LEFT24)):
     font_tiles[0x4C + i] = t
 
-# FORM 3 (第3形態): 24x24 斜め向き立ち絵ガンダム + ビームライフル & シールド ($E0-$E8 = font_tiles[0x60..0x68])
-# 3=White armor, 1=Gundam Blue chest/rifle, 2=Gundam Red shield/boots/cockpit/V-fin crest
+# FORM 3 (第3形態): 24x24 斜め向き立ち絵ホワイトセーバー + ビームライフル & シールド ($E0-$E8 = font_tiles[0x60..0x68])
+# 3=White armor, 1=Blue chest/rifle, 2=Red shield/boots/cockpit/V-fin crest
 def split_24x24(rows24):
     assert len(rows24) == 24
     for r in rows24:
@@ -896,7 +896,7 @@ def split_24x24(rows24):
             out.append(grid_to_tile(sub))
     return out
 
-GUNDAM_STAND_24 = [
+WHITE_SABER_STAND_24 = [
     ".....33....22...33....11",
     "......33..3223.33.....11",
     ".222...333333333......13",
@@ -922,11 +922,11 @@ GUNDAM_STAND_24 = [
     "...22222......2222......",
     "...222222....222222.....",
 ]
-for i, t in enumerate(split_24x24(GUNDAM_STAND_24)):
+for i, t in enumerate(split_24x24(WHITE_SABER_STAND_24)):
     font_tiles[0x60 + i] = t
 
-# FORM 2.5 (第2.5形態): 16x24 コアファイター＋胸部パーツ ($EA-$EF = font_tiles[0x6A..0x6F])
-# 上半身はガンダム胸部・頭部(Vアンテナ)・肩アーマー、下半身はコアファイターのデルタ翼＆ツインバーニア
+# FORM 2.5 (第2.5形態): 16x24 コア戦闘機＋胸部パーツ ($EA-$EF = font_tiles[0x6A..0x6F])
+# 上半身はホワイトセーバー胸部・頭部(Vアンテナ)・肩アーマー、下半身はコア戦闘機のデルタ翼＆ツインバーニア
 FORM2_5_CHEST_CORE = [
     "..33...22...33..",
     "...33.3223.33...",
@@ -1102,7 +1102,7 @@ MISSILE_HEAVY_SIDE_8 = [
 ]
 pt1_tiles[0x0A] = grid_to_tile(MISSILE_HEAVY_SIDE_8)
 
-# PT1 $09: 横画面用 貫通メガ粒子ビーム・レーザー / サーベル振り下ろし一閃 (水平光刃)
+# PT1 $09: 横画面用 貫通レーザー / プラズマブレード振り下ろし一閃 (水平光刃)
 BEAM_SLIM_HORIZ_8 = [
     "........",
     "........",
@@ -1142,7 +1142,7 @@ SABER_HILT_8 = [
 ]
 pt1_tiles[0xFF] = grid_to_tile(SABER_HILT_8)
 
-# PT1 $90-$97: 横画面 巨大ビームサーベル コマ1 抜刀・斜め右上チャージ光刃 (32x16 = 8スプライト)
+# PT1 $90-$97: 横画面 巨大プラズマブレード コマ1 抜刀・斜め右上チャージ光刃 (32x16 = 8スプライト)
 SABER_HUGE_F1 = [
     "............................22..",
     "...........................2332.",
@@ -1164,7 +1164,7 @@ SABER_HUGE_F1 = [
 for i, t in enumerate(split_32x16(SABER_HUGE_F1)):
     pass  # 旧・巨大サーベル用タイル ($90-$97) は廃止。ASCIIフォント(数字等)を上書きして横画面HUDが化けるため書き込まない
 
-# PT1 $A0-$AB: 横画面 巨大ビームサーベル コマ2 振り下ろし大一閃 (32x24 = 12スプライト, 威力8 + 弾消し)
+# PT1 $A0-$AB: 横画面 巨大プラズマブレード コマ2 振り下ろし大一閃 (32x24 = 12スプライト, 威力8 + 弾消し)
 SABER_HUGE_F2 = [
     "..........2222222222............",
     ".......2223333333333222.........",
@@ -1194,7 +1194,7 @@ SABER_HUGE_F2 = [
 for i, t in enumerate(split_32x24(SABER_HUGE_F2)):
     pass  # 旧・巨大サーベル用タイル ($A0-$AB) は廃止 (ASCIIフォント 'A'〜'K' を上書きしてHUDが化けるため)
 
-# PT1 $B0-$B7: 横画面 巨大ビームサーベル コマ3 斬り抜け・残心 (32x16 = 8スプライト)
+# PT1 $B0-$B7: 横画面 巨大プラズマブレード コマ3 斬り抜け・残心 (32x16 = 8スプライト)
 SABER_HUGE_F3 = [
     "..11............................",
     ".1331...........................",
@@ -1216,8 +1216,8 @@ SABER_HUGE_F3 = [
 for i, t in enumerate(split_32x16(SABER_HUGE_F3)):
     pass  # 旧・巨大サーベル用タイル ($B0-$B7) は廃止 (ASCIIフォントを上書きするため)
 
-# 1. PT1 $D8-$DC: 横画面用 右向きコアファイター (16x16) ＆ アフターバーナー噴射炎 (8x8)
-CORE_FIGHTER_SIDE_16 = [
+# 1. PT1 $D8-$DC: 横画面用 右向きコア戦闘機 (16x16) ＆ アフターバーナー噴射炎 (8x8)
+CORE_CRAFT_SIDE_16 = [
     "................",
     "..22............",
     ".2223...........",
@@ -1235,7 +1235,7 @@ CORE_FIGHTER_SIDE_16 = [
     "................",
     "................",
 ]
-for i, t in enumerate(split_16x16(CORE_FIGHTER_SIDE_16)):
+for i, t in enumerate(split_16x16(CORE_CRAFT_SIDE_16)):
     pt1_tiles[0xD8 + i] = t
 
 JET_FLAME_SIDE_8 = [
@@ -1250,7 +1250,7 @@ JET_FLAME_SIDE_8 = [
 ]
 pt1_tiles[0xDC] = grid_to_tile(JET_FLAME_SIDE_8)
 
-# 2. PT1 $EA-$F2: 横画面用 第2形態 (コアファイター＋脚部 Bパーツ 24x24)
+# 2. PT1 $EA-$F2: 横画面用 第2形態 (コア戦闘機＋脚部 Bパーツ 24x24)
 FORM2_SIDE_R_24 = [
     "..........11............",
     ".........1111...........",
@@ -1280,7 +1280,7 @@ FORM2_SIDE_R_24 = [
 for i, t in enumerate(split_24x24(FORM2_SIDE_R_24)):
     pt1_tiles[0xEA + i] = t
 
-# 3. PT1 $F3-$FB: 横画面用 第2.5形態 (コアファイター＋胸部 Aパーツ 24x24)
+# 3. PT1 $F3-$FB: 横画面用 第2.5形態 (コア戦闘機＋胸部 Aパーツ 24x24)
 FORM25_SIDE_R_24 = [
     "....33..................",
     ".....33...33............",
@@ -1310,9 +1310,9 @@ FORM25_SIDE_R_24 = [
 for i, t in enumerate(split_24x24(FORM25_SIDE_R_24)):
     pt1_tiles[0xF3 + i] = t
 
-# 4. PT1 $E0-$E8: 横画面用 右向きガンダム立ち絵 (24x24, 右の敵MSへビームライフルを構える姿)
+# 4. PT1 $E0-$E8: 横画面用 右向きホワイトセーバー立ち絵 (24x24, 右の敵MSへライフルを構える姿)
 
-GUNDAM_SIDE_R_24 = [
+WHITE_SABER_SIDE_R_24 = [
     "...33.....33............",
     "...33......33...33......",
     "..111..3333333.33.......",
@@ -1338,11 +1338,11 @@ GUNDAM_SIDE_R_24 = [
     "....22222222............",
     "....22222222............",
 ]
-for i, t in enumerate(split_24x24(GUNDAM_SIDE_R_24)):
+for i, t in enumerate(split_24x24(WHITE_SABER_SIDE_R_24)):
     pt1_tiles[0xE0 + i] = t
 
-# 2. PT1 $30-$3B: STAGE 1 中ボス ザク型 (MOJA-01, 24x32 左向き: 丸ドーム頭・大モノアイ・動力パイプ・左肩スパイクアーマー・右肩Lシールド＆ドラムマガジン付きザクマシンガン・脚部ミサイルポッド)
-MIDBOSS1_ZAKU_24x32 = [
+# 2. PT1 $30-$3B: STAGE 1 中ボス 重装兵型 (MOJA-01, 24x32 左向き: 丸ドーム頭・大モノアイ・動力パイプ・左肩スパイクアーマー・右肩Lシールド＆ドラムマガジン付きマシンガン・脚部ミサイルポッド)
+MIDBOSS1_TROOPER_24x32 = [
     "........................",
     "........11111111........",
     "......112222222211......",
@@ -1376,11 +1376,11 @@ MIDBOSS1_ZAKU_24x32 = [
     "........................",
     "........................",
 ]
-for i, t in enumerate(split_24x32(MIDBOSS1_ZAKU_24x32)):
+for i, t in enumerate(split_24x32(MIDBOSS1_TROOPER_24x32)):
     pt1_tiles[0x30 + i] = t
 
-# 3. PT1 $3C-$47: STAGE 2 中ボス ドム型 (MOJA-02, 24x32 左向き: 十字モノアイ・胸部拡散ビーム砲・ジャイアントバズ・重装ホバースカート＆末広がりホバー脚部)
-MIDBOSS2_DOM_24x32 = [
+# 3. PT1 $3C-$47: STAGE 2 中ボス ホバー装甲型 (MOJA-02, 24x32 左向き: 十字モノアイ・胸部拡散ビーム砲・重バズーカ・重装ホバースカート＆末広がりホバー脚部)
+MIDBOSS2_HOVER_24x32 = [
     "........................",
     ".......111..111111......",
     "......1121112222111.....",
@@ -1414,11 +1414,11 @@ MIDBOSS2_DOM_24x32 = [
     "........................",
     "........................",
 ]
-for i, t in enumerate(split_24x32(MIDBOSS2_DOM_24x32)):
+for i, t in enumerate(split_24x32(MIDBOSS2_HOVER_24x32)):
     pt1_tiles[0x3C + i] = t
 
-# 4. PT1 $C0-$CB: STAGE 3 中ボス ゴッグ/ズゴック型 (MOJA-03, 24x32 左向き: ドーム頭部ロケット弾孔・V字モノアイ・胸部ダクト＆コクピットハッチ・前方3連アイアンネイル爪・尖った膝アーマー)
-MIDBOSS3_ZGOK_24x32 = [
+# 4. PT1 $C0-$CB: STAGE 3 中ボス 強襲クロー型 (MOJA-03, 24x32 左向き: ドーム頭部ロケット弾孔・V字モノアイ・胸部ダクト＆コクピットハッチ・前方3連アイアンネイル爪・尖った膝アーマー)
+MIDBOSS3_CLAW_24x32 = [
     "........................",
     "..........111111........",
     "........1122222211......",
@@ -1452,11 +1452,11 @@ MIDBOSS3_ZGOK_24x32 = [
     "........................",
     "........................",
 ]
-for i, t in enumerate(split_24x32(MIDBOSS3_ZGOK_24x32)):
+for i, t in enumerate(split_24x32(MIDBOSS3_CLAW_24x32)):
     pt1_tiles[0xC0 + i] = t
 
-# 5. PT1 $CC-$D7: STAGE 4 中ボス グフ型 (MOJA-04, 24x32 左向き: ブレードアンテナ・両肩湾曲スパイク・黒胸部・両手構えヒートサーベル＆モノアイ)
-MIDBOSS4_GOUF_24x32 = [
+# 5. PT1 $CC-$D7: STAGE 4 中ボス 電熱鞭機 (MOJA-04, 24x32 左向き: ブレードアンテナ・両肩湾曲スパイク・黒胸部・両手構えサーベル＆モノアイ)
+MIDBOSS4_WHIP_24x32 = [
     "........................",
     "...........11......11...",
     "111...11...121....121...",
@@ -1490,10 +1490,10 @@ MIDBOSS4_GOUF_24x32 = [
     "........................",
     "........................",
 ]
-for i, t in enumerate(split_24x32(MIDBOSS4_GOUF_24x32)):
+for i, t in enumerate(split_24x32(MIDBOSS4_WHIP_24x32)):
     pt1_tiles[0xCC + i] = t
 
-# 6. PT1 $58-$63: 全ステージラスト 宿敵・赤いモビルスーツ (RIVAL RED MS, 24x32 左向き: 指揮官ブレードアンテナ・モノアイ・動力パイプ・大型スコープ付きザクバズーカ水平構え・右肩Lシールド・左肩3連スパイクアーマー)
+# 6. PT1 $58-$63: 全ステージラスト 宿敵・紅蓮のMS (RIVAL RED MS - Mitame Tsuyoi, 24x32 左向き: 指揮官ブレードアンテナ・モノアイ・動力パイプ・大型スコープ付きバズーカ水平構え・右肩Lシールド・左肩3連スパイクアーマー)
 RIVAL_RED_MS_24x32 = [
     ".............11.........",
     "............1231........",
@@ -1532,7 +1532,7 @@ for i, t in enumerate(split_24x32(RIVAL_RED_MS_24x32)):
     pt1_tiles[0x58 + i] = t
 
 with open("assets/chr.s", "w", encoding="utf-8") as f:
-    f.write("; CHR-ROM パターンデータ (PT0: 縦スクロール道中用, PT1: 横表示1-on-1 MSドッグファイト専用バンク)\n")
+    f.write("; CHR-ROM パターンデータ (PT0: 縦スクロール道中用, PT1: 横表示1-on-1 MS(Mitame Tsuyoi)ドッグファイト専用バンク)\n")
     f.write("; tools/gen_chr.py により自動生成\n\n")
     for idx, t in enumerate(tiles):
         f.write(f"; PT0 tile ${idx:02X}\n")

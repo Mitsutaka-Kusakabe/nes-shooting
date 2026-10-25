@@ -267,9 +267,9 @@ nes.ram[syms["warning_timer"]] = 101
 run_frame(0x00)
 nes.render_png("build/warning.png")
 
-# 4. Boss fight screen (Side-View Robot Battle: Right-Facing Gundam slashing with straight Beam Saber vs Rival Red MS!)
+# 4. Boss fight screen (Side-View Robot Battle: Right-Facing White Saber slashing with straight Plasma Blade vs Rival Red MS!)
 nes.ram[syms["ally_state"]] = 0
-nes.ram[syms["weapon_type"]] = 3   # Form 3: Gundam MS (F3)
+nes.ram[syms["weapon_type"]] = 3   # Form 3: White Saber MS (F3)
 nes.ram[syms["weapon_level"]] = 3
 nes.ram[syms["side_mode"]] = 1
 nes.ram[syms["boss_state"]] = 1
@@ -325,7 +325,7 @@ nes.ram[syms["weapon_level"]] = 2
 run_frame(0x80)
 nes.render_png("build/boss_form25.png")
 
-# 4.5. Boss fight laser irradiation screen (Gundam firing full-screen mega particle beam penetrating through Boss to screen edge!)
+# 4.5. Boss fight laser irradiation screen (White Saber firing full-screen laser beam penetrating through Boss to screen edge!)
 nes.ram[syms["saber_timer"]] = 0
 nes.ram[syms["player_x"]] = 44
 nes.ram[syms["player_y"]] = 92

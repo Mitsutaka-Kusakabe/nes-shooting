@@ -29,7 +29,7 @@ NES_COLOR_RGB = {
     0x12: (0, 30, 180, 255),      # Blue
     0x16: (152, 34, 32, 255),     # Crimson Red
     0x17: (142, 60, 0, 255),      # Brown / Gold
-    0x1A: (0, 100, 20, 255),      # Zaku Green
+    0x1A: (0, 100, 20, 255),      # Army Green
     0x21: (68, 115, 239, 255),    # Light Blue
     0x22: (80, 100, 255, 255),    # Violet / Sky Blue
     0x27: (236, 120, 0, 255),     # Orange
@@ -69,7 +69,7 @@ def make_boss_48x32(left24):
 CHAR_DEFS = [
     {
         "id": "PLAYER_CORE",
-        "name": "自機 コアファイター (第1形態)",
+        "name": "自機 コア戦闘機 (第1形態)",
         "category": "player",
         "pal_idx": 0,
         "pal": PAL_PLAYER,
@@ -163,13 +163,13 @@ CHAR_DEFS = [
     },
     {
         "id": "PLAYER_MS",
-        "name": "自機 ガンダムMS (第3形態)",
+        "name": "自機 ホワイトセーバー (第3形態)",
         "category": "player",
         "pal_idx": 0,
         "pal": PAL_PLAYER,
         "width": 24,
         "height": 24,
-        "frames": [patterns["GUNDAM_STAND_24"]]
+        "frames": [patterns["WHITE_SABER_STAND_24"]]
     },
     {
         "id": "PART_LEG",
@@ -231,7 +231,7 @@ CHAR_DEFS = [
     },
     {
         "id": "ALLY_CARRIER",
-        "name": "味方支援輸送機 (ガンペリー風キャリア)",
+        "name": "味方支援輸送機 (キャリア)",
         "category": "ally",
         "pal_idx": 3,
         "pal": PAL_CARRIER_GOLD,
@@ -375,48 +375,48 @@ CHAR_DEFS = [
         ]
     },
     {
-        "id": "MIDBOSS_ZAKU",
-        "name": "MOJA-01 量産型ザク中ボス (Stage 1)",
+        "id": "MIDBOSS_TROOPER",
+        "name": "MOJA-01 重装兵型中ボス (Stage 1)",
         "category": "boss",
         "pal_idx": 2,
         "pal": PAL_ENEMY_GREEN,
         "width": 24,
         "height": 32,
-        "frames": [patterns["MIDBOSS1_ZAKU_24x32"]]
+        "frames": [patterns["MIDBOSS1_TROOPER_24x32"]]
     },
     {
-        "id": "MIDBOSS_DOM",
-        "name": "MOJA-02 重装甲ドム中ボス (Stage 2)",
+        "id": "MIDBOSS_HOVER",
+        "name": "MOJA-02 ホバー装甲型中ボス (Stage 2)",
         "category": "boss",
         "pal_idx": 1,
         "pal": PAL_RIVAL,
         "width": 24,
         "height": 32,
-        "frames": [patterns["MIDBOSS2_DOM_24x32"]]
+        "frames": [patterns["MIDBOSS2_HOVER_24x32"]]
     },
     {
-        "id": "MIDBOSS_ZGOK",
-        "name": "MOJA-03 ズゴック水陸中ボス (Stage 3)",
+        "id": "MIDBOSS_CLAW",
+        "name": "MOJA-03 強襲クロー型中ボス (Stage 3)",
         "category": "boss",
         "pal_idx": 2,
         "pal": PAL_ENEMY_BLUE,
         "width": 24,
         "height": 32,
-        "frames": [patterns["MIDBOSS3_ZGOK_24x32"]]
+        "frames": [patterns["MIDBOSS3_CLAW_24x32"]]
     },
     {
-        "id": "MIDBOSS_GOUF",
-        "name": "MOJA-04 電熱鞭グフ中ボス (Stage 4)",
+        "id": "MIDBOSS_WHIP",
+        "name": "MOJA-04 電熱鞭機中ボス (Stage 4)",
         "category": "boss",
         "pal_idx": 2,
         "pal": PAL_ENEMY_BLUE,
         "width": 24,
         "height": 32,
-        "frames": [patterns["MIDBOSS4_GOUF_24x32"]]
+        "frames": [patterns["MIDBOSS4_WHIP_24x32"]]
     },
     {
         "id": "BOSS_RIVAL",
-        "name": "宿敵・赤いモビルスーツ (全ステージ決戦)",
+        "name": "宿敵・紅蓮のMS (Mitame Tsuyoi 全ステージ決戦)",
         "category": "boss",
         "pal_idx": 1,
         "pal": PAL_RIVAL,
@@ -426,7 +426,7 @@ CHAR_DEFS = [
     },
     {
         "id": "PLAYER_SABER",
-        "name": "ビームサーベル大一閃 (抜刀・一閃・残心)",
+        "name": "プラズマブレード大一閃 (抜刀・一閃・残心)",
         "category": "player",
         "pal_idx": 0,
         "pal": PAL_SABER,
@@ -435,14 +435,14 @@ CHAR_DEFS = [
         "frames": [patterns["SABER_FRAME1"], patterns["SABER_FRAME2"], patterns["SABER_FRAME3"]]
     },
     {
-        "id": "GUNDAM_SIDE_VIEW",
-        "name": "ガンダムMS (横画面 1-on-1 ライフル構え)",
+        "id": "WHITE_SABER_SIDE_VIEW",
+        "name": "ホワイトセーバーMS (横画面 1-on-1 ライフル構え)",
         "category": "player",
         "pal_idx": 0,
         "pal": PAL_PLAYER,
         "width": 24,
         "height": 24,
-        "frames": [patterns["GUNDAM_SIDE_R_24"]]
+        "frames": [patterns["WHITE_SABER_SIDE_R_24"]]
     }
 ]
 

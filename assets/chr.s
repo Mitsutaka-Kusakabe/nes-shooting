@@ -1,4 +1,4 @@
-; CHR-ROM パターンデータ (PT0: 縦スクロール道中用, PT1: 横表示1-on-1 MSドッグファイト専用バンク)
+; CHR-ROM パターンデータ (PT0: 縦スクロール道中用, PT1: 横表示1-on-1 MS(Mitame Tsuyoi)ドッグファイト専用バンク)
 ; tools/gen_chr.py により自動生成
 
 ; PT0 tile $00

@@ -313,7 +313,7 @@
     "................",
   ];
 
-  const MIDBOSS_ZAKU_ROWS = [
+  const MIDBOSS_TROOPER_ROWS = [
     "........................",
     "........11111111........",
     "......112222222211......",
@@ -348,7 +348,7 @@
     "........................",
   ];
 
-  const MIDBOSS_DOM_ROWS = [
+  const MIDBOSS_HOVER_ROWS = [
     "........................",
     ".......111..111111......",
     "......1121112222111.....",
@@ -383,7 +383,7 @@
     "........................",
   ];
 
-  const MIDBOSS_ZGOK_ROWS = [
+  const MIDBOSS_CLAW_ROWS = [
     "........................",
     "..........111111........",
     "........1122222211......",
@@ -418,7 +418,7 @@
     "........................",
   ];
 
-  const MIDBOSS_GOUF_ROWS = [
+  const MIDBOSS_WHIP_ROWS = [
     "........................",
     "...........11......11...",
     "111...11...121....121...",
@@ -545,7 +545,7 @@
     "................",
   ];
 
-  const GUNDAM_SIDE_VIEW_ROWS = [
+  const WHITE_SABER_SIDE_VIEW_ROWS = [
     "...33.....33............",
     "...33......33...33......",
     "..111..3333333.33.......",
@@ -575,7 +575,7 @@
   const DEFAULT_CHARACTERS = [
     {
       id: "PLAYER_CORE",
-      name: "自機 コアファイター (第1形態)",
+      name: "自機 コア戦闘機 (第1形態)",
       category: "player",
       paletteIdx: 0,
       subpalettes: createDefaultSubpalettes(),
@@ -617,7 +617,7 @@
     },
     {
       id: "PLAYER_MS",
-      name: "自機 ガンダムMS (第3形態)",
+      name: "自機 ホワイトセーバー (第3形態)",
       category: "player",
       paletteIdx: 0,
       subpalettes: createDefaultSubpalettes(),
@@ -659,7 +659,7 @@
     },
     {
       id: "ALLY_CARRIER",
-      name: "味方支援輸送機 (ガンペリー風キャリア)",
+      name: "味方支援輸送機 (キャリア)",
       category: "ally",
       paletteIdx: 3,
       subpalettes: createDefaultSubpalettes(),
@@ -728,64 +728,64 @@
       }
     },
     {
-      id: "MIDBOSS_ZAKU",
-      name: "MOJA-01 量産型ザク中ボス (Stage 1)",
+      id: "MIDBOSS_TROOPER",
+      name: "MOJA-01 重装兵型中ボス (Stage 1)",
       category: "boss",
       paletteIdx: 2,
       subpalettes: createDefaultSubpalettes(),
       animations: {
-        idle: [parseRowsToFrame(MIDBOSS_ZAKU_ROWS, 24, 32, 12)],
-        fly: [parseRowsToFrame(MIDBOSS_ZAKU_ROWS, 24, 32, 10)],
-        attack: [parseRowsToFrame(MIDBOSS_ZAKU_ROWS, 24, 32, 8)],
-        damage: [parseRowsToFrame(MIDBOSS_ZAKU_ROWS, 24, 32, 4)],
-        destroy: [parseRowsToFrame(MIDBOSS_ZAKU_ROWS, 24, 32, 4)]
+        idle: [parseRowsToFrame(MIDBOSS_TROOPER_ROWS, 24, 32, 12)],
+        fly: [parseRowsToFrame(MIDBOSS_TROOPER_ROWS, 24, 32, 10)],
+        attack: [parseRowsToFrame(MIDBOSS_TROOPER_ROWS, 24, 32, 8)],
+        damage: [parseRowsToFrame(MIDBOSS_TROOPER_ROWS, 24, 32, 4)],
+        destroy: [parseRowsToFrame(MIDBOSS_TROOPER_ROWS, 24, 32, 4)]
       }
     },
     {
-      id: "MIDBOSS_DOM",
-      name: "MOJA-02 重装甲ドム中ボス (Stage 2)",
+      id: "MIDBOSS_HOVER",
+      name: "MOJA-02 ホバー装甲型中ボス (Stage 2)",
       category: "boss",
       paletteIdx: 1,
       subpalettes: createDefaultSubpalettes(),
       animations: {
-        idle: [parseRowsToFrame(MIDBOSS_DOM_ROWS, 24, 32, 12)],
-        fly: [parseRowsToFrame(MIDBOSS_DOM_ROWS, 24, 32, 10)],
-        attack: [parseRowsToFrame(MIDBOSS_DOM_ROWS, 24, 32, 8)],
-        damage: [parseRowsToFrame(MIDBOSS_DOM_ROWS, 24, 32, 4)],
-        destroy: [parseRowsToFrame(MIDBOSS_DOM_ROWS, 24, 32, 4)]
+        idle: [parseRowsToFrame(MIDBOSS_HOVER_ROWS, 24, 32, 12)],
+        fly: [parseRowsToFrame(MIDBOSS_HOVER_ROWS, 24, 32, 10)],
+        attack: [parseRowsToFrame(MIDBOSS_HOVER_ROWS, 24, 32, 8)],
+        damage: [parseRowsToFrame(MIDBOSS_HOVER_ROWS, 24, 32, 4)],
+        destroy: [parseRowsToFrame(MIDBOSS_HOVER_ROWS, 24, 32, 4)]
       }
     },
     {
-      id: "MIDBOSS_ZGOK",
-      name: "MOJA-03 ズゴック水陸中ボス (Stage 3)",
+      id: "MIDBOSS_CLAW",
+      name: "MOJA-03 強襲クロー型中ボス (Stage 3)",
       category: "boss",
       paletteIdx: 2,
       subpalettes: createDefaultSubpalettes(),
       animations: {
-        idle: [parseRowsToFrame(MIDBOSS_ZGOK_ROWS, 24, 32, 12)],
-        fly: [parseRowsToFrame(MIDBOSS_ZGOK_ROWS, 24, 32, 10)],
-        attack: [parseRowsToFrame(MIDBOSS_ZGOK_ROWS, 24, 32, 8)],
-        damage: [parseRowsToFrame(MIDBOSS_ZGOK_ROWS, 24, 32, 4)],
-        destroy: [parseRowsToFrame(MIDBOSS_ZGOK_ROWS, 24, 32, 4)]
+        idle: [parseRowsToFrame(MIDBOSS_CLAW_ROWS, 24, 32, 12)],
+        fly: [parseRowsToFrame(MIDBOSS_CLAW_ROWS, 24, 32, 10)],
+        attack: [parseRowsToFrame(MIDBOSS_CLAW_ROWS, 24, 32, 8)],
+        damage: [parseRowsToFrame(MIDBOSS_CLAW_ROWS, 24, 32, 4)],
+        destroy: [parseRowsToFrame(MIDBOSS_CLAW_ROWS, 24, 32, 4)]
       }
     },
     {
-      id: "MIDBOSS_GOUF",
-      name: "MOJA-04 電熱鞭グフ中ボス (Stage 4)",
+      id: "MIDBOSS_WHIP",
+      name: "MOJA-04 電熱鞭機中ボス (Stage 4)",
       category: "boss",
       paletteIdx: 2,
       subpalettes: createDefaultSubpalettes(),
       animations: {
-        idle: [parseRowsToFrame(MIDBOSS_GOUF_ROWS, 24, 32, 12)],
-        fly: [parseRowsToFrame(MIDBOSS_GOUF_ROWS, 24, 32, 10)],
-        attack: [parseRowsToFrame(MIDBOSS_GOUF_ROWS, 24, 32, 8)],
-        damage: [parseRowsToFrame(MIDBOSS_GOUF_ROWS, 24, 32, 4)],
-        destroy: [parseRowsToFrame(MIDBOSS_GOUF_ROWS, 24, 32, 4)]
+        idle: [parseRowsToFrame(MIDBOSS_WHIP_ROWS, 24, 32, 12)],
+        fly: [parseRowsToFrame(MIDBOSS_WHIP_ROWS, 24, 32, 10)],
+        attack: [parseRowsToFrame(MIDBOSS_WHIP_ROWS, 24, 32, 8)],
+        damage: [parseRowsToFrame(MIDBOSS_WHIP_ROWS, 24, 32, 4)],
+        destroy: [parseRowsToFrame(MIDBOSS_WHIP_ROWS, 24, 32, 4)]
       }
     },
     {
       id: "BOSS_RIVAL",
-      name: "宿敵・赤いモビルスーツ (全ステージ決戦)",
+      name: "宿敵・紅蓮のMS (Mitame Tsuyoi 全ステージ決戦)",
       category: "boss",
       paletteIdx: 1,
       subpalettes: createDefaultSubpalettes(),
@@ -799,7 +799,7 @@
     },
     {
       id: "PLAYER_SABER",
-      name: "ビームサーベル大一閃 (抜刀・一閃・残心)",
+      name: "プラズマブレード大一閃 (抜刀・一閃・残心)",
       category: "player",
       paletteIdx: 0,
       subpalettes: createDefaultSubpalettes(),
@@ -812,17 +812,17 @@
       }
     },
     {
-      id: "GUNDAM_SIDE_VIEW",
-      name: "ガンダムMS (横画面 1-on-1 ライフル構え)",
+      id: "WHITE_SABER_SIDE_VIEW",
+      name: "ホワイトセーバーMS (横画面 1-on-1 ライフル構え)",
       category: "player",
       paletteIdx: 0,
       subpalettes: createDefaultSubpalettes(),
       animations: {
-        idle: [parseRowsToFrame(GUNDAM_SIDE_VIEW_ROWS, 24, 24, 12)],
-        fly: [parseRowsToFrame(GUNDAM_SIDE_VIEW_ROWS, 24, 24, 10)],
-        attack: [parseRowsToFrame(GUNDAM_SIDE_VIEW_ROWS, 24, 24, 8)],
-        damage: [parseRowsToFrame(GUNDAM_SIDE_VIEW_ROWS, 24, 24, 4)],
-        destroy: [parseRowsToFrame(GUNDAM_SIDE_VIEW_ROWS, 24, 24, 4)]
+        idle: [parseRowsToFrame(WHITE_SABER_SIDE_VIEW_ROWS, 24, 24, 12)],
+        fly: [parseRowsToFrame(WHITE_SABER_SIDE_VIEW_ROWS, 24, 24, 10)],
+        attack: [parseRowsToFrame(WHITE_SABER_SIDE_VIEW_ROWS, 24, 24, 8)],
+        damage: [parseRowsToFrame(WHITE_SABER_SIDE_VIEW_ROWS, 24, 24, 4)],
+        destroy: [parseRowsToFrame(WHITE_SABER_SIDE_VIEW_ROWS, 24, 24, 4)]
       }
     },
   ];

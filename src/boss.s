@@ -1,10 +1,10 @@
-; 横表示ロボット戦: 量産型ロボット中ボス 4機 (MOJA-01..04) & 宿敵・赤いモビルスーツ (RIVAL RED MS) 制御
+; 横表示ロボット戦: 量産型ロボット中ボス 4機 (MOJA-01..04) & 宿敵・紅蓮のMS (RIVAL RED MS - Mitame Tsuyoi) 制御
 ; [中ボス (boss_type = 0, meta_idx == 32)]:
-;   STAGE 1 (月):   ザク型 (MOJA-01, HP 30, PT1 $30-$3B)
-;   STAGE 2 (火星): ドム型 (MOJA-02, HP 35, PT1 $3C-$47)
-;   STAGE 3 (木星): ズゴック型 (MOJA-03, HP 40, PT1 $C0-$CB)
-;   STAGE 4 (地球): グフ型 (MOJA-04, HP 50, PT1 $CC-$D7)
-; [宿敵・赤いMS (boss_type = 1, meta_idx == 63)]:
+;   STAGE 1 (月):   重装兵型 (MOJA-01 TROOPER, HP 30, PT1 $30-$3B)
+;   STAGE 2 (火星): ホバー装甲型 (MOJA-02 HOVER, HP 35, PT1 $3C-$47)
+;   STAGE 3 (木星): 強襲クロー型 (MOJA-03 CLAW, HP 40, PT1 $C0-$CB)
+;   STAGE 4 (地球): 電熱鞭機 (MOJA-04 WHIP, HP 50, PT1 $CC-$D7)
+; [宿敵・紅蓮のMS (boss_type = 1, meta_idx == 63)]:
 ;   全ステージラストに登場 (HP 80 / 90 / 100 / 120, PT1 $58-$63, 専用赤パレット)
 
 .segment "CODE"
@@ -31,10 +31,10 @@ spawn_midboss:
     sta boss_type           ; 0 = 量産型中ボス (MOJA-01..04)
     jmp start_boss_warning
 
-; ---- ステージ終端 (meta_idx == 63) 到達時の「宿敵・赤いモビルスーツ (RIVAL RED MS)」WARNING警告開始 ----
+; ---- ステージ終端 (meta_idx == 63) 到達時の「宿敵・紅蓮のMS (RIVAL RED MS)」WARNING警告開始 ----
 spawn_boss:
     lda #1
-    sta boss_type           ; 1 = 宿敵・赤いモビルスーツ (RIVAL RED MS)
+    sta boss_type           ; 1 = 宿敵・紅蓮のMS (RIVAL RED MS - Mitame Tsuyoi)
 
 start_boss_warning:
     lda #3                  ; 3 = WARNING警告フェーズ (縦スクロール道中のまま約2秒間大警告！)
@@ -366,7 +366,7 @@ update_boss:
 @boss_attacks:
 
     ; 攻撃タイマー判定 (128フレーム周期でゆったり攻撃)
-    ; STAGE 4 大ボス (赤いMS) の即死メガ粒子ビーム処理チェック
+    ; STAGE 4 大ボス (紅蓮のMS) の即死荷電粒子ビーム処理チェック
     lda current_stage
     cmp #3
     bne @normal_atk_timing
@@ -428,7 +428,7 @@ update_boss:
 ;   2. 自機手前の近接戦闘圏 (X=100〜130) まで突進したあと、その場で上下左右に揺れ動く近接ドッグファイト！
 ;      - ボスタイマー周期で自機へ踏み込んだり (X=80〜90: サーベル間合い！)、一歩退いたり (X=120〜140)
 ;      - 画面端へ一方的に突き抜けて消え去るのではなく、近距離で斬り合いを楽しめる攻防に！
-;   3. 前方にヒートホーク / 赤ビームサーベル光刃を常時構えて突撃・戦闘！
+;   3. 前方に電熱武器 / プラズマ光刃を常時構えて突撃・戦闘！
 ; =========================================================================
 ; =========================================================================
 ; ---- 狂乱近接戦闘AI (boss_state == 5): サーベル突進・0.5秒追い詰め・後退離脱ループ ----
@@ -625,11 +625,11 @@ boss_track_player_y:
     rts
 
 ; =========================================================================
-; ---- STAGE 4 最終決戦 宿敵・赤いMS 専用: 即死メガ粒子ビーム照射AI ----
+; ---- STAGE 4 最終決戦 宿敵・紅蓮のMS 専用: 即死荷電粒子ビーム照射AI ----
 ; boss_beam_timer:
 ;   0 = 待機中 (boss_timer周期でチャージ開始)
 ;   45..1 = チャージ予兆 (モノアイ＆胸部点滅、チャージ音)
-;   255..220 = 極太メガ粒子ビーム発射中 (自機に当たれば即死！)
+;   255..220 = 極太荷電粒子ビーム発射中 (自機に当たれば即死！)
 ; =========================================================================
 update_stage4_boss_beam:
     lda boss_beam_timer
@@ -690,7 +690,7 @@ update_stage4_boss_beam:
     cmp #32
     bcs @beam_ret
 
-    ; メガ粒子ビーム直撃！アーマーに関係なく即死 (STATE_DEAD)！
+    ; 荷電粒子ビーム直撃！アーマーに関係なく即死 (STATE_DEAD)！
     lda inv_timer
     bne @beam_ret
     lda #0

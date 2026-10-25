@@ -98,7 +98,7 @@ active_bullets = sum(cpu.ram[syms["pbul_flag"] + i] for i in range(8))
 print(f"[OK] SAMURAI moved ({px0},{py0}) -> ({px1},{py1}) and fired Normal Missile (active={active_bullets})")
 assert px1 > px0 and py1 < py0 and active_bullets >= 1
 
-# 3. Test 3-Stage Gundam Docking System: Pre-Boss Sequential Docking (meta_idx=27)
+# 3. Test 3-Stage White Saber Docking System: Pre-Boss Sequential Docking (meta_idx=22, 26)
 assert zp("weapon_type") == 0 and zp("weapon_level") == 1
 print(f"[OK] Initial Form 1 (Core Fighter): weapon_type={zp('weapon_type')}, weapon_level={zp('weapon_level')}")
 
@@ -138,7 +138,7 @@ for _ in range(250):
     if zp("weapon_type") == 3:
         break
 assert zp("weapon_type") == 3 and zp("weapon_level") == 3
-print(f"[OK] Ally Support Craft delivered Chest Parts -> Docked into Form 3 (Gundam MS, weapon_type=3) BEFORE Mid-Boss!")
+print(f"[OK] Ally Support Craft delivered Chest Parts -> Docked into Form 3 (White Saber MS, weapon_type=3) BEFORE Mid-Boss!")
 
 # Test Form 3 Laser (18f = 0.3s continuous full-screen slim laser + 42f = 0.7s cooldown)
 set_zp("shot_timer", 0)
@@ -150,7 +150,7 @@ assert zp("laser_timer") == 0 and zp("shot_timer") == 42, f"Expected 42f (0.7s) 
 print(f"[OK] Form 3 Laser irradiated for 18 frames (0.3s) and entered 0.7s (42 frames) cooldown!")
 
 # Test 2-Stage Armor Purge System (Spec 3.1):
-# 1st hit in Form 3 (Gundam) -> Purges to Form 2 (Legs, weapon_type=1)
+# 1st hit in Form 3 (White Saber) -> Purges to Form 2 (Legs, weapon_type=1)
 set_zp("inv_timer", 0)
 lives_before = zp("lives")
 cpu.ram[syms["ebul_flag"]] = 1
@@ -160,7 +160,7 @@ cpu.ram[syms["ebul_vx"]] = 0
 cpu.ram[syms["ebul_vy"]] = 1
 run_frame(0x00)
 assert zp("weapon_type") == 1 and zp("weapon_level") == 2 and zp("lives") == lives_before and zp("game_state") == 0
-print(f"[OK] 1st Hit in Form 3 (Gundam) -> Purged 1st armor layer to Form 2 (weapon_type=1) with lives={zp('lives')} intact!")
+print(f"[OK] 1st Hit in Form 3 (White Saber) -> Purged 1st armor layer to Form 2 (weapon_type=1) with lives={zp('lives')} intact!")
 
 # 2nd hit in Form 2 (Legs) -> Purges to Form 1 (Core Fighter, weapon_type=0)
 set_zp("inv_timer", 0)
@@ -194,7 +194,7 @@ cpu.ram[syms["ebul_vx"]] = 0
 cpu.ram[syms["ebul_vy"]] = 0
 set_zp("side_mode", 1)
 set_zp("shot_timer", 0)
-# Form 1 / 2 / 2.5 (non-Gundam) must NOT trigger Beam Saber even in Side-View!
+# Form 1 / 2 / 2.5 (non-White Saber) must NOT trigger Beam Saber even in Side-View!
 for wt in (0, 1, 2):
     set_zp("weapon_type", wt)
     set_zp("shot_timer", 0)
@@ -203,7 +203,7 @@ for wt in (0, 1, 2):
     assert zp("saber_timer") == 0, f"Beam Saber must be Form 3 only, but triggered with weapon_type={wt}"
     for i in range(MAX_PBULLETS_TEST := 6):
         cpu.ram[syms["pbul_flag"] + i] = 0
-print("[OK] Side-View Boss Battle: Forms 1/2/2.5 (non-Gundam) do NOT use Beam Saber (ranged attack only)!")
+print("[OK] Side-View Boss Battle: Forms 1/2/2.5 (non-White Saber) do NOT use Beam Saber (ranged attack only)!")
 cpu.ram[syms["enemy_flag"]] = 1
 cpu.ram[syms["enemy_hp"]] = 6
 cpu.ram[syms["ebul_flag"]] = 1
@@ -320,7 +320,7 @@ for stage_num in range(4):
 
     # Defeat Mid-Boss with Beam Saber within 46px blade range and verify seamless return to Vertical Scroll mode (side_mode=0)
     set_zp("boss_hp", 1)
-    set_zp("weapon_type", 3)  # ビームサーベルは第3形態 (ガンダム) 専用
+    set_zp("weapon_type", 3)  # プラズマブレードは第3形態 (ホワイトセーバー) 専用
     set_zp("player_x", zp("boss_x") - 40)
     set_zp("player_y", zp("boss_y") + 8)
     for _ in range(30):
@@ -398,7 +398,7 @@ for stage_num in range(4):
 
     # Reduce Rival Boss HP to 1 and defeat it within 46px blade reach with Beam Saber
     set_zp("boss_hp", 1)
-    set_zp("weapon_type", 3)  # ビームサーベルは第3形態 (ガンダム) 専用
+    set_zp("weapon_type", 3)  # プラズマブレードは第3形態 (ホワイトセーバー) 専用
     set_zp("player_x", zp("boss_x") - 40)
     set_zp("player_y", zp("boss_y") + 8)
     for _ in range(30):

@@ -84,7 +84,7 @@ print(f"Game state: {zp('game_state')}, side_mode: {zp('side_mode')}, boss_state
 assert zp('side_mode') == 1, "Expected side_mode == 1"
 assert zp('boss_state') == 1, "Expected boss_state == 1"
 assert zp('boss_type') == 1, "Expected boss_type == 1"
-assert zp('weapon_type') == 3, "Expected weapon_type == 3 (Gundam)"
+assert zp('weapon_type') == 3, "Expected weapon_type == 3 (White Saber)"
 assert zp('lives') == 5, "Expected lives == 5"
 
 # Now test SELECT button in fight: toggle into Saber Duel Frenzy!

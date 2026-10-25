@@ -403,7 +403,7 @@ update_title:
     lda #168
     sta OAM_BUF+15
 
-    ; ボス名 (X=176, 184, 192, 200: ZAKU / DOM / ZGOK / GOUF / RED)
+    ; ボス名 (X=176, 184, 192, 200: TRPR / HOVR / CLAW / WHIP / RED)
     lda boss_select
     asl
     asl
@@ -728,7 +728,7 @@ enter_boss_battle_play:
     sta player_x
     lda #100
     sta player_y
-    lda #FORM_GUNDAM
+    lda #FORM_SABER
     sta weapon_type
     lda #3
     sta weapon_level
@@ -1162,7 +1162,7 @@ draw_hud_sprites:
     adc #$90
     sta OAM_BUF+37
     ldy weapon_type
-    lda form_hud_icon,y     ; $70(Core), $18(Legs), $19(Chest), $73(Gundam)
+    lda form_hud_icon,y     ; $70(Core), $18(Legs), $19(Chest), $73(WhiteSaber)
     sta OAM_BUF+41
     lda #$00
     sta OAM_BUF+34
@@ -1219,7 +1219,7 @@ draw_hud_sprites:
     sta OAM_BUF+59
     rts
 
-; ---- 自機 (3形態: コアファイター / コア＋脚部 / ガンダムMS) + B範囲衝撃波リングの描画 ----
+; ---- 自機 (3形態: コア戦闘機 / コア＋脚部 / ホワイトセーバー) + B範囲衝撃波リングの描画 ----
 draw_player_and_barrier:
     lda game_state
     cmp #STATE_DEAD
@@ -1250,18 +1250,18 @@ draw_player_and_barrier:
     jsr draw_samurai_at_py
 
 @chk_saber_draw:
-    ; 近接ビームサーベル描画 (横画面専用: ボスのサーベルと同型の直進ビーム刃 32px)
+    ; 近接プラズマブレード描画 (横画面専用: ボスのサーベルと同型の直進ビーム刃 32px)
     lda side_mode
     bne :+
     jmp @chk_b_ring         ; 縦スクロール道中はサーベル非表示
 :   lda weapon_type
-    cmp #FORM_GUNDAM
-    bne @chk_timer_saber    ; ガンダム形態以外はサーベル非表示
+    cmp #FORM_SABER
+    bne @chk_timer_saber    ; ホワイトセーバー形態以外はサーベル非表示
 
-    ; ボス狂乱突進中 (boss_state == 5) ならガンダムは常時サーベル戦闘モード！
+    ; ボス狂乱突進中 (boss_state == 5) ならホワイトセーバーは常時サーベル戦闘モード！
     lda boss_state
     cmp #5
-    beq @do_draw_gundam_saber
+    beq @do_draw_plasma_blade
 
 @chk_timer_saber:
     lda saber_timer
@@ -1269,13 +1269,13 @@ draw_player_and_barrier:
     jmp @chk_b_ring
 :
 
-@do_draw_gundam_saber:
+@do_draw_plasma_blade:
     ; Aボタンが押されているか (buttons & BTN_A) または saber_timer > 0 か？
     lda buttons
     and #BTN_A
-    bne @gundam_draw_slash
+    bne @saber_draw_slash
     lda saber_timer
-    bne @gundam_draw_slash
+    bne @saber_draw_slash
 
     ; ---- 【自機の上段の構え】 (ボタンリリース中): 斜め右上に頭上高く構える！ ----
     ; 柄・手首 (PT1 $0B) at (player_x + 8, player_y - 2)
@@ -1337,7 +1337,7 @@ draw_player_and_barrier:
     jsr push_one_sprite
     jmp @chk_b_ring
 
-@gundam_draw_slash:
+@saber_draw_slash:
     ; ---- 【自機の振り下ろし一閃】 (Aボタン押下中): 水平前方に直線の光刃を一閃！ ----
     lda frame_count
     and #1                  ; 斬撃中は白とシアンで激しく明滅
@@ -1446,7 +1446,7 @@ draw_player_and_barrier:
 @done_p:
     rts
 
-; ---- player_x, player_y に現在の形態 (0:コアファイター 16x16 / 1:コア+脚部 16x24 / 2:ガンダム 16x24) を描画 ----
+; ---- player_x, player_y に現在の形態 (0:コア戦闘機 16x16 / 1:コア+脚部 16x24 / 2:ホワイトセーバー 16x24) を描画 ----
 draw_samurai_at_py:
     lda player_y
     cmp #12
@@ -1463,7 +1463,7 @@ draw_samurai_at_py:
     beq @chk_form
     cmp #STATE_WARP
     beq @chk_form
-    jmp @draw_core_fighter
+    jmp @draw_core_craft
 
 @chk_form:
     ; ボス戦 (side_mode != 0) の場合は全形態を右向き横視点シルエットで描画！
@@ -1473,21 +1473,21 @@ draw_samurai_at_py:
 :
     lda weapon_type
     bne :+
-    jmp @draw_core_fighter
+    jmp @draw_core_craft
 :   cmp #FORM_LEGS
     bne :+
     jmp @draw_form2_legs
 :   cmp #FORM_CHEST
     bne :+
     jmp @draw_form25_chest
-:   jmp @draw_gundam_ms
+:   jmp @draw_white_saber
 
 @draw_side_player:
     ; ---- 横画面ボス戦時の自機描画 (第1・第2・第2.5・第3形態すべて右向き戦闘姿勢！) ----
     lda weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     bne :+
-    jmp @draw_gundam_ms
+    jmp @draw_white_saber
 :   cmp #FORM_LEGS
     bne :+
     jmp @draw_side_form2
@@ -1496,7 +1496,7 @@ draw_samurai_at_py:
     jmp @draw_side_form25
 :
 
-    ; ---- 第1形態: 横向きコアファイター (シャープな右向き戦闘機シルエット PT1 $D8-$DB 16x16) ----
+    ; ---- 第1形態: 横向きコア戦闘機 (シャープな右向き戦闘機シルエット PT1 $D8-$DB 16x16) ----
     lda player_x
     sta tmp_bx
     lda player_y
@@ -1526,7 +1526,7 @@ draw_samurai_at_py:
     rts
 
 @draw_side_form2:
-    ; ---- 第2形態: 横向きコア＋脚部 (前方コアファイター ＋ 脚部ブースター PT1 $EA-$F2 24x24) ----
+    ; ---- 第2形態: 横向きコア＋脚部 (前方コア戦闘機 ＋ 脚部ブースター PT1 $EA-$F2 24x24) ----
     lda player_x
     sec
     sbc #4
@@ -1543,7 +1543,7 @@ draw_samurai_at_py:
     rts
 
 @draw_side_form25:
-    ; ---- 第2.5形態: 横向きコア＋胸部 (Gundam上半身＋背部コアブースター PT1 $F3-$FB 24x24) ----
+    ; ---- 第2.5形態: 横向きコア＋胸部 (ホワイトセーバー上半身＋背部コアブースター PT1 $F3-$FB 24x24) ----
     lda player_x
     sec
     sbc #4
@@ -1560,13 +1560,13 @@ draw_samurai_at_py:
     rts
 
 @draw_form2_legs:
-    ; ---- 第2形態: コアファイター＋脚部 ($48..$4D, 16x24) ----
+    ; ---- 第2形態: コア戦闘機＋脚部 ($48..$4D, 16x24) ----
     lda #$48
     sta tmp_tile
     jmp @draw_16x24_body
 
 @draw_form25_chest:
-    ; ---- 第2.5形態: コアファイター＋胸部 ($EA..$EF, 16x24) ----
+    ; ---- 第2.5形態: コア戦闘機＋胸部 ($EA..$EF, 16x24) ----
     lda #$EA
     sta tmp_tile
 
@@ -1582,8 +1582,8 @@ draw_samurai_at_py:
     jsr push_16x24_metatile
     rts
 
-@draw_gundam_ms:
-    ; ---- 第3形態: 斜め向き立ち絵ガンダム＋ビームライフル ($E0..$E8, 24x24 = 9スプライト) ----
+@draw_white_saber:
+    ; ---- 第3形態: 斜め向き立ち絵ホワイトセーバー＋ライフル ($E0..$E8, 24x24 = 9スプライト) ----
     lda #$E0
     sta tmp_tile
     lda player_x
@@ -1599,7 +1599,7 @@ draw_samurai_at_py:
     jsr push_24x24_metatile
     rts
 
-@draw_core_fighter:
+@draw_core_craft:
     ldy oam_ptr
     cpy #$F0
     bcs @ret
@@ -1777,7 +1777,7 @@ draw_pbullets_oam:
     lda laser_timer
     beq @draw_normal_pbul
     lda weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     bne @draw_normal_pbul
 
     lda #$09                ; ビームレーザータイル ($09)
@@ -1901,7 +1901,7 @@ draw_enemies_oam:
     ; enemy_drop != 0 なら味方の「支援輸送機 ($74-$77)」として描画！
     lda enemy_drop,x
     beq @normal_enemy
-    lda #$74                ; 支援輸送機 (ガンペリー風キャリア)
+    lda #$74                ; 支援輸送機 (キャリア)
     sta tmp_tile
     lda #$00                ; パレット0 (白・青・赤の連邦/味方カラー)
     sta tmp_attr
@@ -2180,15 +2180,15 @@ draw_boss_oam:
     lda boss_type
     bne @use_rival_tile
     ldx current_stage
-    lda boss_base_tile_tbl,x ; PT1 $30(ザク), $3C(ドム), $C0(ズゴック), $CC(グフ)
+    lda boss_base_tile_tbl,x ; PT1 $30(重装兵), $3C(ホバー), $C0(強襲クロー), $CC(電熱鞭)
     jmp @got_ms_tile
 @use_rival_tile:
-    lda #$58                ; PT1 $58-$63: 宿敵・赤いモビルスーツ (24x32)
+    lda #$58                ; PT1 $58-$63: 宿敵・紅蓮のMS (24x32)
 @got_ms_tile:
     sta tmp_tile
 
 
-    ; 24x32 (3列 x 4行 = 12スプライト) の横向きモビルスーツ本体を (boss_x + 12, boss_y) に描画！
+    ; 24x32 (3列 x 4行 = 12スプライト) の横向きMS(Mitame Tsuyoi)本体を (boss_x + 12, boss_y) に描画！
     ; 画面右端 (X >= 248 またはキャリー発生) のパーツは画面外クリッピングして左端へのラップアラウンド出現を完全防止！
     lda boss_y
     sta tmp_by
@@ -2261,7 +2261,7 @@ draw_boss_oam:
     rts
 :
 
-    ; 狂乱近接戦闘中 (boss_state == 5) は前方に武器（ヒートホーク / 赤ビームサーベル光刃 $09）を長さ3倍(32px)で常時構えて突撃・戦闘！
+    ; 狂乱近接戦闘中 (boss_state == 5) は前方に武器（電熱武器 / プラズマ光刃 $09）を長さ3倍(32px)で常時構えて突撃・戦闘！
     lda boss_state
     cmp #5
     beq :+
@@ -2275,7 +2275,7 @@ draw_boss_oam:
     lda #$01
     jmp @draw_boss_weapon
 @rival_saber_color:
-    ; 赤いMS: 赤色ビームサーベル (専用赤・パレット2)
+    ; 紅蓮のMS: 赤色プラズマ光刃 (専用赤・パレット2)
     lda #$02
 @draw_boss_weapon:
     sta tmp_attr
@@ -2353,7 +2353,7 @@ draw_boss_oam:
 
 @boss_draw_slash:
     ; ---- 【ボスの振り下ろし一閃】: 水平前方に直線の光刃を一閃！ ----
-    ; Y座標: モビルスーツ手元高さ (boss_y + 4)
+    ; Y座標: ロボットMS手元高さ (boss_y + 4)
     lda boss_y
     clc
     adc #4
@@ -2397,7 +2397,7 @@ draw_boss_oam:
     jmp @ms_draw_done
 
 @chk_normal_special_weapon:
-    ; Stage 4 最終ボス (赤いMS) の即死メガ粒子ビーム描画 (boss_beam_timer > 0)
+    ; Stage 4 最終ボス (紅蓮のMS) の即死荷電粒子ビーム描画 (boss_beam_timer > 0)
     lda current_stage
     cmp #3
     bne @chk_bit_funnel
@@ -2430,7 +2430,7 @@ draw_boss_oam:
     jmp @ms_draw_done
 
 @draw_mega_beam_firing:
-    ; ビーム照射中 (255..220): ボス銃口から画面左端まで極太メガ粒子ビームを一閃描画！
+    ; ビーム照射中 (255..220): ボス銃口から画面左端まで極太荷電粒子ビームを一閃描画！
     lda boss_y
     clc
     adc #12
@@ -2459,10 +2459,10 @@ draw_boss_oam:
     jmp @boss_mega_loop
 
 @chk_bit_funnel:
-    ; Stage 3・4 の赤いMS (オールレンジ試作型 / フルスペック型) は周囲にビット/ファンネル2機 ($0E) を展開！
+    ; Stage 3・4 の紅蓮のMS は周囲に浮遊砲台（ビット）2基 ($0E) を展開！
     lda boss_type
     bne :+
-    jmp @chk_gouf_rod
+    jmp @chk_whip_rod
 :   lda current_stage
     cmp #2
     bcs :+
@@ -2485,8 +2485,8 @@ draw_boss_oam:
     jsr push_one_sprite
     rts
 
-@chk_gouf_rod:
-    ; Stage 4 中ボス グフ型 (MOJA-04) は前方にヒート・ロッド (電熱鞭 $09) を伸縮展開！
+@chk_whip_rod:
+    ; Stage 4 中ボス 電熱鞭機 (MOJA-04) は前方にプラズマウィップ (電熱鞭 $09) を伸縮展開！
     lda current_stage
     cmp #3
     bne @ms_draw_done
@@ -2534,7 +2534,7 @@ draw_ebullets_oam:
     bpl @loop
     rts
 
-; ---- 味方支援機 (ガンペリー輸送機) & 2倍サイズ合体パーツ (16x16: $78-$7B=脚部パーツ / $7C-$7F=胸部パーツ) の OAM 描画 ----
+; ---- 味方支援機 (支援輸送機) & 2倍サイズ合体パーツ (16x16: $78-$7B=脚部パーツ / $7C-$7F=胸部パーツ) の OAM 描画 ----
 draw_items_oam:
     ; 1. 味方支援機 (ally_state != 0) の描画
     lda ally_state
@@ -2687,7 +2687,7 @@ hud_score_x:
     .byte 192, 200, 208, 216, 224, 232
 
 form_hud_icon:
-    .byte $70, $18, $19, $73 ; 0:初期=Core($70), 1:第2=Legs($18), 2:第2.5=Chest($19), 3:第3=Gundam($73)
+    .byte $70, $18, $19, $73 ; 0:初期=Core($70), 1:第2=Legs($18), 2:第2.5=Chest($19), 3:第3=WhiteSaber($73)
 
 str_title_sub:
     .byte "EARTH DEFENSE FORCE CHRONICLE", 0
@@ -2696,7 +2696,7 @@ str_title_main:
 str_title_ship:
     .byte "FIGHTER: KBX-026 SAMURAI", 0
 str_title_story1:
-    .byte "CORE -> LEGS -> GUNDAM MS!", 0
+    .byte "CORE -> LEGS -> WHITE SABER!", 0
 str_title_story2:
     .byte "DOCK PARTS & DESTROY BOSS!", 0
 str_title_menu1:
@@ -2711,15 +2711,15 @@ str_title_ctrl2:
     .byte "SELECT: SABER MODE (IN BOSS)", 0
 
 boss_name_spr_table:
-    ; 0: ZAKU
-    .byte $BA, $A1, $AB, $B5  ; 'Z', 'A', 'K', 'U'
-    ; 1: DOM_
-    .byte $A4, $AF, $AD, $00  ; 'D', 'O', 'M', ' '
-    ; 2: ZGOK
-    .byte $BA, $A7, $AF, $AB  ; 'Z', 'G', 'O', 'K'
-    ; 3: GOUF
-    .byte $A7, $AF, $B5, $A6  ; 'G', 'O', 'U', 'F'
-    ; 4: RED_
+    ; 0: TRPR (Trooper: MOJA-01)
+    .byte $B4, $B2, $B0, $B2  ; 'T', 'R', 'P', 'R'
+    ; 1: HOVR (Hover: MOJA-02)
+    .byte $A8, $AF, $B6, $B2  ; 'H', 'O', 'V', 'R'
+    ; 2: CLAW (Claw: MOJA-03)
+    .byte $A3, $AC, $A1, $B7  ; 'C', 'L', 'A', 'W'
+    ; 3: WHIP (Whip: MOJA-04)
+    .byte $B7, $A8, $A9, $B0  ; 'W', 'H', 'I', 'P'
+    ; 4: RED_ (Red: Rival MS)
     .byte $B2, $A5, $A4, $00  ; 'R', 'E', 'D', ' '
 
 str_brief_hdr:

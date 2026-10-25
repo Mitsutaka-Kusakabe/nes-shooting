@@ -75,7 +75,7 @@ spawn_wave_for_meta:
     ; ★ 大ボス (meta_idx == 63) 直前の合体支援機シーケンス:
     ; meta_idx == 52: 脚部パーツ運搬支援機 (第1陣) 出撃！
     ; meta_idx == 56: 胸部パーツ運搬支援機 (第2陣) 出撃！
-    ; （被弾等でコアファイターに戻っていても、大ボス直前に再び完全体へドッキング可能！）
+    ; （被弾等でコア戦闘機に戻っていても、大ボス直前に再び完全体へドッキング可能！）
     cpy #52
     bne :+
     lda #0                  ; 0 = 脚部パーツ
@@ -225,7 +225,7 @@ update_formation_spawner:
     sta spawner_cnt
     rts
 
-; ---- 味方支援機 (ガンペリー輸送機) の出撃開始 ----
+; ---- 味方支援機 (支援輸送機) の出撃開始 ----
 spawn_ally_carrier:
     lda #1                  ; 1 = パーツ懸吊・運搬降下中
     sta ally_state
@@ -608,7 +608,7 @@ update_items:
     bpl @loop
     rts
 
-; ---- 味方支援機 (ガンペリー輸送機) のフレーム更新 ----
+; ---- 味方支援機 (支援輸送機) のフレーム更新 ----
 ; ally_state = 1: 画面上部から自機Xへ寄り添いながら Y=76 まで降下し、パーツを切り離す！
 ; ally_state = 2: パーツ投下後、画面上方へ帰還離脱する！
 update_ally_carrier:
@@ -668,9 +668,9 @@ update_ally_carrier:
 ; ---- 合体パーツ効果適用 (ビットマスク合体方式) ----
 ; 入力: A = item_type (0 = 脚部パーツ[bit0=1], 1 = 胸部パーツ[bit1=2])
 ; 仕様:
-;   - 初期形態 (00b=0: コアファイター) + 脚部(01b) -> 第2形態   (01b=1: コア＋脚部 / 3WAYミサイル)
-;   - 初期形態 (00b=0: コアファイター) + 胸部(10b) -> 第2.5形態 (10b=2: コア＋胸部 / 2WAYミサイル)
-;   - 第2形態(01b) + 胸部(10b) または 第2.5形態(10b) + 脚部(01b) -> 第3形態 (11b=3: ガンダム / 2秒貫通レーザー)
+;   - 初期形態 (00b=0: コア戦闘機) + 脚部(01b) -> 第2形態   (01b=1: コア＋脚部 / 3WAYミサイル)
+;   - 初期形態 (00b=0: コア戦闘機) + 胸部(10b) -> 第2.5形態 (10b=2: コア＋胸部 / 2WAYミサイル)
+;   - 第2形態(01b) + 胸部(10b) または 第2.5形態(10b) + 脚部(01b) -> 第3形態 (11b=3: ホワイトセーバー / 貫通レーザー)
 apply_powerup:
     and #1
     clc
@@ -685,13 +685,13 @@ apply_powerup:
 
 @form_changed:
     sta weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     beq @lv3
     lda #2                  ; 第2形態(1) / 第2.5形態(2) は HUD基本レベル '2'
     sta weapon_level
     rts
 @lv3:
-    lda #3                  ; 第3形態(3: ガンダム) は HUD基本レベル '3'
+    lda #3                  ; 第3形態(3: ホワイトセーバー) は HUD基本レベル '3'
     sta weapon_level
     rts
 
@@ -848,7 +848,7 @@ update_ebullets:
 ; ---- 自機被弾処理 (仕様書 3.1: 2段階アーマーパージ耐久システム) ----
 ; - 第3形態 (MSフル合体: アーマー2層＋コア): 1被弾で胸部パーツパージ -> 第2形態 (FORM_LEGS) へ！
 ; - 第2 / 第2.5形態 (半合体: アーマー1層＋コア): 被弾でアーマー破損パージ -> 初期形態 (FORM_CORE) へ！
-; - 初期形態 (コアファイター: HP 1): 被弾で1機撃墜 (STATE_DEAD)
+; - 初期形態 (コア戦闘機: HP 1): 被弾で1機撃墜 (STATE_DEAD)
 hit_player:
     lda game_state
     bne @ignore             ; STATE_PLAYING (0) 以外なら被弾判定しない！(撃墜中やワープ中、ゲームオーバー中など)
@@ -858,14 +858,14 @@ hit_player:
     bne @ignore             ; ワープ演出中
 
     lda weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     beq @purge_to_form2
     cmp #FORM_CORE
     bne @purge_to_core
     lda barrier_hp
     bne @purge_to_core
 
-    ; 初期形態(コアファイター)での被弾は 1機ミス (STATE_DEAD)
+    ; 初期形態(コア戦闘機)での被弾は 1機ミス (STATE_DEAD)
     lda #STATE_DEAD
     sta game_state
     lda #70
@@ -878,7 +878,7 @@ hit_player:
     rts
 
 @purge_to_form2:
-    ; 第3形態(ガンダム) -> 1層目アーマーパージ！第2形態(コア＋脚部)へ移行！
+    ; 第3形態(ホワイトセーバー) -> 1層目アーマーパージ！第2形態(コア＋脚部)へ移行！
     lda #FORM_LEGS
     sta weapon_type
     lda #2
@@ -886,7 +886,7 @@ hit_player:
     jmp @apply_purge_common
 
 @purge_to_core:
-    ; 第2/第2.5形態 -> アーマーパージして初期形態(コアファイター)へ緊急脱出！
+    ; 第2/第2.5形態 -> アーマーパージして初期形態(コア戦闘機)へ緊急脱出！
     lda #FORM_CORE
     sta weapon_type
     lda #1

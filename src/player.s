@@ -1,16 +1,16 @@
 ; 自機 4形態合体システム
-;   0 (FORM_CORE)  : 初期形態 コアファイター (通常ミサイル)
-;   1 (FORM_LEGS)  : 第2形態   コアファイター＋脚部 (3WAYミサイル)
-;   2 (FORM_CHEST) : 第2.5形態 コアファイター＋胸部 (2WAYミサイル)
-;   3 (FORM_GUNDAM): 第3形態   ガンダム (画面端まで貫通レーザー 2秒間照射 ＋ クールタイム0.5秒)
+;   0 (FORM_CORE)  : 初期形態 コア戦闘機 (通常ミサイル)
+;   1 (FORM_LEGS)  : 第2形態   コア＋脚部 (3WAYミサイル)
+;   2 (FORM_CHEST) : 第2.5形態 コア＋胸部 (2WAYミサイル)
+;   3 (FORM_SABER) : 第3形態   ホワイトセーバー (画面端まで貫通レーザー 0.3秒間照射 ＋ クールタイム0.7秒)
 ; & Bボタン範囲攻撃(クールタイム制) 制御
 
 MAX_PBULLETS = 8
 
-FORM_CORE   = 0         ; 00b: 初期形態 (コアファイター)
-FORM_LEGS   = 1         ; 01b: 第2形態 (コアファイター＋脚部)
-FORM_CHEST  = 2         ; 10b: 第2.5形態 (コアファイター＋胸部)
-FORM_GUNDAM = 3         ; 11b: 第3形態 (ガンダム フルドッキング)
+FORM_CORE   = 0         ; 00b: 初期形態 (コア戦闘機)
+FORM_LEGS   = 1         ; 01b: 第2形態 (コア＋脚部)
+FORM_CHEST  = 2         ; 10b: 第2.5形態 (コア＋胸部)
+FORM_SABER  = 3         ; 11b: 第3形態 (ホワイトセーバー フルドッキング)
 
 ; ---- 仕様書 セクション5: 武器攻撃力・近接サーベル閾値定数 ----
 DMG_MISSILE          = 1
@@ -24,14 +24,14 @@ SABER_TRIGGER_DIST_Y = 28
 
 .segment "CODE"
 
-; ---- 自機ステータス初期化 (ゲーム開始時: 初期形態コアファイター) ----
+; ---- 自機ステータス初期化 (ゲーム開始時: 初期形態コア戦闘機) ----
 player_init:
     lda #120
     sta player_x
     lda #184
     sta player_y
     lda #FORM_CORE
-    sta weapon_type         ; 0 = 初期形態(コアファイター)
+    sta weapon_type         ; 0 = 初期形態(コア戦闘機)
     lda #1
     sta weapon_level        ; HUD形態表示用 (1=第1形態, 2=第2/2.5形態, 3=第3形態)
     lda #3
@@ -49,7 +49,7 @@ player_init:
     jsr clear_pbullets
     rts
 
-; ---- ミス後のリスポーン初期化 (コアファイター形態で出撃) ----
+; ---- ミス後のリスポーン初期化 (コア戦闘機形態で出撃) ----
 player_respawn:
     lda side_mode
     bne @resp_side
@@ -74,7 +74,7 @@ player_respawn:
     sta b_blast_timer
     lda boss_battle_mode
     beq :+
-    lda #FORM_GUNDAM
+    lda #FORM_SABER
     sta weapon_type
     lda #3
     sta weapon_level
@@ -110,10 +110,10 @@ update_player:
     beq :+
     dec b_cooldown
 :
-    ; ビームサーベル3コマアニメーション更新 (saber_timer: 9..7=コマ1抜刀, 6..4=コマ2一閃+弾消し, 3..1=コマ3残心)
+    ; プラズマブレード3コマアニメーション更新 (saber_timer: 9..7=コマ1抜刀, 6..4=コマ2一閃+弾消し, 3..1=コマ3残心)
     lda saber_timer
     beq :+
-    jsr update_beam_saber
+    jsr update_plasma_blade
     dec saber_timer
 :
     ; ボス狂乱突進中、Aボタン長押し中は振り下ろし継続＋前方弾消し判定を維持
@@ -123,12 +123,12 @@ update_player:
     cmp #5
     bne :+
     lda weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     bne :+
     lda buttons
     and #BTN_A
     beq :+
-    jsr update_beam_saber
+    jsr update_plasma_blade
 :
     ; 8方向移動 (道中: 2.5px/f, 横画面ボス戦: 1.5px/f でサーベルの間合い調整を快適に！)
     lda side_mode
@@ -202,7 +202,7 @@ update_player:
     lda laser_timer
     beq @chk_fire_a
     lda weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     beq @tick_laser
     lda #0
     sta laser_timer
@@ -210,7 +210,7 @@ update_player:
 
 @tick_laser:
     ; レーザー照射中 (18フレーム = 約0.3秒): 敵貫通ダメージ処理を実行し、新規発射はロック
-    jsr apply_gundam_laser_beam
+    jsr apply_saber_laser_beam
     dec laser_timer
     bne @chk_fire_b
     ; 照射終了！ -> クールタイム 約0.7秒 (42フレーム) を開始！
@@ -234,9 +234,9 @@ update_player:
     lda shot_timer
     beq @can_shoot_a
     dec shot_timer
-    ; 第3形態(ガンダム)のレーザー0.7秒クールタイム中は連打による短縮を禁止（連射不可仕様の厳守）
+    ; 第3形態(ホワイトセーバー)のレーザー0.7秒クールタイム中は連打による短縮を禁止（連射不可仕様の厳守）
     lda weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     beq @chk_fire_b
     ; ミサイル系形態 (第1・第2・第2.5形態) はボタン単発押し直し (btn_press) で即応性を高める
     lda btn_press
@@ -299,7 +299,7 @@ fire_main_weapon:
     cmp #5
     bne @normal_mode_chk
     lda weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     bne @normal_mode_chk
 
     ; ---- 狂乱突進戦: サーベル一閃！ ----
@@ -311,15 +311,15 @@ fire_main_weapon:
     sta laser_timer
     lda #SFX_LASER
     jsr play_sfx
-    jsr update_beam_saber
+    jsr update_plasma_blade
     rts
 
 @normal_mode_chk:
-    ; 1. 近距離判定 (Check_Attack_Type): 前方46px以内に敵またはボスがいればビームサーベル発動！
+    ; 1. 近距離判定 (Check_Attack_Type): 前方46px以内に敵またはボスがいればプラズマブレード発動！
     jsr check_saber_range
     beq @ranged_attack
 
-    ; ---- 近接ビームサーベル発動！ (3コマアニメ: 9フレーム, 威力 DMG_SABER=8 + 弾消し) ----
+    ; ---- 近接プラズマブレード発動！ (3コマアニメ: 9フレーム, 威力 DMG_SABER=8 + 弾消し) ----
     lda #9                  ; コマ1(9..7) -> コマ2(6..4) -> コマ3(3..1)
     sta saber_timer
     lda #12                 ; サーベル振り後のクールダウン
@@ -328,15 +328,15 @@ fire_main_weapon:
     sta laser_timer         ; レーザー照射中なら中断して斬り込む
     lda #SFX_LASER
     jsr play_sfx
-    jsr update_beam_saber
+    jsr update_plasma_blade
     rts
 
 @ranged_attack:
-    ; 2. 遠距離射撃: 第3形態 (ガンダム) は弾プールを使わず 2秒間貫通レーザー照射を開始する
+    ; 2. 遠距離射撃: 第3形態 (ホワイトセーバー) は弾プールを使わず 貫通レーザー照射を開始する
     lda weapon_type
-    cmp #FORM_GUNDAM
+    cmp #FORM_SABER
     bne @check_bullet_pool
-    jmp @fire_gundam_laser
+    jmp @fire_saber_laser
 
 @check_bullet_pool:
     ; 現在のアクティブ弾数を数え、上限 (4発) を超えていたら発射しない (画面の視認性向上と過剰弾幕の防止)
@@ -357,7 +357,7 @@ fire_main_weapon:
     lda #15
     sta shot_timer
 
-    ; 形態 (0=初期コアファイター, 1=第2形態コア+脚部, 2=第2.5形態コア+胸部) で分岐
+    ; 形態 (0=初期コア戦闘機, 1=第2形態コア+脚部, 2=第2.5形態コア+胸部) で分岐
     lda weapon_type
     cmp #FORM_LEGS
     bne :+
@@ -365,7 +365,7 @@ fire_main_weapon:
 :   cmp #FORM_CHEST
     beq @fire_chest_2way
 
-    ; ---- 初期形態 (0: コアファイター): 通常ミサイル (1WAY) ----
+    ; ---- 初期形態 (0: コア戦闘機): 通常ミサイル (1WAY) ----
     lda #SFX_SHOT
     jsr play_sfx
     lda #$07                ; ミサイルタイル
@@ -407,7 +407,7 @@ fire_main_weapon:
     rts
 
 @fire_chest_2way:
-    ; ---- 第2.5形態 (2: コアファイター＋胸部): 2WAY ミサイル ----
+    ; ---- 第2.5形態 (2: コア戦闘機＋胸部): 2WAY ミサイル ----
     lda #SFX_SHOT
     jsr play_sfx
     lda #$07                ; 直進ミサイル
@@ -460,7 +460,7 @@ fire_main_weapon:
     rts
 
 @fire_legs_heavy:
-    ; ---- 第2形態 (1: コアファイター＋脚部): 強化ミサイル (直進単発・2dmg・旧通常ミサイルサイズ) ----
+    ; ---- 第2形態 (1: コア戦闘機＋脚部): 強化ミサイル (直進単発・2dmg・旧通常ミサイルサイズ) ----
     lda #SFX_SHOT
     jsr play_sfx
     lda #2                  ; 強化ミサイル: 2ダメージ
@@ -505,17 +505,17 @@ fire_main_weapon:
     jsr spawn_pbullet
     rts
 
-@fire_gundam_laser:
-    ; ---- 第3形態 (3: ガンダム): 照射0.3秒 (18フレーム) のスリム閃光貫通レーザー！ ----
+@fire_saber_laser:
+    ; ---- 第3形態 (3: ホワイトセーバー): 照射0.3秒 (18フレーム) のスリム閃光貫通レーザー！ ----
     lda #18                 ; 18フレーム照射 (約0.3秒)
     sta laser_timer
     lda #SFX_LASER
     jsr play_sfx
-    jsr apply_gundam_laser_beam
+    jsr apply_saber_laser_beam
     rts
 
 ; ---- 第3形態の貫通ロングレーザー照射ダメージ処理 (自機から画面端まで敵・ボスを貫通) ----
-apply_gundam_laser_beam:
+apply_saber_laser_beam:
     ; 照射開始時のみビーム持続音を鳴らす
     lda laser_timer
     cmp #18
@@ -622,14 +622,14 @@ apply_gundam_laser_beam:
     rts
 
 
-; ---- 近接ビームサーベル発動距離チェック (Check_Attack_Type: 横画面・ボス戦 side_mode != 0 のみ発動！) ----
+; ---- 近接プラズマブレード発動距離チェック (Check_Attack_Type: 横画面・ボス戦 side_mode != 0 のみ発動！) ----
 ; 出力: A = 1 (横画面ボス戦で前方 SABER_TRIGGER_DIST 以内に敵またはボスあり -> サーベル発動), 0 (遠距離射撃)
 check_saber_range:
     lda side_mode
-    beq @out_of_range       ; 縦スクロール道中 (side_mode == 0) ではビームサーベルを発動しない！
+    beq @out_of_range       ; 縦スクロール道中 (side_mode == 0) ではプラズマブレードを発動しない！
     lda weapon_type
-    cmp #FORM_GUNDAM
-    bne @out_of_range       ; 第3形態 (ガンダム) 以外はビームサーベルを持たない！
+    cmp #FORM_SABER
+    bne @out_of_range       ; 第3形態 (ホワイトセーバー) 以外は近接ブレードを持たない！
 
     ldx #MAX_ENEMIES-1
 @s_eloop:
@@ -696,8 +696,8 @@ check_saber_range:
     lda #1
     rts
 
-; ---- 近接ビームサーベル 斬撃＆弾消し処理 ----
-update_beam_saber:
+; ---- 近接プラズマブレード 斬撃＆弾消し処理 ----
+update_plasma_blade:
     ; 狂乱突進中 (boss_state == 5) かつ Aボタン長押し中は常に振り下ろし弾消し判定を有効化！
     lda side_mode
     beq @chk_timer_cut
@@ -741,7 +741,7 @@ update_beam_saber:
     cmp #45
     bcs @sb_bnext
 
-    ; ビームサーベルで敵弾を一刀両断・消去！
+    ; プラズマブレードで敵弾を一刀両断・消去！
     lda #0
     sta ebul_flag,x
 @sb_bnext:
@@ -962,11 +962,11 @@ apply_b_blast_effect:
 ; =========================================================
 ; 仕様書 セクション5: 難易度調整・計算テーブル (Difficulty & Balance LUTs)
 ; =========================================================
-; 中ボス HP テーブル (Stage 1〜4: ザク型30, ドム型35, ズゴック型40, グフ型50)
+; 中ボス HP テーブル (Stage 1〜4: 重装兵型30, ホバー装甲型35, 強襲クロー型40, 電熱鞭機50)
 MidBoss_HP_Table:
     .byte 30, 35, 40, 50
 
-; ライバル機 (赤いMS) HP テーブル (Stage 1〜4: 80, 90, 100, 120)
+; ライバル機 (紅蓮のMS) HP テーブル (Stage 1〜4: 80, 90, 100, 120)
 Rival_HP_Table:
     .byte 80, 90, 100, 120
 
