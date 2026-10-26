@@ -319,6 +319,62 @@ ORDER_GAMEOVER = [
 LOOP_GAMEOVER = 0
 
 
+# =============================================================================
+# 5. ステージ移動BGM: INTRODUCTION!! - WARP OVERDRIVE (Issue #18)
+#    案A: E minor / 150 BPM (6フレーム/step)
+#    WARP演出 (2.50s) + BRIEFING表示 (1.83s) = 計4.33s のステージ間遷移に最適化
+# =============================================================================
+BARS_CLEAR = {
+    # Bar 1 (0.0s〜1.6s: ワープ追撃開始): 力強いシンセブラス連打＋オクターブベース
+    "C1": (
+        "E5 - - B4 E5 - F#5 - G5 - - D5 G5 - A5 -",
+        "E3 . E3 E4 E3 . E3 E4 G2 . G2 G3 G2 . G2 G3",
+        "K . . K S . K . K . . K S . S S",
+        "G4 - - D4 G4 - A4 - B4 - - G4 B4 - C5 -",
+    ),
+    # Bar 2 (1.6s〜3.2s: ワープ最高速〜STAGE表示突入): 伸びやかな高音リード＋16分クリスタル分散和音
+    "C2": (
+        "B5 - - - A5 - G5 - F#5 - G5 - A5 - B5 -",
+        "C3 . C3 C4 C3 . C3 C4 D3 . D3 D4 D3 . D3 D4",
+        "K . K . S . K . K . K . S . K S",
+        "E5 B4 G4 B4 E5 B4 G4 B4 D5 A4 F#4 A4 D5 F#5 G5 A5",
+    ),
+    # Bar 3 (3.2s〜4.8s: ブリーフィング終盤): クライマックス・ツインリード終止
+    "C3": (
+        "C6 - - B5 A5 - G5 - F#5 - D#5 - E5 - - -",
+        "A2 . A2 A3 C3 . C3 C4 B2 . B2 B3 E3 - - -",
+        "K . . K S . K . S . S . K S S S",
+        "E5 - - D5 C5 - B4 - A4 - B4 - G#4 - - -",
+    ),
+    # Bar 4 (4.8s〜6.4s: 余韻・エンディング/長尺時用クリスタルエコー)
+    "C4": (
+        "B4 E5 G#5 B5 E6 - - - - - - - . . . .",
+        "E2 - - - E3 - - - E2 - - - . . . .",
+        "K . . . S . . . K . . . . . . .",
+        "G#4 B4 E5 G#5 B5 - - - - - - - . . . .",
+    ),
+}
+
+ORDER_CLEAR = ["C1", "C2", "C3", "C4"]
+LOOP_CLEAR = 0
+
+# --- 保存用アーカイブ: 案B (180 BPM / A minor 超高速駆け上がり＆ヒロイック) ---
+# BARS_CLEAR_PLAN_B = {
+#     "C1": ("A4 B4 C5 D5 E5 - A5 - G5 - F5 - E5 - D5 -", "A2 . A2 A3 A2 . A2 A3 G2 . G2 G3 G2 . G2 G3", "K . K . S . K . K . K . S . S S", "C4 D4 E4 F4 A4 - C5 - B4 - A4 - G4 - B4 -"),
+#     "C2": ("C5 . E5 . A5 - G5 - F5 - E5 - D5 - G5 -", "F2 . F2 F3 F2 . F2 F3 G2 . G2 G3 G2 . G2 G3", "K . . K S . K . K . K . S . K S", "A4 . C5 . E5 - C5 - A4 - G4 - F4 - B4 -"),
+#     "C3": ("E5 - A5 - B5 - C6 - B5 - G#5 - A5 - - -", "A2 . A2 A3 F2 . F2 F3 E2 . E2 E3 A2 - - -", "K . K . S . K . S . S . K S S S", "A4 - C5 - D5 - E5 - D5 - B4 - C#5 - - -"),
+#     "C4": ("E5 A5 C#6 E6 A6 - - - - - - - . . . .", "A2 - - - A3 - - - A2 - - - . . . .", "K . . . S . . . K . . . . . . .", "C#5 E5 A5 C#6 E6 - - - - - - - . . . ."),
+# }
+# --- 保存用アーカイブ: 案C (150 BPM / D minor -> D major シンコペーション・ブラス＆ピカルディ終止) ---
+# BARS_CLEAR_PLAN_C = {
+#     "C1": ("D5 . D5 F5 A5 - - G5 F5 . F5 A5 C6 - - Bb5", "D3 . D3 D4 D3 . C3 . Bb2 . Bb2 Bb3 C3 . C3 C4", "K . K . S . . K K . K . S . . K", "F4 . F4 A4 D5 - - C5 A4 . A4 C5 F5 - - D5"),
+#     "C2": ("A5 G5 A5 Bb5 C6 A5 F5 G5 A5 - - - . A4 C#5 E5", "F2 . F2 F3 G2 . G2 G3 A2 . A2 A3 A2 . G2 .", "K . . K S . K . K . K . S S S S", "C5 Bb4 C5 D5 F5 C5 A4 Bb4 C#5 - - - . E4 A4 C#5"),
+#     "C3": ("F5 - D5 - Bb5 - A5 - G5 - E5 - F#5 - - -", "D3 . D3 D4 G2 . G2 G3 A2 . A2 A3 D3 - - -", "K . K . S . K . K . S . K S S S", "A4 - F4 - D5 - C5 - Bb4 - G4 - A4 - - -"),
+#     "C4": ("A4 D5 F#5 A5 D6 - - - - - - - . . . .", "D2 - - - D3 - - - D2 - - - . . . .", "K . . . S . . . K . . . . . . .", "F#4 A4 D5 F#5 A5 - - - - - - - . . . ."),
+# }
+
+
+
 def period(idx):
     midi = idx + MIDI_BASE
     f = 440.0 * 2 ** ((midi - 69) / 12.0)
@@ -403,6 +459,14 @@ def main():
         BARS_GAMEOVER,
         ORDER_GAMEOVER,
         LOOP_GAMEOVER
+    )
+    generate_music_file(
+        "assets/music_clear.s",
+        "ステージ移動BGM「INTRODUCTION!! - WARP OVERDRIVE」(Issue #18 案A)",
+        "clr",
+        BARS_CLEAR,
+        ORDER_CLEAR,
+        LOOP_CLEAR
     )
 
 

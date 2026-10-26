@@ -201,8 +201,6 @@ update_boss:
     sta kill_flash
     lda #TRACK_CLEAR
     jsr set_bgm_track
-    lda #SFX_WARP
-    jsr play_sfx
     rts
 :
     lda boss_type
@@ -233,8 +231,6 @@ update_boss:
     sta kill_flash          ; ホワイトアウトフラッシュ
     lda #TRACK_CLEAR
     jsr set_bgm_track
-    lda #SFX_WARP
-    jsr play_sfx
 @boss_ret:
     rts
 

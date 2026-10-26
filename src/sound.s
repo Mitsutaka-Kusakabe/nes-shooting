@@ -571,6 +571,8 @@ update_bgm:
     beq :+
     cpx #TRACK_STAGE2
     beq :+
+    cpx #TRACK_CLEAR
+    beq :+
     lda #7
 :
 @cmp_tempo:
@@ -599,68 +601,17 @@ update_bgm:
     bne :+
     jmp @do_gameover_bgm
 :
+    ; ステージ移動・クリア (TRACK_CLEAR) か判定
+    cmp #TRACK_CLEAR
+    bne :+
+    jmp @do_clear_bgm
+:
     ; 通常ステージ (TRACK_STAGE1, TRACK_STAGE2) か判定
     cmp #TRACK_STAGE1
     beq @do_stage_bgm
     cmp #TRACK_STAGE2
     beq @do_stage_bgm
-
-    ; ---- 従来 32ステップ曲 (CLEAR) ----
-    ldx bgm_step
-    inx
-    txa
-    and #31                 ; 32ステップループ
-    sta bgm_step
-    tax
-
-    lda bgm_track
-    cmp #TRACK_CLEAR
-    beq @trk_clear
     rts
-
-@trk_boss:
-    lda mel_boss,x
-    tay
-    lda bass_boss,x
-    jmp @play_legacy_notes
-
-@trk_clear:
-    lda mel_clear,x
-    tay
-    lda bass_clear,x
-
-@play_legacy_notes:
-    pha
-    cpy #0
-    beq @legacy_rest_mel
-    lda #%10111011          ; Duty 50%, Vol 11
-    sta $4000
-    lda #$08
-    sta $4001
-    lda note_table_lo,y
-    sta $4002
-    lda note_table_hi,y
-    sta $4003
-    jmp @legacy_bass
-@legacy_rest_mel:
-    lda #$30
-    sta $4000
-
-@legacy_bass:
-    pla
-    tay
-    beq @legacy_rest_bass
-    lda #$81                ; TRI ON
-    sta $4008
-    lda note_table_lo,y
-    sta $400A
-    lda note_table_hi,y
-    sta $400B
-    jmp @do_drums
-@legacy_rest_bass:
-    lda #$00
-    sta $4008
-    jmp @do_drums
 
     ; =========================================================================
     ; ---- 新・通常ステージBGM「LUNAR CATACOMB DRIVE」再生ルーチン ----
@@ -755,10 +706,15 @@ update_bgm:
     sta $4008
 
 @stg_harm:
-    ; 2.5 ハーモニー (SQ2: offset +48, ゲームオーバー時のみ)
+    ; 2.5 ハーモニー (SQ2: offset +48, ゲームオーバー時 / ステージ移動時)
     lda bgm_track
     cmp #TRACK_GAMEOVER
+    beq @do_harm_ch
+    cmp #TRACK_CLEAR
     bne @stg_drums
+@do_harm_ch:
+    lda sfx_sq2_timer
+    bne @stg_drums          ; SQ2効果音再生中は効果音を優先
     lda bgm_bar_step
     clc
     adc #48
@@ -769,8 +725,12 @@ update_bgm:
     cmp #0
     beq @stg_rest_harm
     tax
-    lda #%10111001          ; Duty 50%, Vol 9 (メロディより少し控えめなアルペジオハーモニー)
-    sta $4004
+    lda #%10111001          ; Duty 50%, Vol 9 (ゲームオーバー時)
+    ldy bgm_track
+    cpy #TRACK_CLEAR
+    bne :+
+    lda #%01111010          ; Duty 25%, Vol 10 (ステージ移動時は煌びやかなブラス＆クリスタル分散和音)
+:   sta $4004
     lda #$08
     sta $4005
     lda stg_period_lo,x
@@ -899,11 +859,36 @@ update_bgm:
     sta text_ptr+1
     jmp @seq_play_channels
 
+    ; =========================================================================
+    ; ---- ステージ移動BGM「INTRODUCTION!! - WARP OVERDRIVE」再生ルーチン (150BPM) ----
+    ; =========================================================================
+@do_clear_bgm:
+    ldx bgm_order_idx
+    lda clr_order,x
+    cmp #$FF
+    bne :+
+    ; 楽曲が全小節演奏終了！消音して bgm_track を 0 (TRACK_NONE) にクリア
+    lda #$30
+    sta $4000
+    sta $4004
+    sta $400C
+    lda #0
+    sta $4008
+    sta bgm_track
+    rts
+:   tax
+    lda clr_pat_lo,x
+    sta text_ptr
+    lda clr_pat_hi,x
+    sta text_ptr+1
+    jmp @seq_play_channels
+
 .segment "RODATA"
 .include "../assets/music_stage.s"
 .include "../assets/music_boss.s"
 .include "../assets/music_title.s"
 .include "../assets/music_gameover.s"
+.include "../assets/music_clear.s"
 
 
 
@@ -917,52 +902,3 @@ sfx_1up_hi:
 sfx_1up_decay_vol:
     .byte %01111111, %01111110, %01111101, %01111011, %01111001, %01110111
 
-; ノート周期テーブル (0=休符, 1..24 = A2..G#4)
-note_table_lo:
-    .byte $00
-    .byte $F9, $E2, $C9, $B3, $9E, $8B, $79, $68, $59, $4A, $3C, $30  ; 1..12 (低音/中音)
-    .byte $FB, $EE, $E2, $D6, $C9, $BE, $B3, $A9, $9E, $96, $8B, $84  ; 13..24 (高音)
-note_table_hi:
-    .byte $00
-    .byte $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01
-    .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-
-; 1. タイトル画面テーマ (MOJAxMOJA WARS Heroic Theme)
-mel_title:
-    .byte 13, 0,16,18, 20, 0,18,16, 18, 0,16,13, 15, 0,13, 0
-    .byte 13,15,16,18, 20,21,23,20, 22, 0,20,18, 20, 0, 0, 0
-bass_title:
-    .byte  1, 1, 8, 8,  6, 6, 6, 6,  4, 4,11,11,  3, 3, 8, 8
-    .byte  1, 1, 8, 8,  6, 6,13,13,  8, 8, 6, 6,  1, 0, 1, 0
-
-; 2. ステージ1・3 テーマ (Cosmic Interceptor - Moon / Jupiter)
-mel_stage1:
-    .byte 20,18,16,20, 23,20,18,16, 18,16,15,18, 20,18,16,15
-    .byte 16,18,20,23, 24,23,20,18, 20,22,23,20, 18, 0,16, 0
-bass_stage1:
-    .byte  1, 8, 1, 8,  1, 8, 1, 8,  6,11, 6,11,  8,12, 8,12
-    .byte  4, 9, 4, 9,  6,11, 6,11,  8,12, 8,12,  1, 8, 1, 0
-
-; 3. ステージ2・4 テーマ (Red Planet Assault - Mars / Earth Orbit)
-mel_stage2:
-    .byte 15,15,18,15, 20,18,15,13, 16,16,19,16, 22,19,16,15
-    .byte 18,18,22,18, 23,22,18,16, 20,19,18,16, 15, 0,20, 0
-bass_stage2:
-    .byte  3,10, 3,10,  3,10, 3,10,  4,11, 4,11,  4,11, 4,11
-    .byte  6,12, 6,12,  8,12, 8,12,  3,10, 4,11,  3, 0, 3, 0
-
-; 4. ボス戦テーマ (MOJAxMOJA Dreadnought)
-mel_boss:
-    .byte 13,14,13,19, 13,14,13,20, 14,15,14,20, 14,15,14,21
-    .byte 16,17,16,22, 18,19,18,24, 23,22,20,19, 18,16,14,13
-bass_boss:
-    .byte  1, 2, 1, 7,  1, 2, 1, 8,  2, 3, 2, 8,  2, 3, 2, 9
-    .byte  4, 5, 4,10,  6, 7, 6,12,  8, 7, 6, 5,  4, 3, 2, 1
-
-; 5. ステージクリア & ワープファンファーレ
-mel_clear:
-    .byte 13,16,20,24, 24, 0,20,24, 23,20,18,20, 22, 0, 0, 0
-    .byte 16,20,23,24, 23,20,16,20, 24,24,24, 0, 24, 0, 0, 0
-bass_clear:
-    .byte  1, 5, 8,12, 12, 0, 8,12,  6, 8,11, 8, 10, 0, 0, 0
-    .byte  4, 8,11,12, 11, 8, 4, 8,  1, 1, 1, 0,  1, 0, 0, 0

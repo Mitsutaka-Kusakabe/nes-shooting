@@ -562,7 +562,7 @@ start_stage_briefing:
     sta warp_mode
     lda #STATE_BRIEFING
     sta game_state
-    lda #110                ; 約1.8秒表示
+    lda #10                 ; 曲演奏終了後の余韻マージン (約0.16秒)
     sta state_timer
 
     jsr ppu_init
@@ -611,8 +611,13 @@ start_stage_briefing:
     ldx #$06
     jsr write_text_at
 
-    lda #SFX_POWERUP
-    jsr play_sfx
+    ; 既にワープ演出から TRACK_CLEAR が鳴っていれば継続し、タイトルからの開始時のみ新規再生
+    lda bgm_track
+    cmp #TRACK_CLEAR
+    beq :+
+    lda #TRACK_CLEAR
+    jsr set_bgm_track
+:
 
     bit PPUSTATUS
     lda #$00
@@ -789,10 +794,27 @@ update_state:
     lda #16
     sta oam_ptr
     jsr draw_samurai_at_py
+
+    ; START または A ボタンで即座にブリーフィングをスキップ可能
+    lda btn_press
+    and #(BTN_START | BTN_A)
+    bne @briefing_done
+
+    ; 音楽 (TRACK_CLEAR) がまだ再生中なら、曲が終わるまで待機！
+    lda bgm_track
+    cmp #TRACK_CLEAR
+    beq @wait_briefing
+
+    ; 曲が最後まで鳴り終わったら、少しの余韻タイマー (10フレーム) を消化してステージへ！
     dec state_timer
-    bne :+
+    bne @wait_briefing
+
+@briefing_done:
     jsr enter_stage_play
-:   rts
+    rts
+
+@wait_briefing:
+    rts
 
 @do_warp:
     ; ---- ステージクリア後のワープ演出＆ボス逃走・自機追撃シーケンス！ ----

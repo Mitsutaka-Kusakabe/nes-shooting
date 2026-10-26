@@ -84,9 +84,11 @@ run_frame(0x00)
 print(f"[OK] Pressed START -> game_state={zp('game_state')} (Expected 6=STATE_BRIEFING), stage={zp('current_stage')}")
 assert zp("game_state") == 6
 
-# Wait for Stage 1 Briefing (110 frames) to enter STATE_PLAYING (0)
-for _ in range(115):
+# Wait for Stage 1 Briefing (plays full TRACK_CLEAR fanfare ~394 frames) to enter STATE_PLAYING (0)
+for _ in range(450):
     run_frame(0x00)
+    if zp("game_state") == 0:
+        break
 print(f"[OK] Briefing finished -> game_state={zp('game_state')} (Expected 0=STATE_PLAYING), cam_y={zp('cam_y')}")
 assert zp("game_state") == 0
 
@@ -426,8 +428,10 @@ for stage_num in range(4):
     if stage_num < 3:
         assert zp("game_state") == 6 and zp("current_stage") == stage_num + 1 and zp("side_mode") == 0
         print(f"[OK] Warp completed -> Advanced to Stage {stage_num+2} Briefing (side_mode reset to 0)!")
-        for _ in range(115):
+        for _ in range(300):
             run_frame(0x00)
+            if zp("game_state") == 0:
+                break
         assert zp("game_state") == 0
     else:
         assert zp("game_state") == 5
