@@ -785,7 +785,7 @@
     },
     {
       id: "BOSS_RIVAL",
-      name: "宿敵・紅蓮のMS (Mitame Tsuyoi 全ステージ決戦)",
+      name: "宿敵・紅蓮のMS (Mitame Sugoi 全ステージ決戦)",
       category: "boss",
       paletteIdx: 1,
       subpalettes: createDefaultSubpalettes(),

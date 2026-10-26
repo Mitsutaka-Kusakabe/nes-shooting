@@ -416,7 +416,7 @@ CHAR_DEFS = [
     },
     {
         "id": "BOSS_RIVAL",
-        "name": "宿敵・紅蓮のMS (Mitame Tsuyoi 全ステージ決戦)",
+        "name": "宿敵・紅蓮のMS (Mitame Sugoi 全ステージ決戦)",
         "category": "boss",
         "pal_idx": 1,
         "pal": PAL_RIVAL,

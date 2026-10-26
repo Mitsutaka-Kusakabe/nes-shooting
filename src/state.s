@@ -2188,7 +2188,7 @@ draw_boss_oam:
     sta tmp_tile
 
 
-    ; 24x32 (3列 x 4行 = 12スプライト) の横向きMS(Mitame Tsuyoi)本体を (boss_x + 12, boss_y) に描画！
+    ; 24x32 (3列 x 4行 = 12スプライト) の横向きMS(Mitame Sugoi)本体を (boss_x + 12, boss_y) に描画！
     ; 画面右端 (X >= 248 またはキャリー発生) のパーツは画面外クリッピングして左端へのラップアラウンド出現を完全防止！
     lda boss_y
     sta tmp_by

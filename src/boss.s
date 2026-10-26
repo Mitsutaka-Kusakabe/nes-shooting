@@ -1,4 +1,4 @@
-; 横表示ロボット戦: 量産型ロボット中ボス 4機 (MOJA-01..04) & 宿敵・紅蓮のMS (RIVAL RED MS - Mitame Tsuyoi) 制御
+; 横表示ロボット戦: 量産型ロボット中ボス 4機 (MOJA-01..04) & 宿敵・紅蓮のMS (RIVAL RED MS - Mitame Sugoi) 制御
 ; [中ボス (boss_type = 0, meta_idx == 32)]:
 ;   STAGE 1 (月):   重装兵型 (MOJA-01 TROOPER, HP 30, PT1 $30-$3B)
 ;   STAGE 2 (火星): ホバー装甲型 (MOJA-02 HOVER, HP 35, PT1 $3C-$47)
@@ -34,7 +34,7 @@ spawn_midboss:
 ; ---- ステージ終端 (meta_idx == 63) 到達時の「宿敵・紅蓮のMS (RIVAL RED MS)」WARNING警告開始 ----
 spawn_boss:
     lda #1
-    sta boss_type           ; 1 = 宿敵・紅蓮のMS (RIVAL RED MS - Mitame Tsuyoi)
+    sta boss_type           ; 1 = 宿敵・紅蓮のMS (RIVAL RED MS - Mitame Sugoi)
 
 start_boss_warning:
     lda #3                  ; 3 = WARNING警告フェーズ (縦スクロール道中のまま約2秒間大警告！)

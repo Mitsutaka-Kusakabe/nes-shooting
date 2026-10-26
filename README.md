@@ -4,7 +4,7 @@
 [![Play Web Emu](https://img.shields.io/badge/Play-Web%20Emulator-success?logo=nintendo)](https://mitsutaka-kusakabe.github.io/cluade-famicom-emu/)
 
 ファミリーコンピュータ (NES) 向けの 1人プレイ専用シューティングゲームです。  
-**縦スクロールの宇宙戦 → 味方支援機との合体 → 横画面でのロボットMS (Mitame Tsuyoi: 見た目強い) 1対1ボス戦** という流れで、全4宙域を突破します。  
+**縦スクロールの宇宙戦 → 味方支援機との合体 → 横画面でのロボットMS (Mitame Sugoi: 見た目凄い) 1対1ボス戦** という流れで、全4宙域を突破します。  
 6502 アセンブラ (`cc65` / `ca65` + `ld65`) を用いてフルスクラッチで実装しています。
 
 > 細かい挙動・数値・内部仕様は **[docs/SPEC.md（詳細仕様書）](docs/SPEC.md)** にまとめています。
