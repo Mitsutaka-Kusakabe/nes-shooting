@@ -328,14 +328,16 @@ sequenceDiagram
 - **DMC ($4010-$4013)**: DPCM キックドラム ($C000-$C7FF サンプル再生)
 
 ### 8.2 BGM トラックリスト
+全曲 4チャンネル（Pulse 1, Pulse 2, Triangle, Noise）＋ DPCM ドラムによるパターンシーケンサー（`tools/gen_music.py` 自動生成）で再生される。
+
 | トラック番号 | 定数名 | 曲名・モチーフ | 特徴 |
 |---|---|---|---|
-| 1 | `TRACK_TITLE` | メインテーマ (To Make the End of Battle) | イースII風 高速テンポ16分音符アルペジオ |
-| 2 | `TRACK_STAGE1` | 月面進軍 (Moonlit Assault) | 軽快なマイナーコード進行、スピーディな戦闘曲 |
-| 3 | `TRACK_STAGE2` | 火星動乱 (Mars Red Dust) | 重厚なベースラインと緊迫感のある展開 |
-| 4 | `TRACK_BOSS` | 宿敵との死闘 (Duel of Crimson) | 激しいパルスリードとスネア連打 |
-| 5 | `TRACK_CLEAR` | ステージクリア ジングル | ファンファーレ |
-| 6 | `TRACK_GAMEOVER`| Tears of Sylph (哀惜の詩) | 69.3 BPM (13 f/step) Ys風 哀愁バラード旋律（Pulse 1 主旋律＋Pulse 2 和音アルペジオ＋Triangle 下行ベース） |
+| 1 | `TRACK_TITLE` | SPACE MERCHANT - THE SYONIN | 130 BPM (7 f/step) イースII「THE SYONIN」風の軽妙なスキップと跳ねるような商人テーマ (F → Bb → C → F) |
+| 2 | `TRACK_STAGE1` | LUNAR CATACOMB DRIVE | 150 BPM (6 f/step) D minor 哀愁を帯びた高速メロディ、16分オクターブ＆ギャロップベース、DPCMドラム（全ステージ道中共通） |
+| 3 | `TRACK_STAGE2` | LUNAR CATACOMB DRIVE (共通) | 150 BPM (6 f/step) ※現状は個別曲を持たず、`TRACK_STAGE1` と同一の小節データ（`assets/music_stage.s`）を再生 |
+| 4 | `TRACK_BOSS` | CRIMSON BATTLE GROUND | 180 BPM (5 f/step) E minor イースII「BATTLE GROUND」風 超高速スラッシュビート＆激しいリード |
+| 5 | `TRACK_CLEAR` | INTRODUCTION!! - WARP OVERDRIVE | 150 BPM (6 f/step) E minor 『Introduction!!』風 4ch＋DPCM 疾走ファンファーレ＆クリスタル分散和音（全4小節。ワープ追撃2.5s〜ブリーフィング3.9sを連動再生） |
+| 6 | `TRACK_GAMEOVER`| TEARS OF SYLPH (哀惜の詩) | 69.3 BPM (13 f/step) Ys風 哀愁バラード旋律（Pulse 1 主旋律＋Pulse 2 和音アルペジオ＋Triangle 下行ベース） |
 
 ### 8.3 効果音 (SFX) 定数・発音仕様
 SFX は Pulse 2 および Noise チャンネルを一時的に占有して再生される。効果音タイマー満了で自動的に BGM 出力へ復帰する。
@@ -351,6 +353,8 @@ SFX は Pulse 2 および Noise チャンネルを一時的に占有して再生
 | `SFX_DEAD` (7) | 自機撃墜・大破ミス | Pulse 2 + Noise | 48f | 矩形波急降下クラッシュ音 ＋ 金属激震ロング大爆轟 ($8A→$0B→$0F) |
 | `SFX_WARP` (8) | ワープ・急加速 | Pulse 2 | 40f | 高音スイープ加速音 |
 | `SFX_DOCK` (9) | ドッキング合体 | Pulse 2 + Noise | 28f | 重厚クラッチ衝撃音 ＋ 金属ラッチ「ガッ・シャン！！」 |
+| `SFX_1UP` (10) | 20,000点 1UP ファンファーレ | Pulse 2 | 56f | 「ぱぱぱぱーん。」（20,000点到達ごとの1UP告知） |
+
 
 ---
 
