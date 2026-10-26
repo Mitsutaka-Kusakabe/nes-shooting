@@ -64,18 +64,22 @@ shot("briefing", 2)
 for _ in range(120):
     run_frame(0)
 
-# ---------------------------------------------------------------- キャラクタ画像 (縦スクロール道中)
+# ---------------------------------------------------------------- キャラクタ画像 (自機形態)
 ram("inv_timer", 0)
 clear_field()
 ram("player_x", 120)
 ram("player_y", 120)
-for wt, name in [(0, "form1"), (1, "form2"), (2, "form25"), (3, "form3")]:
+# form1: 縦スクロール初期戦闘機 (side_mode=0)
+# form2, form25, form3: 横画面ボス決闘・最新形態スプライト (side_mode=1)
+for wt, name, sm in [(0, "form1", 0), (1, "form2", 1), (2, "form25", 1), (3, "form3", 1)]:
+    ram("side_mode", sm)
     ram("weapon_type", wt)
     ram("weapon_level", 3 if wt == 3 else (2 if wt else 1))
     ram("inv_timer", 0)
     ram("laser_timer", 0)
     ram("shot_timer", 99)
     shot(name, 6, crop=(108, 108, 40, 40))
+ram("side_mode", 0)
 
 # 敵4種
 clear_field()
