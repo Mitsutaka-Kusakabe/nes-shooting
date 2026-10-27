@@ -7,7 +7,9 @@
 **縦スクロールの宇宙戦 → 味方支援機との合体 → 横画面でのロボットMS (Mitame Sugoi: 見た目凄い) 1対1ボス戦** という流れで、全4宙域を突破します。  
 6502 アセンブラ (`cc65` / `ca65` + `ld65`) を用いてフルスクラッチで実装しています。
 
-> 細かい挙動・数値・内部仕様は **[docs/SPEC.md（詳細仕様書）](docs/SPEC.md)** にまとめています。
+> 🔰 **ファミコン開発初心者向け解説**: **[docs/TECHNICAL_GUIDE.md（技術説明書）](docs/TECHNICAL_GUIDE.md)**  
+> （CPU/PPU/APUの基本アーキテクチャ、メインループ、画面描画、入力処理、音楽再生をコード付きで徹底解説）  
+> 内部仕様・数値・数式は **[docs/SPEC.md（詳細仕様書）](docs/SPEC.md)** にまとめています。  
 > 本リポジトリのWebツールは **[GitHub Pages](https://mitsutaka-kusakabe.github.io/nes-shooting/)** でブラウザから直接ご利用いただけます。
 
 ## ▶ プレイ方法 (Webエミュレータ)
@@ -204,6 +206,7 @@ make clean                      # ビルド成果物を削除
 │   ├── state.s           # タイトル・ブリーフィング・ワープ・エンディング・ボス戦モード・OAM描画
 │   └── sound.s           # APU サウンドエンジン (BGM シーケンサ & SFX)
 ├── docs/
+│   ├── TECHNICAL_GUIDE.md    # ファミコン開発初心者向け技術説明書 (アーキテクチャ、描画、入力、音楽)
 │   ├── SPEC.md               # 内部技術仕様書 (メモリマップ、APU、数式)
 │   ├── editor/               # Web ステージエディタ (index.html / manual.html / editor.js)
 │   ├── audio-editor/         # Web 楽曲エディタ (index.html / manual.html / audio-editor.js)
