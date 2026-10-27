@@ -21,16 +21,16 @@ init_stage_bg:
     ; 現在ステージの level_maps ポインタをセット (level_maps + current_stage * 64)
     lda current_stage
     and #3
-    lsr                     ; C = bit0, A = bit1
-    lda #0
-    ror                     ; A = (current_stage & 1) ? $80 : $00
-    lsr                     ; A = (current_stage & 1) ? $40 : $00
+    asl
+    asl
+    asl
+    asl
+    asl
+    asl                     ; A = (current_stage & 3) * 64 ($00, $40, $80, $C0)
     clc
     adc #<level_maps
     sta level_ptr
-    lda current_stage
-    and #3
-    lsr                     ; A = current_stage >> 1 (0 or 1)
+    lda #0
     adc #>level_maps
     sta level_ptr+1
 

@@ -661,6 +661,11 @@ enter_stage_play:
     adc #TRACK_STAGE1
     jsr set_bgm_track
 
+    ; VBlank を待ってから安全に描画とスクロールを有効化
+    bit PPUSTATUS
+:   bit PPUSTATUS
+    bpl :-
+
     bit PPUSTATUS
     lda #$00
     sta PPUSCROLL
@@ -752,6 +757,11 @@ enter_boss_battle_play:
     ; BGM開始
     lda #TRACK_BOSS
     jsr set_bgm_track
+
+    ; VBlank を待ってから安全に描画とスクロールを有効化
+    bit PPUSTATUS
+:   bit PPUSTATUS
+    bpl :-
 
     ; PPU横スクロール設定
     bit PPUSTATUS
