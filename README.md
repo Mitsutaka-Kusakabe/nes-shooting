@@ -151,6 +151,14 @@
 
 APU 4チャンネル（矩形波×2、三角波、ノイズ）＋ DPCM ドラムで、タイトル・道中（『LUNAR CATACOMB DRIVE』全ステージ共通）・ボス戦・ステージ移動（『Introduction!!』風 4ch＋DPCM 高速シンセロック＆クリスタルアルペジオアレンジ）・ゲームオーバー（「Tears of Sylph」Ys風アレンジ）の BGM を実装。ミサイル、レーザー、プラズマ、ヒット、ピッチスイープ大爆発音、自機大破撃墜音（急降下クラッシュ＋ロング重爆轟）、ドッキング合体音（「ガッ・シャン！！」）、20,000点1UPファンファーレ（「ぱぱぱぱーん。」）、ワープなどの効果音を搭載しています。
 
+### ボーカルアレンジ版（audio/）
+通常ステージBGM「LUNAR CATACOMB DRIVE」の公式ボーカルアレンジ楽曲およびVOICEVOX調声プロジェクトを `audio/` ディレクトリに収録しています。
+- `audio/LUNAR_CATACOMB_DRIVE_VOCAL.mp3` : 完成ボーカル楽曲（中低音アルト版）
+- `audio/LUNAR_CATACOMB_DRIVE_VOCAL.wav` : スタジオ品質WAV版
+- `audio/LUNAR_CATACOMB_DRIVE_UTA.vvproj` : VOICEVOX ソング調声プロジェクトファイル
+- `audio/vocal_user_tuned.wav` : 調声済みボーカルトラック単体
+- `audio/bgm_inst.wav` : ファミコンAPU伴奏オケ単体
+
 ## 必要環境・ビルド方法
 
 ビルドには [cc65](https://cc65.github.io/) ツールチェーン（`ca65` / `ld65`）、`python3`、および `make` を使用します（Windows 環境では WSL 上でのビルドに対応しています）。
@@ -250,4 +258,9 @@ make clean                      # ビルド成果物を削除
 
 ## ライセンス
 
-MIT
+本プロジェクトのプログラムコードは MIT ライセンスです。
+
+### 音声クレジット・利用規約
+- 歌声合成には [VOICEVOX](https://voicevox.hiroshiba.jp/) および「波音リツ」の音声ライブラリを使用しています。
+- クレジット表記: **VOICEVOX:波音リツ**
+- 利用規約: [波音リツ利用規約](http://canon-voice.com/kiyaku.html)
