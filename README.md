@@ -156,6 +156,7 @@ APU 4チャンネル（矩形波×2、三角波、ノイズ）＋ DPCM ドラム
 - `audio/LUNAR_CATACOMB_DRIVE_VOCAL.mp3` : 完成ボーカル楽曲（中低音アルト版）
 - `audio/LUNAR_CATACOMB_DRIVE_VOCAL.wav` : スタジオ品質WAV版
 - `audio/LUNAR_CATACOMB_DRIVE_UTA.vvproj` : VOICEVOX ソング調声プロジェクトファイル
+- `audio/LYRICS.md` : 歌詞カード（歌詞全文・楽曲情報）
 - `audio/vocal_user_tuned.wav` : 調声済みボーカルトラック単体
 - `audio/bgm_inst.wav` : ファミコンAPU伴奏オケ単体
 
