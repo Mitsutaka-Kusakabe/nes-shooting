@@ -153,6 +153,14 @@
 
 APU 4チャンネル（矩形波×2、三角波、ノイズ）＋ DPCM ドラムで、タイトル・道中（『LUNAR CATACOMB DRIVE』全ステージ共通）・ボス戦・ステージ移動（『Introduction!!』風 4ch＋DPCM 高速シンセロック＆クリスタルアルペジオアレンジ）・ゲームオーバー（「Tears of Sylph」Ys風アレンジ）の BGM を実装。ミサイル、レーザー、プラズマ、ヒット、ピッチスイープ大爆発音、自機大破撃墜音（急降下クラッシュ＋ロング重爆轟）、ドッキング合体音（「ガッ・シャン！！」）、20,000点1UPファンファーレ（「ぱぱぱぱーん。」）、ワープなどの効果音を搭載しています。
 
+### ゲームオリジナルBGM音源（audio/）
+ゲーム内で再生されるファミコン 2A03 APU（矩形波×2、三角波、ノイズ、DPCMドラム）の全オリジナル楽曲を、スタジオ品質 WAV および高音質 MP3（320kbps）で `audio/` ディレクトリに収録しています。
+- `audio/bgm_01_title_space_merchant.mp3` / `.wav` : タイトルBGM「SPACE MERCHANT - THE SYONIN」（YS2 The Syonin style, 130 BPM）
+- `audio/bgm_02_stage_lunar_catacomb_drive.mp3` / `.wav` : 通常ステージBGM「LUNAR CATACOMB DRIVE」（150 BPM, D minor）
+- `audio/bgm_03_boss_crimson_battle_ground.mp3` / `.wav` : ボス戦BGM「CRIMSON BATTLE GROUND」（YS2 Battle Ground style, 180 BPM）
+- `audio/bgm_04_clear_warp_overdrive.mp3` / `.wav` : ステージ移動/クリアBGM「INTRODUCTION!! - WARP OVERDRIVE」（150 BPM）
+- `audio/bgm_05_gameover_tears_of_sylph.mp3` / `.wav` : ゲームオーバーBGM「TEARS OF SYLPH」（Ys風アレンジ, 69.3 BPM）
+
 ### ボーカルアレンジ版（audio/）
 通常ステージBGM「LUNAR CATACOMB DRIVE」の公式ボーカルアレンジ楽曲およびVOICEVOX調声プロジェクトを `audio/` ディレクトリに収録しています。
 - `audio/LUNAR_CATACOMB_DRIVE_VOCAL.mp3` : 完成ボーカル楽曲（中低音アルト版）
@@ -205,6 +213,15 @@ make clean                      # ビルド成果物を削除
 │   ├── boss.s            # 中ボス/紅蓮のMS の AI・狂乱モード・荷電粒子ビーム・撃破演出
 │   ├── state.s           # タイトル・ブリーフィング・ワープ・エンディング・ボス戦モード・OAM描画
 │   └── sound.s           # APU サウンドエンジン (BGM シーケンサ & SFX)
+├── audio/
+│   ├── bgm_01_title_space_merchant.*      # タイトルBGM (MP3 / WAV)
+│   ├── bgm_02_stage_lunar_catacomb_drive.*# 通常ステージBGM (MP3 / WAV)
+│   ├── bgm_03_boss_crimson_battle_ground.*# ボス戦BGM (MP3 / WAV)
+│   ├── bgm_04_clear_warp_overdrive.*      # ステージ移動/クリアBGM (MP3 / WAV)
+│   ├── bgm_05_gameover_tears_of_sylph.*   # ゲームオーバーBGM (MP3 / WAV)
+│   ├── LUNAR_CATACOMB_DRIVE_VOCAL.*       # 通常ステージ曲 公式ボーカルアレンジ (MP3 / WAV)
+│   ├── LUNAR_CATACOMB_DRIVE_UTA.vvproj    # VOICEVOX ソング調声プロジェクト
+│   └── LYRICS.md                          # 歌詞カード
 ├── docs/
 │   ├── TECHNICAL_GUIDE.md    # ファミコン開発初心者向け技術説明書 (アーキテクチャ、描画、入力、音楽)
 │   ├── SPEC.md               # 内部技術仕様書 (メモリマップ、APU、数式)
